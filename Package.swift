@@ -6,7 +6,10 @@ import PackageDescription
 let package = Package(
     name: "whooshing.toolbox-server",
     platforms: [
-       .macOS(.v13)
+        .macOS(.v10_15),
+        .iOS(.v13),
+        .watchOS(.v6),
+        .tvOS(.v13),
     ],
     products: [
         .library( name: "WhooshingServer", targets: ["WhooshingServer"] )
