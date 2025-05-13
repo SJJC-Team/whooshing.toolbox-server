@@ -10,6 +10,10 @@ import Logging
 /// 而非默认的 HTTPS。使用自定加密算法，这也意味着将不受浏览器的支持，
 /// 因此，若配置了该加密中间件，则无法在浏览器上访问该服务
 
+#if canImport(Vapor)
+
+#endif
+
 extension Application {
     var inlineServiceData: Inline.ServiceData! { self.storage[Inline.ServiceData.self] }
 }

@@ -34,7 +34,7 @@ extension Inline {
         let logger: Logger
         
         /// 发送请求时，进行编码并加密
-        func send(request: ClientRequest, dataChunk: ByteBuffer, context: ChannelHandlerContext, allocator: ByteBufferAllocator, streaming: Bool) -> EventLoopFuture<ByteBuffer> {
+        func send(request: HTTPRequest, dataChunk: ByteBuffer, context: ChannelHandlerContext, allocator: ByteBufferAllocator, streaming: Bool) -> EventLoopFuture<ByteBuffer> {
             do {
                 let cipher: Data
                 let id = ObjectIdentifier(context.channel)
@@ -49,7 +49,7 @@ extension Inline {
         }
         
         /// 收到响应时，进行解密并解码
-        func get(response: ByteBuffer, bufferStrategy: BufferStrategy, context: ChannelHandlerContext, streaming: Bool) -> EventLoopFuture<(ClientResponse?, ByteBuffer)> {
+        func get(response: ByteBuffer, bufferStrategy: BufferStrategy, context: ChannelHandlerContext, streaming: Bool) -> EventLoopFuture<(HTTPResponse?, ByteBuffer)> {
             do {
                 let id = ObjectIdentifier(context.channel)
                 var plain: ByteBuffer
@@ -64,7 +64,7 @@ extension Inline {
                     dic: client.requestIoData.readingBufferDatas,
                     streaming: streaming
                 ).flatMapThrowing { data in
-                    if let d = data { return (try ClientResponse(data: d), plainStable) } 
+                    if let d = data { return (try HTTPResponse(data: d), plainStable) } 
                     else { return (nil, plainStable) }
                 }
             } catch let err {

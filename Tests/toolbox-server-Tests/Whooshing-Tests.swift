@@ -2,12 +2,13 @@ import Testing
 @testable import WhooshingServer
 import Vapor
 import Foundation
+import WhooshingClient
 
 @Suite("Whooshing 工具测试")
 struct WhooshingTests {
     
     @Test("测试环境变量读取") func testEnvironmentDetect() async throws {
-        let project = try #require(Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+        let project = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
@@ -21,7 +22,7 @@ struct WhooshingTests {
             "WHOOSHING_API_SERVICE_DB_2_PORT": "6000",
             "WHOOSHING_API_SERVICE_DB_2_USER": "woowoo",
             "WHOOSHING_API_SERVICE_DB_2_PASSWORD": "woo_testwoo_test",
-        ][key] })
+        ][key] }
         #expect(project.name == "Testing Project")
         #expect(project.domain == "testing.whooshing.space")
         #expect(project.port == 7777)
@@ -38,7 +39,7 @@ struct WhooshingTests {
     }
     
     @Test("测试环境变量读取2") func testEnvironmentDetect2() async throws {
-        let project = try #require(Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+        let project = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DB_COUNT": "2",
@@ -51,7 +52,7 @@ struct WhooshingTests {
             "WHOOSHING_API_SERVICE_DB_2_PORT": "6000",
             "WHOOSHING_API_SERVICE_DB_2_USER": "woowoo",
             "WHOOSHING_API_SERVICE_DB_2_PASSWORD": "woo_testwoo_test",
-        ][key] })
+        ][key] }
         #expect(project.name == "Testing Project")
         #expect(project.domain == nil)
         #expect(project.port == 7777)
@@ -68,8 +69,8 @@ struct WhooshingTests {
     }
     
     @Test("测试环境变量读取3") func testEnvironmentDetect3() async throws {
-        do {
-            let _ = try #require(Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+        #expect(throws: Error.self, performing: {
+            let _ = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_DB_COUNT": "3",
                 "WHOOSHING_API_SERVICE_DB_1_NAME": "testdb",
@@ -77,16 +78,13 @@ struct WhooshingTests {
                 "WHOOSHING_API_SERVICE_DB_2_NAME": "testdb_2",
                 "WHOOSHING_API_SERVICE_DB_2_PORT": "6000",
                 "WHOOSHING_API_SERVICE_DB_3_NAME": "testdb_3",
-            ][key] })
-            #expect(Bool(false), "错误的环境变量仍然成功运行了")
-        } catch {
-            #expect(Bool(true))
-        }
+            ][key] }
+        })
     }
     
     @Test("测试环境变量读取4") func testEnvironmentDetect4() async throws {
-        do {
-            let _ = try #require(Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+        #expect(throws: Error.self, performing: {
+            let _ = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_DB_COUNT": "3",
                 "WHOOSHING_API_SERVICE_DB_1_NAME": "testdb",
@@ -95,22 +93,13 @@ struct WhooshingTests {
                 "WHOOSHING_API_SERVICE_DB_2_PORT": "6000",
                 "WHOOSHING_API_SERVICE_DB_3_NAME": "testdb_3",
                 "WHOOSHING_API_SERVICE_DB_3_PORT": "HELLOWORLD!",
-            ][key] })
-            #expect(Bool(false), "错误的环境变量仍然成功运行了")
-        } catch {
-            #expect(Bool(true))
-        }
+            ][key] }
+        })
     }
 
-    @Test("测试 ClientResponse 与 Data 互转") func testClientResponseToData() async throws {
-        var origin = "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\ncontent-length: 13\r\n\r\nHello, world!"
-        do {
-            let res = try ClientResponse(data: .init(data: origin.data(using: .utf8)!))
-            origin = origin.replacingOccurrences(of: "\r\n", with: "\n")
-            #expect(res.description == origin)
-        } catch let err {
-            print(err)
-            #expect(Bool(false))
-        }
+    @Test("测试 HTTPResponse 与 Data 互转") func testHTTPResponseToData() async throws {
+        let origin = "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\ncontent-length: 13\r\n\r\nHello, world!"
+        let res = try HTTPResponse(data: .init(data: origin.data(using: .utf8)!))
+        #expect(res.description == origin)
     }
 }

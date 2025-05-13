@@ -18,7 +18,8 @@ let package = Package(
         .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/SJJC-Team/whooshing-fluent.git", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-basic.git", .upToNextMajor(from: "1.2.3")),
-        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-client", .upToNextMajor(from: "1.0.0")),
+        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-client-vapor", .upToNextMajor(from: "1.0.0")),
+        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-pgsql.git", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.10.0"),
         .package(url: "https://github.com/apple/swift-nio-extras.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.82.1"),
@@ -30,8 +31,8 @@ let package = Package(
                 .product(name: "ErrorHandle", package: "whooshing.toolbox-basic"),
                 .product(name: "DataConvertable", package: "whooshing.toolbox-basic"),
                 .product(name: "Cryptos", package: "whooshing.toolbox-basic"),
-                .product(name: "PgSQL", package: "whooshing.toolbox-basic"),
-                .product(name: "WhooshingClient", package: "whooshing.toolbox-client"),
+                .product(name: "PgSQL", package: "whooshing.toolbox-pgsql"),
+                .product(name: "WhooshingClient", package: "whooshing.toolbox-client-vapor"),
                 .product(name: "Vapor", package: "whooshing-vapor"),
                 .product(name: "Fluent", package: "whooshing-fluent"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
@@ -43,6 +44,7 @@ let package = Package(
         .testTarget(
             name: "toolbox-server-Tests",
             dependencies: [
+                .product(name: "WhooshingClient", package: "whooshing.toolbox-client-vapor"),
                 .target(name: "WhooshingServer")
             ]
         ),

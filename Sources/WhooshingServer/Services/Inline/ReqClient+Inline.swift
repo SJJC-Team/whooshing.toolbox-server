@@ -10,7 +10,6 @@ import WhooshingClient
 /// 而是自定的加密算法，因此向其请求时需要使用特定的加密逻辑。
 
 final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked Sendable {
-    
     typealias Value = InlineReqClient
 
     enum InlineReqErr: String, ErrList {
@@ -24,13 +23,13 @@ final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked 
     func send(
         _ method: HTTPMethod,
         headers: HTTPHeaders,
-        to url: URI,
+        to url: WebURI,
         bufferStrategy: BufferStrategy,
         beforeSend: @escaping BeforeSendAction,
         afterSend: @escaping AsyncAfterSendAction,
         progress: @escaping ProgressAction
-    ) -> EventLoopFuture<ClientResponse?> {
-        let req = ClientRequest(method: method, url: url, headers: headers, body: nil, byteBufferAllocator: self.byteBufferAllocator)
+    ) -> EventLoopFuture<HTTPResponse?> {
+        let req = HTTPRequest(method: method, url: url, headers: headers, body: nil)
         return self.makeChannel(url: req.url).flatMap { (channel, handler, _) in
             do {
                 var request = req
@@ -52,7 +51,7 @@ final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked 
         }
     }
     
-    private func _send(request: ClientRequest, bufferStrategy: BufferStrategy, channel: Channel, handler: RequestHandler, progress: @escaping @Sendable (ProgressContext<ClientResponse?>) throws -> Void) -> EventLoopFuture<ClientResponse?> {
+    private func _send(request: HTTPRequest, bufferStrategy: BufferStrategy, channel: Channel, handler: RequestHandler, progress: @escaping ProgressAction) -> EventLoopFuture<HTTPResponse?> {
         let id = ObjectIdentifier(channel)
         let procedure: Int
         if self.requestIoData.connectionKeys[id] == nil { procedure = 0 }
@@ -86,7 +85,7 @@ final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked 
         let data: Data
     }
     
-    private func keyExchange(req: ClientRequest, channel: Channel, handler: RequestHandler) -> EventLoopFuture<Void> {
+    private func keyExchange(req: HTTPRequest, channel: Channel, handler: RequestHandler) -> EventLoopFuture<Void> {
         self.logger?.trace("Inline.Client-密钥交换中: 创建公私钥对")
         let keyPair = Crypto.Asym.makeCryptoKeyPair()
         self.logger?.trace("Inline.Client-密钥交换中: 将公钥发送于目标")
@@ -109,7 +108,7 @@ final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked 
         }
     }
     
-    private func serviceValidate(req: ClientRequest, channel: Channel, handler: RequestHandler) -> EventLoopFuture<Void> {
+    private func serviceValidate(req: HTTPRequest, channel: Channel, handler: RequestHandler) -> EventLoopFuture<Void> {
         self.logger?.trace("Inline.Client-进行服务验证: 将自己的服务 ID 发送于目标")
         guard let body = try? JSONEncoder().encode(JSONData(data: self.requestIoData.serviceID.data())) else { return channel.eventLoop.makeFailedFuture(InlineReqErr.unknowSendError.d("JSON 编码失败", 13004, (#file, #line))) }
         return self.send(.init(method: .POST, url: req.url, headers: ["content-type": "application/json"], body: .init(data: body)), channel: channel, handler: handler, bufferStrategy: .collect, progress: { _ in }).flatMapThrowing { response in

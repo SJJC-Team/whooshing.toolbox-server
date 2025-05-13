@@ -50,14 +50,14 @@ extension API {
             req.logger.trace("API.Server-与客户端密钥交换: 向认证模块发送认证请求")
             return req.application.apiServiceData.inlineClient.asyncPost(
                 authenticationURL.toUri(with: "/user/auth"),
-                beforeSend: { req, _ in try req.content.encode(authData, as: .json) }, 
+                beforeSend: { req, _ in try req.jsonBodyEncode(authData) },
                 afterSend: InlineReqClient.defaultAfterSend
             )
             .hop(to: channel.eventLoop)
             .flatMapThrowing { res in
                 guard res.status == .ok else { throw Err.requestFailed.d("请求的状态码结果为: \(res.status), 结果为: \(res.body != nil ? String(buffer: res.body!) : "nil")", 12001, (#file, #line)) }
                 req.logger.trace("API.Server-与客户端密钥交换: 从认证模块返回的结果解析用户口令")
-                let token = try res.content.decode(Crypto.Symm.Key.self)
+                let token = try res.jsonBodyDecode(Crypto.Symm.Key.self)
                 req.logger.trace("API.Server-与客户端密钥交换: 生成新的密钥，用做通讯加密")
                 let newKey = Crypto.Symm.makeKey()
                 req.logger.trace("API.Server-与客户端密钥交换: 将新密钥使用用户口令加密，作为响应直接返回给客户端")
