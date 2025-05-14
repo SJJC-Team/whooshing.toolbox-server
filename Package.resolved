@@ -321,8 +321,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SJJC-Team/whooshing.toolbox-pgsql.git",
       "state" : {
-        "revision" : "3cff3e50c1d1a5a653661dd8993b861687d0389f",
-        "version" : "1.0.0"
+        "revision" : "e1780a5de2e65d70792c1c48b9f5ff35fe019918",
+        "version" : "1.0.1"
       }
     }
   ],
