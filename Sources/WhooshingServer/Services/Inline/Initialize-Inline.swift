@@ -14,7 +14,7 @@ public enum Inline: ServiceType {
     
     public static var envPrefix: String { "WHOOSHING_INLINE_SERVICE" }
     
-    public struct Testing: TestConfig {
+    public struct Debuging: DebugConfig {
         public let rootKey: Crypto.Symm.Key
         public let serviceId: UUID
         public let moduleDatas: [ModuleData]
@@ -73,9 +73,9 @@ extension Inline {
         woo.app.http.server.configuration.serviceName = "INLINE"
         
         let serviceId: UUID
-        if let test = woo.testingData {
-            woo.app.logger.notice("获取模块 ID (Testing, 不实际读取环境变量)")
-            serviceId = test.serviceId
+        if let debug = woo.debugingData {
+            woo.app.logger.notice("获取模块 ID (Debuging, 不实际读取环境变量)")
+            serviceId = debug.serviceId
         } else {
             woo.app.logger.debug("从环境变量中取得该服务模块的参数")
             serviceId = try ServicePara.parse(prefix: "WHOOSHING_INLINE_SERVICE_PRIVATE").serviceId
@@ -100,12 +100,12 @@ extension Inline {
         
         let rootKey: Crypto.Symm.Key
         
-        if let test = woo.testingData {
-            woo.app.logger.notice("获取服务根密钥以及服务模块参数列表 (Testing, 不实际与模块管理器交互)")
-            rootKey = test.rootKey
+        if let debug = woo.debugingData {
+            woo.app.logger.notice("获取服务根密钥以及服务模块参数列表 (Debuging, 不实际与模块管理器交互)")
+            rootKey = debug.rootKey
             woo.app.storage[ServiceData.self] = ServiceData(
                 rootKey: rootKey,
-                moduleDatas: test.moduleDatas
+                moduleDatas: debug.moduleDatas
             )
         } else {
             woo.app.logger.trace("与模块管理器交互: 创建非对称公私钥")

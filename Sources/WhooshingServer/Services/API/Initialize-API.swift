@@ -10,7 +10,7 @@ public enum API: ServiceType {
     
     public static var envPrefix: String { "WHOOSHING_API_SERVICE" }
     
-    public struct Testing: TestConfig {
+    public struct Debuging: DebugConfig {
         public typealias UserToken = Crypto.Symm.Key
         public typealias Auth = @Sendable (AuthExchangeData) throws -> UserToken
         public let auth: Auth
@@ -44,19 +44,19 @@ public enum API: ServiceType {
         woo.app.logger.debug("从环境变量中取得该服务模块的参数")
         
         let authenticationURL: URL
-        let testingAuth: Testing.Auth?
-        if let test = woo.testingData {
+        let debugAuth: Debuging.Auth?
+        if let debug = woo.debugingData {
             authenticationURL = .init(string: "http://testing.com")!
-            testingAuth = test.auth
+            debugAuth = debug.auth
         } else {
             authenticationURL = try ServicePara.parse(prefix: "WHOOSHING_API_SERVICE_PRIVATE").authenticationURL
-            testingAuth = nil
+            debugAuth = nil
         }
         
         woo.app.logger.debug("注册 HTTP IO 加密模块")
         woo.app.use(httpIOHandler: HttpIOCrypto(app: woo))
         woo.app.logger.debug("注册客户端身份验证中间件")
-        woo.app.middleware.use(GuardMiddleware(authenticationURL: authenticationURL, testingAuth: testingAuth))
+        woo.app.middleware.use(GuardMiddleware(authenticationURL: authenticationURL, debugingAuth: debugAuth))
         woo.app.logger.debug("初始化服务数据")
         woo.app.storage[ServiceData.self] = .init(inlineClient: inlineClient)
     }

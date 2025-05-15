@@ -10,7 +10,7 @@ extension API {
 
     struct GuardMiddleware: Middleware {
         let authenticationURL: URL
-        let testingAuth: Testing.Auth?
+        let debugingAuth: Debuging.Auth?
 
         fileprivate enum Err: String, ErrList {
             var domain: String { "woo.api.sys.middleware.guard.err" }
@@ -44,9 +44,9 @@ extension API {
             let id = ObjectIdentifier(channel)
             
             let r: EventLoopFuture<Crypto.Symm.Key>
-            if let testing = testingAuth {
+            if let debuging = debugingAuth {
                 req.logger.trace("API.Server-进行用户身份认证 (Testing, 并不实际向认证模块请求认证)")
-                r = channel.eventLoop.submit { try testing(authData) }
+                r = channel.eventLoop.submit { try debuging(authData) }
             } else {
                 req.logger.trace("API.Server-与客户端密钥交换: 向认证模块发送认证请求")
                 r = req.application.apiServiceData.inlineClient.asyncPost(
