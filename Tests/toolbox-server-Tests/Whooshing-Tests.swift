@@ -8,7 +8,7 @@ import WhooshingClient
 struct WhooshingTests {
     
     @Test("测试环境变量读取") func testEnvironmentDetect() async throws {
-        let project = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+        let project = try WhooshingEnvironment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
@@ -39,7 +39,7 @@ struct WhooshingTests {
     }
     
     @Test("测试环境变量读取2") func testEnvironmentDetect2() async throws {
-        let project = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+        let project = try WhooshingEnvironment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DB_COUNT": "2",
@@ -70,7 +70,7 @@ struct WhooshingTests {
     
     @Test("测试环境变量读取3") func testEnvironmentDetect3() async throws {
         #expect(throws: Error.self, performing: {
-            let _ = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            let _ = try WhooshingEnvironment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_DB_COUNT": "3",
                 "WHOOSHING_API_SERVICE_DB_1_NAME": "testdb",
@@ -84,7 +84,7 @@ struct WhooshingTests {
     
     @Test("测试环境变量读取4") func testEnvironmentDetect4() async throws {
         #expect(throws: Error.self, performing: {
-            let _ = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            let _ = try WhooshingEnvironment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_DB_COUNT": "3",
                 "WHOOSHING_API_SERVICE_DB_1_NAME": "testdb",

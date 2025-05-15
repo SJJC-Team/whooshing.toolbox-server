@@ -9,15 +9,15 @@ import WhooshingClient
 /// 该文件实现了发送加密请求的功能。由于目标模块的加密算法并非传统的 HTTPS，
 /// 而是自定的加密算法，因此向其请求时需要使用特定的加密逻辑。
 
+public enum InlineReqErr: String, ErrList {
+    public var domain: String { "woo.sys.inline.reqclient.err" }
+    case targetBadResponse = "目标返回了不正常的响应"
+    case targetIncorrectResponseBody = "目标的响应体不正确"
+    case unknowSendError = "发送时遇到未知错误"
+}
+
 final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked Sendable {
     typealias Value = InlineReqClient
-
-    enum InlineReqErr: String, ErrList {
-        var domain: String { "woo.sys.inline.reqclient.err" }
-        case targetBadResponse = "目标返回了不正常的响应"
-        case targetIncorrectResponseBody = "目标的响应体不正确"
-        case unknowSendError = "发送时遇到未知错误"
-    }
     
     @Sendable 
     func send(

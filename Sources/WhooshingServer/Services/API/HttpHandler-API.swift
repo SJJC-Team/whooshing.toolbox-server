@@ -9,26 +9,25 @@ import WhooshingClient
 /// 该文件实现了 API 模块接收和发出的加密机制 Socket 流处理
 /// 每个 API 请求前必须经过身份验证
 
-extension Application {
-    var apiServiceData: API.ServiceData! { self.storage[API.ServiceData.self] }
+extension Whooshing where Service == API {
+    var apiServiceData: API.ServiceData! { self.app.storage[API.ServiceData.self] }
 }
 
 extension API {
     
     final class ServiceData: StorageKey, Sendable {
         typealias Value = ServiceData
-        let inlineClient: InlineReqClient
+        unowned let inlineClient: WhooshingClient
         let clientKeys: SendableDictionary<ObjectIdentifier, Crypto.Symm.Key> = .init()
         let clientTokens: SendableDictionary<ObjectIdentifier, Crypto.Symm.Key> = .init()
 
-        init(inlineClient: InlineReqClient) {
+        init(inlineClient: WhooshingClient) {
             self.inlineClient = inlineClient
         }
     }
     
     struct HttpIOCrypto: HTTPIOHandler, Sendable {
-        let app: Application
-        let authenticationURL: URL
+        unowned let app: Whooshing<API>
         
         /// 有客户端请求进入
         func input(request: Data, context: ChannelHandlerContext, streaming: Bool) -> EventLoopFuture<Data?> {

@@ -1,5 +1,5 @@
 {
-  "originHash" : "82bcb8c9795007884f6e483f3e1e4a07e76b4c9610e92bd376babdb1964dee25",
+  "originHash" : "314c38478a7c514a4baeceefc2c63d53f2ba1e3806c0e8571a3a28dd3900fc86",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/postgres-nio.git",
       "state" : {
-        "revision" : "5d817be55cae8b00003b7458944954558302d006",
-        "version" : "1.25.0"
+        "revision" : "9ce15a43a31e55be13dc83fa9be799cac16ce865",
+        "version" : "1.26.0"
       }
     },
     {
@@ -295,7 +295,7 @@
       "location" : "https://github.com/SJJC-Team/whooshing-vapor.git",
       "state" : {
         "revision" : "c008120bf37e8df1bb444f112581ebf2a9fe1633",
-        "version" : "1.0.3"
+        "version" : "1.0.4"
       }
     },
     {
@@ -305,15 +305,6 @@
       "state" : {
         "revision" : "6c33c6fdffecf396410c368f255cc942d0dfd688",
         "version" : "1.3.6"
-      }
-    },
-    {
-      "identity" : "whooshing.toolbox-client-vapor",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-client-vapor",
-      "state" : {
-        "revision" : "77c3dae731592546160b97ed1c7f2a56d820db8d",
-        "version" : "1.1.4"
       }
     },
     {

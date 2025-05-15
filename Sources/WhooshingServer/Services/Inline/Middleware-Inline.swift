@@ -80,3 +80,7 @@ extension Inline {
         }
     }
 }
+
+fileprivate extension Application {
+    var inlineServiceData: Inline.ServiceData! { self.storage[Inline.ServiceData.self] }
+}
