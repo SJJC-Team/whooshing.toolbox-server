@@ -3,10 +3,22 @@ import Cryptos
 import ErrorHandle
 import DataConvertable
 import NIO
+import WhooshingClient
 import Logging
 
 /// 该文件定义了一个守护中间件，拒绝非法连接请求(例如加密算法错误导致的数据格式不正确)并解密加密请求。
 /// 确保传递到之后的路由时该请求是被解密的以便处理。
+
+public extension Inline {
+    enum ProtocolErr: String, ErrList {
+        public typealias ErrType = HTTPResponseError
+        public var domain: String { "woo.inline.sys.middleware.guard.err" }
+        case serviceIdNotValid = "服务模块不可信，ID 验证失败"
+        case keyExchangeFailed = "与服务模块通讯时密钥交换失败"
+        case serviceValidateFailed = "与服务模块通讯时验证失败"
+        case unknowError = "未知错误"
+    }
+}
 
 extension Inline {
     
@@ -15,16 +27,8 @@ extension Inline {
         
         let serviceId: UUID
         
-        fileprivate enum Err: String, ErrList {
-            var domain: String { "woo.inline.sys.middleware.guard.err" }
-            case serviceIdNotValid = "服务模块不可信，ID 验证失败"
-            case keyExchangeFailed = "与服务模块通讯时密钥交换失败"
-            case serviceValidateFailed = "与服务模块通讯时验证失败"
-            case unknowError = "未知错误"
-        }
-        
         func respond(to req: Request, chainingTo next: any Responder) -> NIOCore.EventLoopFuture<Response> {
-            guard let channel = req.channel else { return req.eventLoop.makeFailedFuture(Err.unknowError.d("未找到 Channel", 10013, (#file, #line))) }
+            guard let channel = req.channel else { return req.eventLoop.makeFailedFuture(Inline.ProtocolErr.unknowError.d("未找到 Channel", 10013).adds(.internalServerError)) }
             let id = ObjectIdentifier(channel)
             if req.application.inlineServiceData.connectionValidate[id] == true {
                 req.logger.debug("Inline.Server-处理已认证客户端的真正请求: \(channel.serverAddrInfo)")
@@ -59,7 +63,7 @@ extension Inline {
                 req.logger.trace("Inline.Server-与客户端密钥交换: 发送自己的公钥")
                 return req.eventLoop.makeSucceededFuture(Response(status: .ok, body: .init(data: keyPair.public.data())))
             } catch let err {
-                return req.eventLoop.makeFailedFuture(Err.keyExchangeFailed.d(10012, #file, #line).subErr(err))
+                return req.eventLoop.makeFailedFuture(Inline.ProtocolErr.keyExchangeFailed.d(10012).subErr(err).adds(.internalServerError))
             }
         }
 
@@ -70,15 +74,19 @@ extension Inline {
                 req.logger.trace("Inline.Server-与客户端服务验证: 取得对方的服务 ID")
                 let serviceId = try UUID(data: req.content.decode(JSONData.self).data)
                 req.logger.trace("Inline.Server-与客户端服务验证: 判断该 ID 是否可信")
-                guard serviceId != self.serviceId else { throw Err.serviceIdNotValid.d("请求来源的服务 ID 与本服务一致", 15000, (#file, #line)) }
+                guard serviceId != self.serviceId else { throw Inline.ProtocolErr.serviceIdNotValid.d("请求来源的服务 ID 与本服务一致", 15000).adds(.badRequest) }
                 let res = req.application.inlineServiceData.moduleDatas.contains { $0.serviceId == serviceId }
-                guard res == true else { throw Err.serviceIdNotValid.d(10011, #file, #line) }
+                guard res == true else { throw Inline.ProtocolErr.serviceIdNotValid.d(10011).adds(.badRequest) }
                 req.logger.trace("Inline.Server-与客户端服务验证: 设置标志位")
                 req.application.inlineServiceData.connectionValidate[id] = true
                 req.logger.trace("Inline.Server-与客户端服务验证: 发送回执，表示验证成功")
                 return req.eventLoop.makeSucceededFuture(.init(status: .ok, body: .init(data: "authorized".data(using: .utf8)!)))
             } catch let err {
-                return req.eventLoop.makeFailedFuture(Err.serviceValidateFailed.d(10013, #file, #line).subErr(err))
+                if let err = err as? HTTPResponseError {
+                    return req.eventLoop.makeFailedFuture(err)
+                } else {
+                    return req.eventLoop.makeFailedFuture(Inline.ProtocolErr.serviceValidateFailed.d(15010).subErr(err).adds(.internalServerError))
+                }
             }
         }
     }

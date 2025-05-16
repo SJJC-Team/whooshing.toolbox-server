@@ -7,6 +7,8 @@ struct Shared {
     static let rootKey = Crypto.Symm.Key(data: Data(base64Encoded: rootKeyStr)!)
     static let rootKeyStr = "0apYyvRtLuo7l07zuqbEjFIxDFZ1sIWabKM9mMOOIzQ="
     
+    static let apiClientCredential = "bRRPIiYbt0t4RzfqeeHSkg=="
+
     static let apiClientToken = Crypto.Symm.Key(data: Data(base64Encoded: apiClientTokenStr)!)
     static let apiClientTokenStr = "jXTz4vTQk0O/XFIjWQIHLC7z9/E0/4VtEb+LkF8IcA4="
 

@@ -45,8 +45,8 @@ extension Environment {
         init()
     }
 
-    enum Err: String, ErrList {
-        var domain: String { "woo.sys.err" }
+    public enum Err: String, ErrList {
+        public var domain: String { "woo.sys.env.err" }
         case parseFailed = "环境变量解析失败"
         case typeIncorrect = "环境变量配置类型不匹配"
         case missingKey = "环境变量配置字段缺失"
@@ -67,21 +67,21 @@ extension Environment.Template {
             let value: String!
             
             switch v {
-            case .string, .int, .intArr, .url, .uri, .uuid, .stringArr: guard let vv = getValue(k) else { throw Environment.Err.missingKey.d(k, 10000, (#file, #line)) }; value = vv
+            case .string, .int, .intArr, .url, .uri, .uuid, .stringArr: guard let vv = getValue(k) else { throw Environment.Err.missingKey.d(k, 10000) }; value = vv
                 default: value = nil
             }
             
             switch v {
                 case .string: values[key] = value
-                case .int: guard let v = Int(value) else { throw Environment.Err.typeIncorrect.d(k, 10003, (#file, #line)) }; values[key] = v
+                case .int: guard let v = Int(value) else { throw Environment.Err.typeIncorrect.d(k, 10003) }; values[key] = v
                 case .stringArr: values[key] = value.split(separator: ",").map { String($0) }
-                case .url: guard let v = URL(string: value) else { throw Environment.Err.typeIncorrect.d(k, 10004, (#file, #line)) }; values[key] = v
+                case .url: guard let v = URL(string: value) else { throw Environment.Err.typeIncorrect.d(k, 10004) }; values[key] = v
                 case .uri: values[key] = URI(string: value)
-                case .uuid: guard let v = UUID(uuidString: value) else { throw Environment.Err.typeIncorrect.d(k, 10096, (#file, #line)) }; values[key] = v
-                case .intArr: values[key] = try value.split(separator: ",").map { guard let v = Int($0) else { throw Environment.Err.typeIncorrect.d(k, (#file, #line)) }; return v }
+                case .uuid: guard let v = UUID(uuidString: value) else { throw Environment.Err.typeIncorrect.d(k, 10096) }; values[key] = v
+                case .intArr: values[key] = try value.split(separator: ",").map { guard let v = Int($0) else { throw Environment.Err.typeIncorrect.d(k) }; return v }
                 case .dataTemplate(let template):
-                    guard let countStr = getValue(k + "_COUNT") else { throw Environment.Err.missingKey.d(k + "_COUNT", 10001, (#file, #line)) }
-                    guard let count = Int(countStr) else { throw Environment.Err.typeIncorrect.d(k, 10002, (#file, #line)) }
+                    guard let countStr = getValue(k + "_COUNT") else { throw Environment.Err.missingKey.d(k + "_COUNT", 10001) }
+                    guard let count = Int(countStr) else { throw Environment.Err.typeIncorrect.d(k, 10002) }
                     var vs: [Environment.Template] = []
                     for i in 0..<count {
                         vs.append(try template.parse(prefix: "\(k)_\(i + 1)", getValue: getValue))

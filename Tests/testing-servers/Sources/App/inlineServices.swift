@@ -36,6 +36,12 @@ struct InlineService1 {
             }
         }
 
+        for method in [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE] {
+            app.on(method, "no-body") { req in
+                return "NO-BODY"
+            }
+        }
+
         for method in [HTTPMethod.POST, .PATCH, .PUT] {
             app.on(method, "streaming-echo", body: .stream) { req in
                 guard 

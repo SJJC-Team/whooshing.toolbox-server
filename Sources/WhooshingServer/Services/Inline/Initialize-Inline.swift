@@ -60,14 +60,14 @@ public enum Inline: ServiceType {
             return try d.filtered.anyValue.data()
         }
     }
+    
+    public enum ConfigErr: String, ErrList {
+        public var domain: String { "woo.inline.sys.init.err" }
+        case initializeFailed = "服务初始化失败"
+    }
 }
 
 extension Inline {
-    enum Err: String, ErrList {
-        var domain: String { "woo.inline.sys.init.err" }
-        case initializeFailed = "服务初始化失败"
-    }
-    
     /// 配置 Inline 服务模块
     static func config(_ woo: Whooshing<Inline>) async throws {
         woo.app.http.server.configuration.serviceName = "INLINE"
@@ -114,7 +114,7 @@ extension Inline {
             let res = try await woo.app.client.post(woo.config.managerUrl.toUri(with: "/params/init").uri) { postRequest in
                 try postRequest.content.encode(keyPair.public, as: .json)
             }
-            guard res.status == .ok else { throw Err.initializeFailed.d("请求模块管理器的结果为: \(res.status)", 10010, (#file, #line)) }
+            guard res.status == .ok else { throw ConfigErr.initializeFailed.d("请求模块管理器的结果为: \(res.status)", 10010) }
             woo.app.logger.trace("与模块管理器交互: 解包服务器回复")
             let paras = try res.content.decode(InitParaRes.self)
             woo.app.logger.trace("与模块管理器交互: 生成共享密钥")
