@@ -14,7 +14,7 @@ struct InlineStreamingTests {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 10000
         try await client.streamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
-            let data = randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
+            let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
             storage[currentIndex] = data
             return data
         }, progress: { progress in
@@ -55,7 +55,7 @@ struct InlineStreamingTests {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 10000
         try await client.asyncStreamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
-            let data = randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
+            let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
             storage[currentIndex] = data
             return channel.eventLoop.makeSucceededFuture(data)
         }, progress: { progress in
@@ -79,7 +79,7 @@ struct InlineStreamingTests {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 1000000
         try await client.streamPost("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
-            let data = randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
+            let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
             storage[currentIndex] = data
             return data
         }, progress: { progress in
@@ -98,10 +98,10 @@ struct InlineStreamingTests {
         #expect(storage.isEmpty)
     }
     
-    func randomData(size: Int) -> ByteBuffer {
+    static func randomData(size: Int) -> ByteBuffer {
         var buffer = ByteBufferAllocator().buffer(capacity: size)
-        var randomBytes = [UInt8](repeating: 0, count: size)
-        _ = SecRandomCopyBytes(kSecRandomDefault, size, &randomBytes)
+        var rng = SystemRandomNumberGenerator()
+        let randomBytes = (0..<size).map { _ in UInt8.random(in: 0...255, using: &rng) }
         buffer.writeBytes(randomBytes)
         return buffer
     }

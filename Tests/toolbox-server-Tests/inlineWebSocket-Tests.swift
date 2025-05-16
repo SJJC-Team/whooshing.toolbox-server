@@ -25,7 +25,7 @@ struct InlineWebSocketTests {
                     Task {
                         var printIndex = 0
                         for i in 0..<times {
-                            var data = randomData(size: chunkSize)
+                            var data = Self.randomData(size: chunkSize)
                             var d = ByteBuffer(integer: i)
                             d.writeBuffer(&data)
                             try await ws.send(d.readBytes(length: chunkSize)!)
@@ -83,10 +83,10 @@ struct InlineWebSocketTests {
         await #expect(throws: NIOConnectionError.self, performing: { try await ws.connect(to: "ws://127.0.0.1:100000", onUpgrade: { _ in }) })
     }
     
-    func randomData(size: Int) -> ByteBuffer {
+    static func randomData(size: Int) -> ByteBuffer {
         var buffer = ByteBufferAllocator().buffer(capacity: size)
-        var randomBytes = [UInt8](repeating: 0, count: size)
-        _ = SecRandomCopyBytes(kSecRandomDefault, size, &randomBytes)
+        var rng = SystemRandomNumberGenerator()
+        let randomBytes = (0..<size).map { _ in UInt8.random(in: 0...255, using: &rng) }
         buffer.writeBytes(randomBytes)
         return buffer
     }

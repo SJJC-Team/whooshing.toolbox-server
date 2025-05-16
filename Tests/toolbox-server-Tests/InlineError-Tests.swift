@@ -61,15 +61,15 @@ struct InlineErrorTests {
     func streamWrongBodySizeTest(method: HTTPMethod) async throws {
         await #expect(throws: BscError.self, performing: {
             try await client.streamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/stream-echo", bodySize: 1000) { request, channel, maxChunk, currentIndex in
-                randomData(size: 10000)
+                Self.randomData(size: 10000)
             }
         })
     }
     
-    func randomData(size: Int) -> ByteBuffer {
+    static func randomData(size: Int) -> ByteBuffer {
         var buffer = ByteBufferAllocator().buffer(capacity: size)
-        var randomBytes = [UInt8](repeating: 0, count: size)
-        _ = SecRandomCopyBytes(kSecRandomDefault, size, &randomBytes)
+        var rng = SystemRandomNumberGenerator()
+        let randomBytes = (0..<size).map { _ in UInt8.random(in: 0...255, using: &rng) }
         buffer.writeBytes(randomBytes)
         return buffer
     }

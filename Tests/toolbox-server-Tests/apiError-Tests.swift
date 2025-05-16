@@ -68,8 +68,8 @@ struct ApiErrorTests {
     
     static func randomData(size: Int) -> ByteBuffer {
         var buffer = ByteBufferAllocator().buffer(capacity: size)
-        var randomBytes = [UInt8](repeating: 0, count: size)
-        _ = SecRandomCopyBytes(kSecRandomDefault, size, &randomBytes)
+        var rng = SystemRandomNumberGenerator()
+        let randomBytes = (0..<size).map { _ in UInt8.random(in: 0...255, using: &rng) }
         buffer.writeBytes(randomBytes)
         return buffer
     }
