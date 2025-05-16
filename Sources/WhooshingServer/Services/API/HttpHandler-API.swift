@@ -27,7 +27,7 @@ extension API {
     }
     
     struct HttpIOCrypto: HTTPIOHandler, Sendable {
-        unowned let app: Whooshing<API>
+        weak var app: Whooshing<API>!
         
         /// 有客户端请求进入
         func input(request: Data, context: ChannelHandlerContext, streaming: Bool) -> EventLoopFuture<Data?> {
@@ -76,10 +76,12 @@ extension API {
 
         /// 连线结束
         func connectionEnd(context: ChannelHandlerContext, info: ChannelInfo) -> EventLoopFuture<Void> {
-            app.logger.debug("API.Server-连线结束: \(context.channel.serverAddrInfo)")
             let id = ObjectIdentifier(context.channel)
-            app.apiServiceData.clientKeys[id] = nil
-            app.apiServiceData.clientTokens[id] = nil
+            if let app = self.app {
+                app.logger.debug("API.Server-连线结束: \(context.channel.serverAddrInfo)")
+                app.apiServiceData.clientKeys[id] = nil
+                app.apiServiceData.clientTokens[id] = nil
+            }
             return context.eventLoop.makeSucceededVoidFuture()
         }
     }

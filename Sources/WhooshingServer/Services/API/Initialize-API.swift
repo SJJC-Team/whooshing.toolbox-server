@@ -24,7 +24,7 @@ public enum API: ServiceType {
             self.auth = auth
         }
         
-        public func testingTokenAuth(with origin: String, encrypted: Data) throws -> Crypto.Symm.Key {
+        public static func testingTokenAuth(with origin: String, encrypted: Data) throws -> Crypto.Symm.Key {
             let keyData = try Base64String(origin).data()
             let key = Crypto.Symm.Key(data: keyData)
             let authData: Data = try Crypto.Symm.decrypt(encrypted, key: key)

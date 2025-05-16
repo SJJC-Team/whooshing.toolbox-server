@@ -16,8 +16,9 @@ public protocol DebugConfig {
 
 public final class Whooshing<Service>: @unchecked Sendable where Service: ServiceType {
     public enum Env {
-        case env(Environment)
-        case debug(Service.Debuging)
+        case production
+        case debug
+        case independentDebug(Service.Debuging)
     }
     
     public let app: Application
@@ -45,11 +46,15 @@ public final class Whooshing<Service>: @unchecked Sendable where Service: Servic
         let config: Environment.Config
         
         switch environment {
-        case .env(let e):
-            env = e
+        case .production:
+            env = .production
             debuggingData = nil
             config = try Environment.get(with: Service.envPrefix)
-        case .debug(let debugPara):
+        case .debug:
+            env = .development
+            debuggingData = nil
+            config = try Environment.get(with: Service.envPrefix)
+        case .independentDebug(let debugPara):
             env = .development
             debuggingData = debugPara
             config = debugPara.config

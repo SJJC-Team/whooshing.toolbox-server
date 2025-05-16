@@ -15,7 +15,8 @@ let package = Package(
         .library( name: "WhooshingServer", targets: ["WhooshingServer"] )
     ],
     dependencies: [
-        .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", .upToNextMajor(from: "1.0.0")),
+//        .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", .upToNextMajor(from: "1.0.0")),
+        .package(path: "/Users/clwang/GitHub/whooshing-vapor"),
         .package(url: "https://github.com/SJJC-Team/whooshing-fluent.git", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-basic.git", .upToNextMajor(from: "1.2.3")),
 //        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-client-vapor", .upToNextMajor(from: "1.0.0")),
@@ -45,6 +46,10 @@ let package = Package(
             dependencies: [
                 .product(name: "WhooshingClient", package: "whooshing.toolbox-client-vapor"),
                 .target(name: "WhooshingServer")
+            ],
+            resources: [
+                .process("Books.zip"),
+                .process("test.png")
             ]
         ),
     ]

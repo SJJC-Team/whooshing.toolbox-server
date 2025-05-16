@@ -13,7 +13,7 @@ public extension Environment {
         
         public init(
             name: String,
-            port: Int = 5000,
+            port: Int = 6500,
             databases: [DB] = [],
             managerUrl: URL = .init(string: "http://testing.com")!,
             domain: String? = nil

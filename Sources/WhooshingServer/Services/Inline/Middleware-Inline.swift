@@ -13,6 +13,8 @@ extension Inline {
     /// 守护中间件，实现了加密访问的加密算法流程，确保后续路由可以正确解析请求
     struct GuardMiddleware: Middleware {
         
+        let serviceId: UUID
+        
         fileprivate enum Err: String, ErrList {
             var domain: String { "woo.inline.sys.middleware.guard.err" }
             case serviceIdNotValid = "服务模块不可信，ID 验证失败"
@@ -68,6 +70,7 @@ extension Inline {
                 req.logger.trace("Inline.Server-与客户端服务验证: 取得对方的服务 ID")
                 let serviceId = try UUID(data: req.content.decode(JSONData.self).data)
                 req.logger.trace("Inline.Server-与客户端服务验证: 判断该 ID 是否可信")
+                guard serviceId != self.serviceId else { throw Err.serviceIdNotValid.d("请求来源的服务 ID 与本服务一致", 15000, (#file, #line)) }
                 let res = req.application.inlineServiceData.moduleDatas.contains { $0.serviceId == serviceId }
                 guard res == true else { throw Err.serviceIdNotValid.d(10011, #file, #line) }
                 req.logger.trace("Inline.Server-与客户端服务验证: 设置标志位")
