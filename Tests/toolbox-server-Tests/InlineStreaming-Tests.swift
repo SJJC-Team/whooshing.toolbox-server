@@ -37,17 +37,13 @@ struct InlineStreamingTests {
     func sendStreamingThrowingTest() async throws {
         let totalSize = 10000
         let error = Abort(.init(statusCode: 1111, reasonPhrase: "Testing"))
-        do {
-            throw try #require(await #expect(throws: Abort.self, performing: {
-                try await client.streamPost("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
-                    throw error
-                })
-            }))
-        } catch let err {
-            let err = try #require(err as? Abort)
-            #expect(err.status == error.status)
-            #expect(err.reason == error.reason)
-        }
+        let err =  try #require(await #expect(throws: Abort.self, performing: {
+            try await client.streamPost("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
+                throw error
+            })
+        }))
+        #expect(err.status == error.status)
+        #expect(err.reason == error.reason)
     }
     
     @Test("Send async stream 流请求测试", arguments: [HTTPMethod.POST, .PATCH, .PUT])
