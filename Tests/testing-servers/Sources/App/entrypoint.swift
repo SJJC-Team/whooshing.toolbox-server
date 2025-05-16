@@ -8,10 +8,9 @@ enum Entrypoint {
         var e = try Environment.detect()
         try LoggingSystem.bootstrap(from: &e)
         
-        let inline1 = try await InlineService1.makeService()
+        let inline = try await InlineService.makeService()
         
-        async let _ = try await ServiceBootstrap.run(woo: inline1)
-        async let _ = try await InlineService2.runService()
-        async let _ = try await ApiService.runService(inline: inline1)
+        async let _ = try await ServiceBootstrap.run(woo: inline)
+        async let _ = try await ApiService.runService(inline: inline)
     }
 }

@@ -16,12 +16,36 @@ public enum Inline: ServiceType {
     
     public static var envPrefix: String { "WHOOSHING_INLINE_SERVICE" }
     
+    /// 用于在无依赖 debug (Whooshing.Env.independentDebug) 模式下运行的依赖参数
+    ///
+    /// 伪造该模块所必须的服务根密钥，服务 Id，以及所有模块的服务 ID 以无依赖运行
+    ///
+    /// > 在一般的 .production 或 .debug 模式下，
+    /// 这些参数会通过 Whooshing 系统的环境变量解析得到，
+    /// 而在独立无依赖运行模式下，需要手动提供
     public struct Debuging: DebugConfig {
+        /// 服务根密钥，用于初始化 Inline 服务
         public let rootKey: Crypto.Symm.Key
+        /// 该服务模块的服务 ID，用于初始化 Inline 服务，并作为与客户端通讯的首次加密密钥
         public let serviceId: UUID
+        /// 其他服务模块的信息，用于验证服务来源是否可信，
+        /// 若有服务模块的服务 ID 不在此列，该服务模块将拒绝此连线
         public let moduleDatas: [ModuleData]
+        /// 服务配置，原来通过 Whooshing 系统环境变量自动获取
+        ///
+        /// 指定诸如监听地址，PostgreSQL 数据库的连线参数，等等
+        /// 见 ``Environment.Config``
         public let config: Environment.Config
         
+        /// 提供参数初始化 Inline 依赖参数
+        ///
+        /// - Parameters:
+        ///   - rootKey: 服务根密钥，用于初始化 Inline 服务
+        ///   - config: 服务配置
+        ///   - serviceId: 该服务模块的服务 ID
+        ///   - moduleDatas: 其他服务模块的信息，用于验证服务来源是否可信
+        /// - Returns:
+        ///   初始化的 Inline 依赖参数
         public init(
             rootKey: Crypto.Symm.Key,
             config: Environment.Config = .init(),

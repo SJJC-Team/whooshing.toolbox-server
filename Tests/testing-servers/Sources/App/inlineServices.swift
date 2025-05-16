@@ -2,8 +2,7 @@ import Vapor
 import WhooshingServer
 import Cryptos
 
-struct InlineService1 {
-    
+struct InlineService {
     static func makeService() async throws -> Whooshing<Inline> {
         let testPara = Inline.Debuging(
             rootKey: Shared.rootKey,
@@ -111,27 +110,6 @@ struct InlineService1 {
                     }
                 }
             }
-        }
-    }
-}
-
-struct InlineService2 {
-    static func runService() async throws {
-        let testPara = Inline.Debuging(
-            rootKey: Shared.rootKey,
-            config: .init(name: "Testing-Inline-6501", port: 6501),
-            serviceId: Shared.serviceIds[1],
-            moduleDatas: Shared.serviceIds.enumerated().map {
-                .init(name: "Testing-Inline-\(6500 + $0)", serviceId: $1, connection: nil)
-            }
-        )
-        
-        try await ServiceBootstrap.runInlineService(with: testPara, routes: routes)
-    }
-        
-    static func routes(_ woo: Whooshing<WhooshingServer.Inline>, app: Application) throws {
-        app.get("hello") { req in
-            return "asfasdfafd"
         }
     }
 }

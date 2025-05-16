@@ -11,8 +11,7 @@ let package = Package(
     ],
     dependencies: [
         // 💧 Vapor -- Swift 服务器端第三方框架
-        // .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", from: "1.0.0"),
-        .package(path: "/Users/clwang/GitHub/whooshing-vapor"),
+        .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", from: "1.0.0"),
         // ⭐️ Whooshing 系统基本框架
         .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-basic.git", from: "1.2.1"),
         // 🔵 Swift 高性能网络通讯模块
@@ -21,8 +20,8 @@ let package = Package(
         .package(url: "https://github.com/SJJC-Team/whooshing-fluent.git", from: "1.0.0"),
         // 🐘 对 PostgreSQL 的 Fluent 驱动器
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.8.0"),
-        .package(path: "/Users/clwang/GitHub/whooshing.toolbox-client-vapor"),
-        .package(path: "/Users/clwang/GitHub/whooshing.toolbox-server"),
+        
+        .package(path: "../../../whooshing.toolbox-server"),
     ],
     targets: [
         .executableTarget(
@@ -33,7 +32,6 @@ let package = Package(
                 .product(name: "DataConvertable", package: "whooshing.toolbox-basic"),
                 .product(name: "Cryptos", package: "whooshing.toolbox-basic"),
                 .product(name: "WhooshingServer", package: "whooshing.toolbox-server"),
-                .product(name: "WhooshingClient", package: "whooshing.toolbox-client-vapor"),
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "Fluent", package: "whooshing-fluent"),
