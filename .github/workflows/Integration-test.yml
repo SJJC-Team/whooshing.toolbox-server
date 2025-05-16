@@ -44,7 +44,7 @@ jobs:
 
     - name: Start server in background
       run: |
-        cd Tests/testing-servers/.build/x86_64-unknown-linux-gnu/release/App &
+        Tests/testing-servers/.build/x86_64-unknown-linux-gnu/release/App &
         echo $! > server.pid
 
     - name: Wait for server to be ready
