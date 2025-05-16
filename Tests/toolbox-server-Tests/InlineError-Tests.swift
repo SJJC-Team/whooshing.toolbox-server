@@ -7,15 +7,15 @@ import NIOFileSystem
 import NIOPosix
 import ErrorHandle
 
-@Suite("Whooshing Inline HTTP 当传输遇到错误的处理测试集")
+@Suite("Inline HTTP 当传输遇到错误的处理测试集")
 struct InlineErrorTests {
     
     let testString = "ErrorTesting"
-    let client = InlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
+    let client = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
     
-    let wrongRootKeyClient = InlineClient(rootKey: TestingShared.wrongRootKey, serviceId: TestingShared.serviceIds[1])
-    let wrongServiceIdClient = InlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[0])
-    let randomServiceIdClient = InlineClient(rootKey: TestingShared.rootKey, serviceId: UUID())
+    let wrongRootKeyClient = makeInlineClient(rootKey: TestingShared.wrongRootKey, serviceId: TestingShared.serviceIds[1])
+    let wrongServiceIdClient = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[0])
+    let randomServiceIdClient = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: UUID())
     
     @Test("连线失败", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func connectionFailedTest(method: HTTPMethod) async throws {

@@ -91,6 +91,27 @@ struct InlineService1 {
                 return response 
             }
         }
+
+        for (suffix, size) in [
+            ("normal", 16384),
+            ("largest", ChunkTool.maxChunk)
+        ] {
+            app.webSocket("websocket-echo-\(suffix)", maxFrameSize: .init(integerLiteral: size)) { req, ws in
+                ws.onBinary { ws, data in
+                    ws.send(data)
+                }
+                ws.onClose.whenComplete { result in
+                    switch result {
+                    case .success:
+                        ws.close(promise: nil)
+                        print("WebSocket 正常关闭")
+                    case .failure(let error):
+                        ws.close(promise: nil)
+                        print("WebSocket 错误关闭: \(error)")
+                    }
+                }
+            }
+        }
     }
 }
 

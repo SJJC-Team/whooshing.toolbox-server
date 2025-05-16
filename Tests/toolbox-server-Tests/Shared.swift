@@ -3,6 +3,7 @@ import Foundation
 import NIO
 import Logging
 import WhooshingClient
+import WhooshingWebSocket
 @testable import WhooshingServer
 
 struct TestingShared {
@@ -29,9 +30,10 @@ struct TestingShared {
     ]
 }
 
-func InlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineReqClient {
+func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineReqClient {
     let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-    let logger = Logger(label: "Testing-Inline")
+    var logger = Logger(label: "Testing-Inline")
+//    logger.logLevel = .trace
     let client = InlineReqClient(eventLoop: eventLoop.next(), logger: logger, byteBufferAllocator: .init())
     let ioHandler = Inline.RequestIOCrypto(client: client, logger: logger)
     client.ioHandler = ioHandler
@@ -39,8 +41,46 @@ func InlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineReqClient 
     return client
 }
 
-func apiClient(credential: String, token: String) -> ApiClient {
+func makeInlineWebSocket(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineWebSocket {
+    let client = makeInlineClient(rootKey: rootKey, serviceId: serviceId)
+    return .init(client: client)
+}
+
+func makeApiClient(credential: String, token: String) -> ApiClient {
     let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-    let logger = Logger(label: "Testing-Api")
+    var logger = Logger(label: "Testing-Api")
+//    logger.logLevel = .trace
     return ApiClient(credential: credential, token: token, eventLoop: eventLoop.next(), logger: logger)
+}
+
+func makeApiWebSocket(credential: String, token: String) -> ApiWebSocket {
+    let client = makeApiClient(credential: credential, token: token)
+    return .init(client: client)
+}
+
+
+actor OrderedIndexTracker {
+    private var received = Set<Int>()
+    private let maxIndex: Int
+    init(maxIndex: Int) { self.maxIndex = maxIndex }
+    func insert(_ index: Int) { received.insert(index) }
+    func isReady() -> Bool { received.count == (maxIndex + 1) }
+}
+
+actor Counter {
+    private var max: Int
+    var value = 0
+    
+    init(max: Int, value: Int = 0) {
+        self.max = max
+        self.value = value
+    }
+    
+    func next() -> Int {
+        let current = value
+        value += 1
+        return current
+    }
+    
+    var isLast: Bool { value == max }
 }

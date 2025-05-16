@@ -5,10 +5,10 @@ import Foundation
 import WhooshingClient
 import NIOFileSystem
 
-@Suite("Whooshing Api 文件传输测试集")
+@Suite("Api 文件传输测试集")
 struct ApiFileTests {
     
-    let client = apiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
+    let client = makeApiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
     
     @Test("Send 文件流传输", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func fileSendTest(method: HTTPMethod) async throws {

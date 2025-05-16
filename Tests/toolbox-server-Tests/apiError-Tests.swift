@@ -7,15 +7,15 @@ import NIOFileSystem
 import NIOPosix
 import ErrorHandle
 
-@Suite("Whooshing Api HTTP 当传输遇到错误的处理测试集")
+@Suite("Api HTTP 当传输遇到错误的处理测试集")
 struct ApiErrorTests {
     
     let testString = "ErrorTesting"
-    let client = apiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
+    let client = makeApiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
     
-    let wrongCredentialClient = apiClient(credential: TestingShared.wrongApiClientCredential, token: TestingShared.apiClientTokenStr)
-    let randomCredentialClient = apiClient(credential: Self.randomData(size: 16).data().base64String(), token: TestingShared.apiClientTokenStr)
-    let wrongTokenClient = apiClient(credential: TestingShared.wrongApiClientCredential, token: TestingShared.wrongApiClientTokenStr)
+    let wrongCredentialClient = makeApiClient(credential: TestingShared.wrongApiClientCredential, token: TestingShared.apiClientTokenStr)
+    let randomCredentialClient = makeApiClient(credential: Self.randomData(size: 16).data().base64String(), token: TestingShared.apiClientTokenStr)
+    let wrongTokenClient = makeApiClient(credential: TestingShared.wrongApiClientCredential, token: TestingShared.wrongApiClientTokenStr)
     
     @Test("连线失败", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func connectionFailedTest(method: HTTPMethod) async throws {

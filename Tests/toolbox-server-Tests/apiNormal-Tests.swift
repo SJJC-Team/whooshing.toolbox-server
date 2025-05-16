@@ -4,12 +4,12 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("Whooshing Api 基本网络通讯测试集")
+@Suite("Api 基本网络通讯测试集")
 struct ApiNormalTests {
     
     let testString = "Hello World!"
     
-    let client = apiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
+    let client = makeApiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
     
     @Test("HTTP send zero body 请求测试", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func sendZeroBodyRequestTest(method: HTTPMethod) async throws {

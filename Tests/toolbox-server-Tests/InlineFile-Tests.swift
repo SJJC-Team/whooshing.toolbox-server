@@ -5,10 +5,10 @@ import Foundation
 import WhooshingClient
 import NIOFileSystem
 
-@Suite("Whooshing Inline 文件传输测试集")
+@Suite("Inline 文件传输测试集")
 struct InlineFileTests {
     
-    let client = InlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
+    let client = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
     
     @Test("Send 文件流传输", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func fileSendTest(method: HTTPMethod) async throws {

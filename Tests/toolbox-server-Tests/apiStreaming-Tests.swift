@@ -4,10 +4,10 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("Whooshing Api 流网络通讯测试集")
+@Suite("Api 流网络通讯测试集")
 struct ApiStreamingTests {
     
-    let client = apiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
+    let client = makeApiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
     
     @Test("Send stream 流请求测试", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func sendStreamingTest(method: HTTPMethod) async throws {

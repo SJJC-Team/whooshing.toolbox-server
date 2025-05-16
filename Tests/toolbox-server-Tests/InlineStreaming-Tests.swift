@@ -4,10 +4,10 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("Whooshing Inline 流网络通讯测试集")
+@Suite("Inline 流网络通讯测试集")
 struct InlineStreamingTests {
     
-    let client = InlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
+    let client = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
     
     @Test("Send stream 流请求测试", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func sendStreamingTest(method: HTTPMethod) async throws {

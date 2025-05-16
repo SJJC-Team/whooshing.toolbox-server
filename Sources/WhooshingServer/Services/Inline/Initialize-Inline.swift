@@ -5,9 +5,11 @@ import ErrorHandle
 import DataConvertable
 import NIO
 import Logging
+import WhooshingWebSocket
 
 public extension Whooshing where Service == Inline {
     var inlineClient: WhooshingClient { self.app.storage[InlineReqClient.self]! }
+    var inlineWebSocket: any WhooshingWebSocket { self.app.storage[InlineWebSocket.self]! }
 }
 
 public enum Inline: ServiceType {
@@ -87,12 +89,15 @@ extension Inline {
         woo.app.middleware.use(GuardMiddleware(serviceId: serviceId))
         woo.app.logger.debug("与模块管理器交互，取得可信服务列表并交换密钥")
         let rootKey = try await self.keyExchangeFromManager(woo)
-        woo.app.logger.debug("创建请求 API 提供者")
+        woo.app.logger.debug("创建 API Request Client")
         let client = InlineReqClient(eventLoop: woo.app.eventLoopGroup.next(), logger: woo.app.logger, byteBufferAllocator:.init() )
         let ioHandler = RequestIOCrypto(client: client, logger: woo.app.logger)
         client.ioHandler = ioHandler
         client.storage[Inline.RequestIOData.self] = .init(rootKey: rootKey, serviceID: serviceId)
         woo.app.storage[InlineReqClient.self] = client
+        woo.app.logger.debug("创建 WebSocket Client")
+        let wsClient = InlineWebSocket(client: client)
+        woo.app.storage[InlineWebSocket.self] = wsClient
     }
     
     /// 与模块管理器交互，取得可信服务列表并交换密钥

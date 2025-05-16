@@ -4,12 +4,12 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("Whooshing Inline 基本网络通讯测试集")
+@Suite("Inline 基本网络通讯测试集")
 struct InlineNormalTests {
     
     let testString = "Hello World!"
     
-    let client = InlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
+    let client = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
     
     @Test("HTTP send zero body 请求测试", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func sendZeroBodyRequestTest(method: HTTPMethod) async throws {

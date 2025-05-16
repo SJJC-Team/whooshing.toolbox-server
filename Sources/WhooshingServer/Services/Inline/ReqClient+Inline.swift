@@ -26,7 +26,16 @@ public extension Inline {
 final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked Sendable {
     typealias Value = InlineReqClient
     
-    @Sendable 
+    var key: Crypto.Symm.Key? {
+        guard
+            let ioData = self.storage[Inline.RequestIOData.self],
+            let channel = self.channel,
+            let key = ioData.connectionKeys[ObjectIdentifier(channel)]
+        else { return nil }
+        return key
+    }
+    
+    @Sendable
     func send(
         _ method: HTTPMethod,
         headers: HTTPHeaders,
@@ -56,6 +65,15 @@ final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked 
         }
     }
     
+    deinit {
+        Task { [weak self] in
+            self?.logger?.debug("Inline.Client-主动关闭连接")
+            await self?.closeAll()
+        }
+    }
+}
+
+extension InlineReqClient {
     private func _send(request: HTTPRequest, bufferStrategy: BufferStrategy, channel: Channel, handler: RequestHandler, progress: @escaping ProgressAction) -> EventLoopFuture<HTTPResponse?> {
         let id = ObjectIdentifier(channel)
         let procedure: Int
@@ -131,13 +149,6 @@ final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked 
             } else {
                 return channel.eventLoop.makeFailedFuture(Inline.RequestErr.unknowError.d(15021).subErr(err).adds(.internalServerError))
             }
-        }
-    }
-
-    deinit {
-        Task { [weak self] in
-            self?.logger?.debug("Inline.Client-主动关闭连接")
-            await self?.closeAll()
         }
     }
 }
