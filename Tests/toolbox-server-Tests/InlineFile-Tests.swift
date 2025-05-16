@@ -5,7 +5,7 @@ import Foundation
 import WhooshingClient
 import NIOFileSystem
 
-@Suite("Inline 文件传输测试集")
+@Suite("Inline 文件传输测试集", .enabled(if: TestingShared.inlineServiceListening))
 struct InlineFileTests {
     
     let client = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
@@ -15,7 +15,7 @@ struct InlineFileTests {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let url = try #require(Bundle.module.url(forResource: "test", withExtension: "png"))
         let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.path())))
-        try await client.fileSend(method, to: "http://localhost:6500/file-echo", file: url.path(), progress: { progress in
+        try await client.fileSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/file-echo", file: url.path(), progress: { progress in
             print(progress)
             if let res = progress.response {
                 if progress.index == -1 {
@@ -42,7 +42,7 @@ struct InlineFileTests {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let url = try #require(Bundle.module.url(forResource: "test", withExtension: "png"))
         let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.path())))
-        try await client.asyncFileSend(method, to: "http://localhost:6500/file-echo", file: url.path(), progress: { progress in
+        try await client.asyncFileSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/file-echo", file: url.path(), progress: { progress in
             print(progress)
             if let res = progress.response {
                 if progress.index == -1 {
@@ -69,7 +69,7 @@ struct InlineFileTests {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let url = try #require(Bundle.module.url(forResource: "Books", withExtension: "zip"))
         let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.path())))
-        try await client.filePost("http://localhost:6500/file-echo", file: url.path(), progress: { progress in
+        try await client.filePost("http://localhost:\(TestingShared.inlineListenPort)/file-echo", file: url.path(), progress: { progress in
             print(progress)
             if let res = progress.response {
                 if progress.index == -1 {

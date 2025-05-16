@@ -4,7 +4,7 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("Api 流网络通讯测试集")
+@Suite("Api 流网络通讯测试集", .enabled(if: TestingShared.apiServiceListening))
 struct ApiStreamingTests {
     
     let client = makeApiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
@@ -13,7 +13,7 @@ struct ApiStreamingTests {
     func sendStreamingTest(method: HTTPMethod) async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 10000
-        try await client.streamSend(method, to: "http://localhost:6502/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
+        try await client.streamSend(method, to: "http://localhost:\(TestingShared.apiListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
             let data = randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
             storage[currentIndex] = data
             return data
@@ -37,7 +37,7 @@ struct ApiStreamingTests {
     func asyncSendStreamingTest(method: HTTPMethod) async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 10000
-        try await client.asyncStreamSend(method, to: "http://localhost:6502/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
+        try await client.asyncStreamSend(method, to: "http://localhost:\(TestingShared.apiListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
             let data = randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
             storage[currentIndex] = data
             return channel.eventLoop.makeSucceededFuture(data)
@@ -63,7 +63,7 @@ struct ApiStreamingTests {
         let error = Abort(.init(statusCode: 1111, reasonPhrase: "Testing"))
         do {
             throw try #require(await #expect(throws: Abort.self, performing: {
-                try await client.streamPost("http://localhost:6502/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
+                try await client.streamPost("http://localhost:\(TestingShared.apiListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
                     throw error
                 })
             }))
@@ -78,7 +78,7 @@ struct ApiStreamingTests {
     func sendLargeStreamingTest() async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 1000000
-        try await client.streamPost("http://localhost:6502/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
+        try await client.streamPost("http://localhost:\(TestingShared.apiListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
             let data = randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
             storage[currentIndex] = data
             return data

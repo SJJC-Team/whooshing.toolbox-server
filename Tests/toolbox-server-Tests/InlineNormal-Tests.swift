@@ -4,7 +4,7 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("Inline 基本网络通讯测试集")
+@Suite("Inline 基本网络通讯测试集", .enabled(if: TestingShared.inlineServiceListening))
 struct InlineNormalTests {
     
     let testString = "Hello World!"
@@ -13,7 +13,7 @@ struct InlineNormalTests {
     
     @Test("HTTP send zero body 请求测试", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func sendZeroBodyRequestTest(method: HTTPMethod) async throws {
-        let res = try await client.send(method, to: "http://localhost:6500/no-body")
+        let res = try await client.send(method, to: "http://localhost:\(TestingShared.inlineListenPort)/no-body")
         #expect(res.status == .ok)
         #expect(res.headers.contains(name: "content-length"))
         let length = try Int(#require(res.headers.first(name: "content-length")))
@@ -23,7 +23,7 @@ struct InlineNormalTests {
     
     @Test("HTTP send 请求测试", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func sendRequestTest(method: HTTPMethod) async throws {
-        let res = try await client.send(method, to: "http://localhost:6500/string-echo?value=\(testString)") { req, _ in
+        let res = try await client.send(method, to: "http://localhost:\(TestingShared.inlineListenPort)/string-echo?value=\(testString)") { req, _ in
             try req.bodyEncode(testString, as: HTTPBody.text)
         }
         #expect(res.status == .ok)
@@ -35,7 +35,7 @@ struct InlineNormalTests {
     
     @Test("HTTP async send 请求测试", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func asyncSendRequestTest(method: HTTPMethod) async throws {
-        try await client.asyncSend(method, to: "http://localhost:6500/string-echo?value=\(testString)") { req, _ in
+        try await client.asyncSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/string-echo?value=\(testString)") { req, _ in
             try req.bodyEncode(testString, as: HTTPBody.text)
         }.flatMapThrowing { res in
             #expect(res.status == .ok)
@@ -48,7 +48,7 @@ struct InlineNormalTests {
     
     @Test("HTTP post generic 请求测试")
     func postGenericRequestTest() async throws {
-        let res = try await client.post("http://localhost:6500/string-echo", content: testString, type: HTTPBody.text)
+        let res = try await client.post("http://localhost:\(TestingShared.inlineListenPort)/string-echo", content: testString, type: HTTPBody.text)
         #expect(res.status == .ok)
         #expect(res.headers.contains(name: "content-length"))
         let length = try Int(#require(res.headers.first(name: "content-length")))
@@ -58,7 +58,7 @@ struct InlineNormalTests {
     
     @Test("HTTP patch generic 请求测试")
     func patchGenericRequestTest() async throws {
-        let res = try await client.patch("http://localhost:6500/string-echo", content: testString, type: HTTPBody.text)
+        let res = try await client.patch("http://localhost:\(TestingShared.inlineListenPort)/string-echo", content: testString, type: HTTPBody.text)
         #expect(res.status == .ok)
         #expect(res.headers.contains(name: "content-length"))
         let length = try Int(#require(res.headers.first(name: "content-length")))
@@ -68,7 +68,7 @@ struct InlineNormalTests {
     
     @Test("HTTP put generic 请求测试")
     func putGenericRequestTest() async throws {
-        let res = try await client.put("http://localhost:6500/string-echo", content: testString, type: HTTPBody.text)
+        let res = try await client.put("http://localhost:\(TestingShared.inlineListenPort)/string-echo", content: testString, type: HTTPBody.text)
         #expect(res.status == .ok)
         #expect(res.headers.contains(name: "content-length"))
         let length = try Int(#require(res.headers.first(name: "content-length")))
@@ -78,7 +78,7 @@ struct InlineNormalTests {
     
     @Test("HTTP async post generic 请求测试")
     func asyncPostGenericRequestTest() async throws {
-        try await client.asyncPost("http://localhost:6500/string-echo", content: testString, type: HTTPBody.text).flatMapThrowing { res in
+        try await client.asyncPost("http://localhost:\(TestingShared.inlineListenPort)/string-echo", content: testString, type: HTTPBody.text).flatMapThrowing { res in
             #expect(res.status == .ok)
             #expect(res.headers.contains(name: "content-length"))
             let length = try Int(#require(res.headers.first(name: "content-length")))
@@ -89,7 +89,7 @@ struct InlineNormalTests {
     
     @Test("HTTP async patch generic 请求测试")
     func asyncPatchGenericRequestTest() async throws {
-        try await client.asyncPatch("http://localhost:6500/string-echo", content: testString, type: HTTPBody.text).flatMapThrowing { res in
+        try await client.asyncPatch("http://localhost:\(TestingShared.inlineListenPort)/string-echo", content: testString, type: HTTPBody.text).flatMapThrowing { res in
             #expect(res.status == .ok)
             #expect(res.headers.contains(name: "content-length"))
             let length = try Int(#require(res.headers.first(name: "content-length")))
@@ -100,7 +100,7 @@ struct InlineNormalTests {
     
     @Test("HTTP async put generic 请求测试")
     func asyncPutGenericRequestTest() async throws {
-        try await client.asyncPut("http://localhost:6500/string-echo", content: testString, type: HTTPBody.text).flatMapThrowing { res in
+        try await client.asyncPut("http://localhost:\(TestingShared.inlineListenPort)/string-echo", content: testString, type: HTTPBody.text).flatMapThrowing { res in
             #expect(res.status == .ok)
             #expect(res.headers.contains(name: "content-length"))
             let length = try Int(#require(res.headers.first(name: "content-length")))

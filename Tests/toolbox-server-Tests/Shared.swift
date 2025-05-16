@@ -23,6 +23,12 @@ struct TestingShared {
     static let wrongApiClientToken = Crypto.Symm.Key(data: Data(base64Encoded: wrongApiClientTokenStr)!)
     static let wrongApiClientTokenStr = "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI="
     
+    static let inlineListenPort = 6500
+    static let apiListenPort = 6502
+    
+    static let inlineServiceListening = isTCPPortOpen(inlineListenPort)
+    static let apiServiceListening = isTCPPortOpen(apiListenPort)
+    
     static let serviceIds = [
         UUID(uuidString: "F1ECC1D7-6E19-4F50-9B89-68FAA332B415")!,
         UUID(uuidString: "2AC424F7-F26A-4EA4-BE44-202ABC7CC514")!,
@@ -32,8 +38,7 @@ struct TestingShared {
 
 func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineReqClient {
     let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-    var logger = Logger(label: "Testing-Inline")
-//    logger.logLevel = .trace
+    let logger = Logger(label: "Testing-Inline")
     let client = InlineReqClient(eventLoop: eventLoop.next(), logger: logger, byteBufferAllocator: .init())
     let ioHandler = Inline.RequestIOCrypto(client: client, logger: logger)
     client.ioHandler = ioHandler
@@ -48,14 +53,25 @@ func makeInlineWebSocket(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineWeb
 
 func makeApiClient(credential: String, token: String) -> ApiClient {
     let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-    var logger = Logger(label: "Testing-Api")
-//    logger.logLevel = .trace
+    let logger = Logger(label: "Testing-Api")
     return ApiClient(credential: credential, token: token, eventLoop: eventLoop.next(), logger: logger)
 }
 
 func makeApiWebSocket(credential: String, token: String) -> ApiWebSocket {
     let client = makeApiClient(credential: credential, token: token)
     return .init(client: client)
+}
+
+func isTCPPortOpen(_ port: Int) -> Bool {
+    let task = Process()
+    let pipe = Pipe()
+    task.executableURL = URL(fileURLWithPath: "/bin/bash")
+    task.arguments = ["-c", "lsof -i :\(port)"]
+    task.standardOutput = pipe
+    task.standardError = pipe
+    do { try task.run() } catch { return false }
+    task.waitUntilExit()
+    return task.terminationStatus == 0
 }
 
 
