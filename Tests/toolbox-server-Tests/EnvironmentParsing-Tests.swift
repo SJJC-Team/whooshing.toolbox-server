@@ -4,11 +4,12 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("Whooshing 工具测试")
-struct WhooshingTests {
+@Suite("环境变量解析测试集")
+struct EnvironmentParsingTests {
     
-    @Test("测试环境变量读取") func testEnvironmentDetect() async throws {
-        let project = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+    @Test("测试环境变量读取")
+    func testEnvironmentDetect() async throws {
+        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
@@ -38,8 +39,9 @@ struct WhooshingTests {
         #expect(project.databases[1].password == "woo_testwoo_test")
     }
     
-    @Test("测试环境变量读取2") func testEnvironmentDetect2() async throws {
-        let project = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+    @Test("测试环境变量读取2")
+    func testEnvironmentDetect2() async throws {
+        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DB_COUNT": "2",
@@ -68,9 +70,10 @@ struct WhooshingTests {
         #expect(project.databases[1].password == "woo_testwoo_test")
     }
     
-    @Test("测试环境变量读取3") func testEnvironmentDetect3() async throws {
+    @Test("测试环境变量读取3")
+    func testEnvironmentDetect3() async throws {
         #expect(throws: Error.self, performing: {
-            let _ = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_DB_COUNT": "3",
                 "WHOOSHING_API_SERVICE_DB_1_NAME": "testdb",
@@ -82,9 +85,10 @@ struct WhooshingTests {
         })
     }
     
-    @Test("测试环境变量读取4") func testEnvironmentDetect4() async throws {
+    @Test("测试环境变量读取4")
+    func testEnvironmentDetect4() async throws {
         #expect(throws: Error.self, performing: {
-            let _ = try Env.Project.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_DB_COUNT": "3",
                 "WHOOSHING_API_SERVICE_DB_1_NAME": "testdb",
@@ -97,7 +101,8 @@ struct WhooshingTests {
         })
     }
 
-    @Test("测试 HTTPResponse 与 Data 互转") func testHTTPResponseToData() async throws {
+    @Test("测试 HTTPResponse 与 Data 互转")
+    func testHTTPResponseToData() async throws {
         let origin = "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\ncontent-length: 13\r\n\r\nHello, world!"
         let res = try HTTPResponse(data: .init(data: origin.data(using: .utf8)!))
         #expect(res.description == origin)

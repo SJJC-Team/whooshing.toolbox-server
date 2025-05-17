@@ -30,7 +30,7 @@ extension Inline {
     
     /// 实现 HTTP Request 的加解密
     struct RequestIOCrypto: RequestIOHandler, Sendable {
-        unowned var client: InlineReqClient
+        weak var client: InlineReqClient!
         let logger: Logger
         
         /// 发送请求时，进行编码并加密
@@ -82,9 +82,11 @@ extension Inline {
         func connectionEnd(context: ChannelHandlerContext) -> EventLoopFuture<Void> {
             logger.debug("Inline.Client-连线结束: \(context.channel.clientAddrInfo)")
             let id = ObjectIdentifier(context.channel)
-            client.requestIoData.connectionKeys[id] = nil
-            client.requestIoData.connectionValidate[id] = nil
-            client.requestIoData.readingBufferDatas[id] = nil
+            if let client = self.client {
+                client.requestIoData.connectionKeys[id] = nil
+                client.requestIoData.connectionValidate[id] = nil
+                client.requestIoData.readingBufferDatas[id] = nil
+            }
             return context.eventLoop.makeSucceededVoidFuture()
         }
     }

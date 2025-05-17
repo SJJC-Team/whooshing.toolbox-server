@@ -9,17 +9,33 @@ import WhooshingClient
 /// 该文件实现了发送加密请求的功能。由于目标模块的加密算法并非传统的 HTTPS，
 /// 而是自定的加密算法，因此向其请求时需要使用特定的加密逻辑。
 
-final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked Sendable {
-    typealias Value = InlineReqClient
-
-    enum InlineReqErr: String, ErrList {
-        var domain: String { "woo.sys.inline.reqclient.err" }
-        case targetBadResponse = "目标返回了不正常的响应"
-        case targetIncorrectResponseBody = "目标的响应体不正确"
-        case unknowSendError = "发送时遇到未知错误"
+public extension Inline {
+    enum RequestErr: String, ErrList {
+        public typealias ErrType = HTTPResponseError
+        public var domain: String { "woo.sys.inline.reqclient.err" }
+        case targetIncorrectResponseBody = "响应体解析失败"
+        case unknowError = "响应不正确，未知错误"
     }
     
-    @Sendable 
+    enum RequestInternalErr: String, ErrList {
+        public var domain: String { "woo.sys.inline.reqclient.internal.err" }
+        case unknowSendError = "发送时遇到未知错误"
+    }
+}
+
+final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked Sendable {
+    typealias Value = InlineReqClient
+    
+    var key: Crypto.Symm.Key? {
+        guard
+            let ioData = self.storage[Inline.RequestIOData.self],
+            let channel = self.channel,
+            let key = ioData.connectionKeys[ObjectIdentifier(channel)]
+        else { return nil }
+        return key
+    }
+    
+    @Sendable
     func send(
         _ method: HTTPMethod,
         headers: HTTPHeaders,
@@ -40,9 +56,7 @@ final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked 
                 } else {
                     self.logger?.info("Inline.Client-发送流式请求: \(channel.clientAddrInfo)")
                 }
-                return self._send(request: request, bufferStrategy: bufferStrategy, channel: channel, handler: handler, progress: progress).flatMapError { err in
-                    return channel.eventLoop.makeFailedFuture(err)
-                }.flatMap { res in
+                return self._send(request: request, bufferStrategy: bufferStrategy, channel: channel, handler: handler, progress: progress).flatMap { res in
                     afterSend(channel).map { res }
                 }
             } catch {
@@ -51,6 +65,15 @@ final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked 
         }
     }
     
+    deinit {
+        Task { [weak self] in
+            self?.logger?.debug("Inline.Client-主动关闭连接")
+            await self?.closeAll()
+        }
+    }
+}
+
+extension InlineReqClient {
     private func _send(request: HTTPRequest, bufferStrategy: BufferStrategy, channel: Channel, handler: RequestHandler, progress: @escaping ProgressAction) -> EventLoopFuture<HTTPResponse?> {
         let id = ObjectIdentifier(channel)
         let procedure: Int
@@ -75,8 +98,6 @@ final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked 
                 return r.flatMap {
                     self.logger?.debug("Inline.Client-与服务器发送真正请求: \(channel.clientAddrInfo)")
                     return self.send(request, channel: channel, handler: handler, bufferStrategy: bufferStrategy, progress: progress)
-                }.flatMapError { err in
-                    return channel.eventLoop.makeFailedFuture(InlineReqErr.unknowSendError.d(10095, (#file, #line)).subErr(err))
                 }
         }
     }
@@ -89,44 +110,45 @@ final class InlineReqClient: ReqClient, WhooshingClient, StorageKey, @unchecked 
         self.logger?.trace("Inline.Client-密钥交换中: 创建公私钥对")
         let keyPair = Crypto.Asym.makeCryptoKeyPair()
         self.logger?.trace("Inline.Client-密钥交换中: 将公钥发送于目标")
-        guard let body = try? JSONEncoder().encode(JSONData(data: keyPair.public.data())) else { return channel.eventLoop.makeFailedFuture(InlineReqErr.unknowSendError.d("JSON 编码失败", 13003, (#file, #line))) }
-        return self.send(.init(method: .POST, url: req.url, headers: ["content-type": "application/json"], body: .init(data: body)), channel: channel, handler: handler, bufferStrategy: .collect, progress: { _ in }).flatMapThrowing { response in 
+        guard let body = try? JSONEncoder().encode(JSONData(data: keyPair.public.data())) else { return channel.eventLoop.makeFailedFuture(Inline.RequestInternalErr.unknowSendError.d("JSON 编码失败", 13003)) }
+        return self.send(.init(method: .POST, url: req.url, headers: ["content-type": "application/json"], body: .init(data: body)), channel: channel, handler: handler, bufferStrategy: .collect, progress: { _ in }).flatMapThrowing { response in
             // 此处 response 必定有值，因为 BufferStrategy 是 .collect
             let response = response!
             // 检查对方的响应，对方应当发来自己的公钥
             self.logger?.trace("Inline.Client-密钥交换中: 检查对方发来的公钥")
-            guard response.status == .ok else { throw InlineReqErr.targetBadResponse.d("\(response.status.description)(\(response.status.code))", 10090, (#file, #line)) }
-            guard let data = response.body?.data() else { throw InlineReqErr.targetIncorrectResponseBody.d("预期为公钥，但得到不正确回复", 10091, (#file, #line)) }
+            guard response.status == .ok else { throw Inline.RequestErr.unknowError.d("\(response.status.description)(\(response.status.code))", 10090).adds(.internalServerError) }
+            guard let data = response.body?.data() else { throw Inline.RequestErr.targetIncorrectResponseBody.d("预期为公钥，但得到不正确回复", 10091).adds(.internalServerError) }
             self.logger?.trace("Inline.Client-密钥交换中: 解包对方发来的公钥")
             let targetPub = try Crypto.Asym.CPublicKey(data: data)
             self.logger?.trace("Inline.Client-密钥交换中: 计算共享密钥")
             let sharedKey = try Crypto.Asym.keyEncapsulate(key: keyPair.private, partyPublic: targetPub, salt: Crypto.hash("inline.shared.key"), info: "")
             self.logger?.trace("Inline.Client-密钥交换中: 设置标志位")
             self.requestIoData.connectionKeys[ObjectIdentifier(channel)] = sharedKey
-        }.flatMapError { err in 
-            return channel.eventLoop.makeFailedFuture(err)
+        }.flatMapError { err in
+            if let err = err as? HTTPResponseError {
+                return channel.eventLoop.makeFailedFuture(err)
+            } else {
+                return channel.eventLoop.makeFailedFuture(Inline.RequestErr.unknowError.d(15020).subErr(err).adds(.internalServerError))
+            }
         }
     }
     
     private func serviceValidate(req: HTTPRequest, channel: Channel, handler: RequestHandler) -> EventLoopFuture<Void> {
         self.logger?.trace("Inline.Client-进行服务验证: 将自己的服务 ID 发送于目标")
-        guard let body = try? JSONEncoder().encode(JSONData(data: self.requestIoData.serviceID.data())) else { return channel.eventLoop.makeFailedFuture(InlineReqErr.unknowSendError.d("JSON 编码失败", 13004, (#file, #line))) }
+        guard let body = try? JSONEncoder().encode(JSONData(data: self.requestIoData.serviceID.data())) else { return channel.eventLoop.makeFailedFuture(Inline.RequestInternalErr.unknowSendError.d("JSON 编码失败", 13004)) }
         return self.send(.init(method: .POST, url: req.url, headers: ["content-type": "application/json"], body: .init(data: body)), channel: channel, handler: handler, bufferStrategy: .collect, progress: { _ in }).flatMapThrowing { response in
             // 此处 response 必定有值，因为 BufferStrategy 是 .collect
             let response = response!
             self.logger?.trace("Inline.Client-进行服务验证: 检查对方的响应")
-            guard response.status == .ok else { throw InlineReqErr.targetBadResponse.d("\(response.status.description)(\(response.status.code))", 10092, (#file, #line)) }
+            guard response.status == .ok else { throw Inline.RequestErr.unknowError.d("\(response.status.description)", 10092).adds(response.status) }
             self.logger?.trace("Inline.Client-进行服务验证: 设置标志位")
             self.requestIoData.connectionValidate[ObjectIdentifier(channel)] = true
         }.flatMapError { err in
-            return channel.eventLoop.makeFailedFuture(err)
-        }
-    }
-
-    deinit {
-        Task { [weak self] in
-            self?.logger?.debug("Inline.Client-主动关闭连接")
-            await self?.closeAll()
+            if let err = err as? HTTPResponseError {
+                return channel.eventLoop.makeFailedFuture(err)
+            } else {
+                return channel.eventLoop.makeFailedFuture(Inline.RequestErr.unknowError.d(15021).subErr(err).adds(.internalServerError))
+            }
         }
     }
 }

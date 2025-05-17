@@ -14,8 +14,8 @@ import Logging
 
 #endif
 
-extension Application {
-    var inlineServiceData: Inline.ServiceData! { self.storage[Inline.ServiceData.self] }
+extension Whooshing where Service == Inline {
+    var inlineServiceData: Inline.ServiceData! { self.app.storage[Inline.ServiceData.self] }
 }
 
 extension Inline {
@@ -34,7 +34,7 @@ extension Inline {
     
     /// 实现 HTTP IO 加解密处理
     struct HttpIOCrypto: HTTPIOHandler, Sendable {
-        let app: Application
+        weak var app: Whooshing<Inline>!
         /// 有客户端请求进入
         func input(request: Data, context: ChannelHandlerContext, streaming: Bool) -> EventLoopFuture<Data?> {
             let id = ObjectIdentifier(context.channel)
@@ -73,10 +73,12 @@ extension Inline {
         
         /// 连线结束
         func connectionEnd(context: ChannelHandlerContext, info: ChannelInfo) -> EventLoopFuture<Void> {
-            app.logger.debug("Inline.Server-连线结束: \(context.channel.serverAddrInfo)")
             let id = ObjectIdentifier(context.channel)
-            app.inlineServiceData.connectionKeys[id] = nil
-            app.inlineServiceData.connectionValidate[id] = nil
+            if let app = self.app {
+                app.logger.debug("Inline.Server-连线结束: \(context.channel.serverAddrInfo)")
+                app.inlineServiceData.connectionKeys[id] = nil
+                app.inlineServiceData.connectionValidate[id] = nil
+            }
             return context.eventLoop.makeSucceededVoidFuture()
         }
     }
