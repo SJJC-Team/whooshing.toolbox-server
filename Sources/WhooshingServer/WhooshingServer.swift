@@ -10,7 +10,7 @@ public protocol ServiceType {
     static var envPrefix: String { get }
 }
 
-public protocol DebugConfig {
+public protocol DebugConfig: Sendable {
     var config: Environment.Config { get }
 }
 
@@ -36,7 +36,7 @@ public final class Whooshing<Service>: @unchecked Sendable where Service: Servic
     /// - ``Https.Debuging``
     ///
     /// - Warning: independentDebug 模式应当永远仅仅用作测试，请勿在生产环境使用
-    public struct Mode {
+    public struct Mode: Sendable {
         
         /// 生产环境，使用正式配置
         public static var production: Mode { Mode(envrionment: .production) }

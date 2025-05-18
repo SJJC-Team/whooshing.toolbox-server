@@ -17,7 +17,7 @@ public enum Api: ServiceType {
     /// > 在一般的 .production 或 .debug 模式下，
     /// 这些参数会通过 Whooshing 系统的环境变量解析得到，
     /// 而在独立无依赖运行模式下，需要手动提供
-    public struct Debuging: DebugConfig {
+    public struct Debuging: DebugConfig, Sendable {
         public typealias UserToken = Crypto.Symm.Key
         public typealias Auth = @Sendable (AuthExchangeData) throws -> UserToken
         /// 用户身份认证的机制回调函数

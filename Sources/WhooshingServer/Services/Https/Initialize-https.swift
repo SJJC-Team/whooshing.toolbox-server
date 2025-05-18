@@ -7,7 +7,7 @@ public enum Https: ServiceType {
     
     public static var envPrefix: String { "WHOOSHING_HTTPS_SERVICE" }
     
-    public struct Debuging: DebugConfig {
+    public struct Debuging: DebugConfig, Sendable {
         public let config: Environment.Config
         
         public init(config: Environment.Config = .init()) {

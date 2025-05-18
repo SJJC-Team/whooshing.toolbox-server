@@ -23,7 +23,7 @@ public enum Inline: ServiceType {
     /// > 在一般的 .production 或 .debug 模式下，
     /// 这些参数会通过 Whooshing 系统的环境变量解析得到，
     /// 而在独立无依赖运行模式下，需要手动提供
-    public struct Debuging: DebugConfig {
+    public struct Debuging: DebugConfig, Sendable {
         /// 服务根密钥，用于初始化 Inline 服务
         public let rootKey: Crypto.Symm.Key
         /// 该服务模块的服务 ID，用于初始化 Inline 服务，并作为与客户端通讯的首次加密密钥
