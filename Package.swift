@@ -36,9 +36,6 @@ let package = Package(
                 .product(name: "WhooshingClient", package: "whooshing.toolbox-client-vapor"),
                 .product(name: "WhooshingWebSocket", package: "whooshing.toolbox-websocket-vapor"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver")
-            ],
-            resources: [
-                .process("Services/API/3.API请求流程.png")
             ]
         ),
         .testTarget(
@@ -46,10 +43,6 @@ let package = Package(
             dependencies: [
                 .product(name: "WhooshingClient", package: "whooshing.toolbox-client-vapor"),
                 .target(name: "WhooshingServer")
-            ],
-            resources: [
-                .process("Books.zip"),
-                .process("test.png")
             ]
         ),
     ]

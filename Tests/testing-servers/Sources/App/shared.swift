@@ -47,8 +47,8 @@ struct ServiceBootstrap {
         try await run(woo: woo)
     }
     
-    static func runApiService(with testPara: API.Debuging, inline: Whooshing<Inline>, routes: (Whooshing<API>, Application) throws -> ()) async throws {
-        let woo = try await Whooshing<API>.make(.detect(testPara), with: inline)
+    static func runApiService(with testPara: Api.Debuging, inline: Whooshing<Inline>, routes: (Whooshing<Api>, Application) throws -> ()) async throws {
+        let woo = try await Whooshing<Api>.make(.detect(testPara), with: inline)
         try routes(woo, woo.app)
         try await run(woo: woo)
     }

@@ -12,7 +12,7 @@ struct HttpsFileTests {
     
     @Test("Send 文件流传输", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func fileSendTest(method: HTTPMethod) async throws {
-        let url = try #require(Bundle.module.url(forResource: "test", withExtension: "png"))
+        let url = TestingShared.normalFilePath
         let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.relativePath)))
         let verify = Verifier()
         let counter = Counter(max: Int(info.size))
@@ -22,7 +22,7 @@ struct HttpsFileTests {
                 if progress.index == -1 {
                     print(res)
                     #expect(res.status == .ok)
-                    #expect(res.headers.first(name: .contentDisposition) == "test.png")
+                    #expect(res.headers.first(name: .contentDisposition) == TestingShared.normalFileName)
                 } else {
                     Task { await counter.add(progress.data.readableBytes) }
                 }
@@ -40,7 +40,7 @@ struct HttpsFileTests {
     
     @Test("Send async 文件流传输", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func asyncFileSendTest(method: HTTPMethod) async throws {
-        let url = try #require(Bundle.module.url(forResource: "test", withExtension: "png"))
+        let url = TestingShared.normalFilePath
         let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.relativePath)))
         let verify = Verifier()
         let counter = Counter(max: Int(info.size))
@@ -50,7 +50,7 @@ struct HttpsFileTests {
                 if progress.index == -1 {
                     print(res)
                     #expect(res.status == .ok)
-                    #expect(res.headers.first(name: .contentDisposition) == "test.png")
+                    #expect(res.headers.first(name: .contentDisposition) == TestingShared.normalFileName)
                 } else {
                     Task { await counter.add(progress.data.readableBytes) }
                 }
@@ -68,7 +68,7 @@ struct HttpsFileTests {
     
     @Test("Post 大文件数据流传输")
     func largeFilePostTest() async throws {
-        let url = try #require(Bundle.module.url(forResource: "Books", withExtension: "zip"))
+        let url = TestingShared.largeFilePath
         let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.relativePath)))
         let verify = Verifier()
         let counter = Counter(max: Int(info.size))
@@ -78,7 +78,7 @@ struct HttpsFileTests {
                 if progress.index == -1 {
                     print(res)
                     #expect(res.status == .ok)
-                    #expect(res.headers.first(name: .contentDisposition) == "Books.zip")
+                    #expect(res.headers.first(name: .contentDisposition) == TestingShared.largeFileName)
                 } else {
                     Task { await counter.add(progress.data.readableBytes) }
                 }

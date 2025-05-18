@@ -31,6 +31,11 @@ struct TestingShared {
     static let httpsServiceListening = isTCPPortOpen(httpsListenPort)
     static let apiServiceListening = isTCPPortOpen(apiListenPort)
     
+    static let normalFilePath = URL.homeDirectory.appending(path: "Downloads/test.png")
+    static let normalFileName = "test.png"
+    static let largeFilePath = URL.homeDirectory.appending(path: "Downloads/large.zip")
+    static let largeFileName = "large.zip"
+    
     static let serviceIds = [
         UUID(uuidString: "F1ECC1D7-6E19-4F50-9B89-68FAA332B415")!,
         UUID(uuidString: "2AC424F7-F26A-4EA4-BE44-202ABC7CC514")!,

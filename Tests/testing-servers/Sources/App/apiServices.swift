@@ -4,14 +4,14 @@ import Cryptos
 
 struct ApiService {
     static func runService(inline: Whooshing<Inline>) async throws {
-        let testPara = API.Debuging(config: .init(name: "Tesing-API-\(Shared.apiListenPort)", port: Shared.apiListenPort)) { authData in
+        let testPara = Api.Debuging(config: .init(name: "Tesing-Api-\(Shared.apiListenPort)", port: Shared.apiListenPort)) { authData in
             guard authData.credential.base64EncodedString() == Shared.apiClientCredential else { throw Abort(.badRequest, reason: "用户凭据无效") }
-            return try API.Debuging.testingTokenAuth(with: Shared.apiClientTokenStr, encrypted: authData.tokenEncrypted)
+            return try Api.Debuging.testingTokenAuth(with: Shared.apiClientTokenStr, encrypted: authData.tokenEncrypted)
         }
         try await ServiceBootstrap.runApiService(with: testPara, inline: inline, routes: routes)
     }
         
-    static func routes(_ woo: Whooshing<WhooshingServer.API>, app: Application) throws {
+    static func routes(_ woo: Whooshing<WhooshingServer.Api>, app: Application) throws {
         struct Query: Content {
             let value: String
         }
