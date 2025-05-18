@@ -12,7 +12,7 @@ struct InlineService {
                 .init(name: "Testing-Inline-\(Shared.inlineListenPort + $0)", serviceId: $1, connection: nil)
             }
         )
-        let woo = try await Whooshing<Inline>.make(.independentDebug(testPara))
+        let woo = try await Whooshing<Inline>.make(.detect(testPara))
         try routes(woo, app: woo.app)
         return woo
     }

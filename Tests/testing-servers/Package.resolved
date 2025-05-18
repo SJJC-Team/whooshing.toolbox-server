@@ -317,12 +317,30 @@
       }
     },
     {
+      "identity" : "whooshing.toolbox-client-vapor",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-client-vapor",
+      "state" : {
+        "revision" : "e7b6bc5d1a1b72a1dee0bc1a34ff12f16f3364c3",
+        "version" : "1.1.6"
+      }
+    },
+    {
       "identity" : "whooshing.toolbox-pgsql",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SJJC-Team/whooshing.toolbox-pgsql.git",
       "state" : {
         "revision" : "5164ad65ae96ae5fd7b1a30950b0e4112f70a2f5",
         "version" : "1.0.2"
+      }
+    },
+    {
+      "identity" : "whooshing.toolbox-websocket-vapor",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-websocket-vapor.git",
+      "state" : {
+        "revision" : "826fd50de4e0ceb6dc14048a5ac97b19b9320c74",
+        "version" : "1.0.4"
       }
     }
   ],

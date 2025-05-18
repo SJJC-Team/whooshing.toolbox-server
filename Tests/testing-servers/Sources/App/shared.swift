@@ -36,19 +36,19 @@ struct ServiceBootstrap {
     }
     
     static func runHttpsService(with testPara: Https.Debuging, routes: (Whooshing<Https>, Application) throws -> ()) async throws {
-        let woo = try await Whooshing<Https>.make(.independentDebug(testPara))
+        let woo = try await Whooshing<Https>.make(.detect(testPara))
         try routes(woo, woo.app)
         try await run(woo: woo)
     }
 
     static func runInlineService(with testPara: Inline.Debuging, routes: (Whooshing<Inline>, Application) throws -> ()) async throws {
-        let woo = try await Whooshing<Inline>.make(.independentDebug(testPara))
+        let woo = try await Whooshing<Inline>.make(.detect(testPara))
         try routes(woo, woo.app)
         try await run(woo: woo)
     }
     
     static func runApiService(with testPara: API.Debuging, inline: Whooshing<Inline>, routes: (Whooshing<API>, Application) throws -> ()) async throws {
-        let woo = try await Whooshing<API>.make(.independentDebug(testPara), with: inline)
+        let woo = try await Whooshing<API>.make(.detect(testPara), with: inline)
         try routes(woo, woo.app)
         try await run(woo: woo)
     }

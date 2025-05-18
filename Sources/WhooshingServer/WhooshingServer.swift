@@ -20,9 +20,12 @@ public protocol DebugConfig {
 /// 该类用于启动不同的服务模块，使用 `Whooshing.make(_)` 创建一个 Whooshing 实例
 /// 并调用 `execute()` 或 `excuteWithAsyncShutdown()` 令其运行
 public final class Whooshing<Service>: @unchecked Sendable where Service: ServiceType {
-    /// 启动环境枚举，表示当前服务运行的目标环境
+    
+    /// 启动模式枚举，表示当前服务运行的目标环境
     ///
     /// 可以指定运行模式为 production, debug, independentDebug
+    ///
+    /// Mode.detect 表示自动从环境变量检测运行模式
     ///
     /// 其中，independentDebug 表示不依赖任何外部模块，比如用户身份认证模块，服务管理模块等等
     /// 自动内部处理这些认证请求，保证可无依赖运行在本机。
@@ -33,17 +36,53 @@ public final class Whooshing<Service>: @unchecked Sendable where Service: Servic
     /// - ``Https.Debuging``
     ///
     /// - Warning: independentDebug 模式应当永远仅仅用作测试，请勿在生产环境使用
-    public enum Env {
+    public struct Mode {
+        
         /// 生产环境，使用正式配置
-        case production
+        public static var production: Mode { Mode(envrionment: .production) }
+        
         /// 调试环境，使用 development 配置
-        case debug
+        public static var debug: Mode { Mode(envrionment: .development) }
+        
         /// 独立调试配置，传入调试参数结构体
         /// > 在一般的 .production 或 .debug 模式下，
         /// 这些参数会通过 Whooshing 系统的环境变量解析得到，
         /// 而在无依赖 debug 模式下，则需要提供伪造的参数进行运行测试
         /// - Warning: 该模式应当永远仅仅用作测试，请勿在生产环境使用
-        case independentDebug(Service.Debuging)
+        public static func independentDebug(_ debuging: Service.Debuging) -> Mode { Mode(envrionment: .development, debuging: debuging) }
+        
+        /// 测试配置，传入调试参数结构体应当仅仅用在单元测试中
+        /// > 在一般的 .production 或 .debug 模式下，
+        /// 这些参数会通过 Whooshing 系统的环境变量解析得到，
+        /// 而在无依赖 debug 模式下，则需要提供伪造的参数进行运行测试
+        /// - Warning: 该模式应当永远仅仅用作测试，请勿在生产环境使用
+        public static func testing(_ debuging: Service.Debuging) -> Mode { Mode(envrionment: .testing, debuging: debuging) }
+        
+        /// 自动从环境变量变量判断运行模式，你需要选择提供调试参数
+        /// 若你希望永远不使用 testing 或 independentDebug 模式，可以指定为 nil
+        /// 这样若环境中出现了这两个模式，将会直接触发 fatalError
+        ///
+        /// Mode.production 对应 --env production
+        /// Mode.debug 与 Mode.independentDebug 对应 --env development
+        /// Mode.testing 对应 --env testing
+        ///
+        /// > 在一般的 .production 或 .debug 模式下，
+        /// 这些参数会通过 Whooshing 系统的环境变量解析得到，
+        /// 而在无依赖 debug 模式下，则需要提供伪造的参数进行运行测试
+        public static func detect(_ debuging: Service.Debuging? = nil) -> Mode {
+            let env = try! Environment.detect()
+            return Mode(envrionment: env, debuging: debuging)
+        }
+        
+        /// 当前运行的环境
+        public var envrionment: Environment
+        
+        let debuging: Service.Debuging?
+        
+        init(envrionment: Environment, debuging: Service.Debuging? = nil) {
+            self.envrionment = envrionment
+            self.debuging = debuging
+        }
     }
     
     /// 底层 Vapor 应用实例
@@ -75,8 +114,8 @@ public final class Whooshing<Service>: @unchecked Sendable where Service: Servic
 extension Whooshing where Service == Inline {
     /// 工厂方法：构建 Inline 服务的运行实例
     /// - Parameter env: 启动环境
-    public static func make(_ env: Env) async throws -> Self {
-        try await makeService(environment: env) {
+    public static func make(_ env: Mode) async throws -> Self {
+        try await makeService(mode: env) {
             try await Service.config($0)
         }
     }
@@ -85,8 +124,8 @@ extension Whooshing where Service == Inline {
 extension Whooshing where Service == Https {
     /// 构建 Https 服务的运行实例
     /// - Parameter env: 启动环境
-    public static func make(_ env: Env) async throws -> Self {
-        try await makeService(environment: env) {
+    public static func make(_ env: Mode) async throws -> Self {
+        try await makeService(mode: env) {
             try await Service.config($0)
         }
     }
@@ -101,38 +140,43 @@ extension Whooshing where Service == API {
     /// - Parameters:
     ///   - env: 启动环境
     ///   - inline: 预先构建的 Inline 服务
-    public static func make(_ env: Env, with inline: Whooshing<Inline>) async throws -> Self {
-        try await makeService(environment: env) {
+    public static func make(_ env: Mode, with inline: Whooshing<Inline>) async throws -> Self {
+        try await makeService(mode: env) {
             try await Service.config($0, inlineClient: inline.inlineClient)
         }
     }
 }
 
 private extension Whooshing {
-    static func makeService(environment: Env, config conf: (Self) async throws -> ()) async throws -> Self {
-        let env: Environment
-        let debuggingData: Service.Debuging?
+    static func makeService(mode: Mode, config conf: (Self) async throws -> ()) async throws -> Self {
+        
         let config: Environment.Config
         
-        switch environment {
-        case .production:
-            env = .production
-            debuggingData = nil
-            config = try Environment.get(with: Service.envPrefix)
-        case .debug:
-            env = .development
-            debuggingData = nil
-            config = try Environment.get(with: Service.envPrefix)
-        case .independentDebug(let debugPara):
-            env = .development
-            debuggingData = debugPara
-            config = debugPara.config
+        let env = mode.envrionment
+        
+        if ![Environment.production, .development, .testing].contains(env) {
+            fatalError("环境变量 \(mode.envrionment.name) 无法识别")
+        }
+        
+        let debugPara = mode.debuging
+        if let dp = debugPara {
+            if [Environment.development, .testing].contains(env) {
+                config = dp.config
+            } else {
+                config = try Environment.get(with: Service.envPrefix)
+            }
+        } else {
+            if env == .testing {
+                fatalError("未提供调试数据，无法进入 testing 模式")
+            } else {
+                config = try Environment.get(with: Service.envPrefix)
+            }
         }
         
         let app = try await Application.make(env)
         app.http.server.configuration.port = config.port
         for db in config.databases { app.databases.use(db.config, as: db.id) }
-        let service = Self(app: app, config: config, debugingData: debuggingData)
+        let service = Self(app: app, config: config, debugingData: debugPara)
         try await conf(service)
         return service
     }
