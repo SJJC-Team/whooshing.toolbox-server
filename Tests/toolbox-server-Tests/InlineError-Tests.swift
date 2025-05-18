@@ -60,7 +60,7 @@ struct InlineErrorTests {
     @Test("Stream 流大小不正确", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func streamWrongBodySizeTest(method: HTTPMethod) async throws {
         await #expect(throws: BscError.self, performing: {
-            try await client.streamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/stream-echo", bodySize: 1000) { request, channel, maxChunk, currentIndex in
+            try await client.streamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/stream-echo", bodySize: 1000) { request, maxChunk, currentIndex in
                 Self.randomData(size: 10000)
             }
         })

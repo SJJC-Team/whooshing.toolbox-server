@@ -12,6 +12,10 @@ struct Shared {
     static let apiClientToken = Crypto.Symm.Key(data: Data(base64Encoded: apiClientTokenStr)!)
     static let apiClientTokenStr = "jXTz4vTQk0O/XFIjWQIHLC7z9/E0/4VtEb+LkF8IcA4="
 
+    static let inlineListenPort = 6500
+    static let httpsListenPort = 6501
+    static let apiListenPort = 6502
+
     static let serviceIds = [
         UUID(uuidString: "F1ECC1D7-6E19-4F50-9B89-68FAA332B415")!,
         UUID(uuidString: "2AC424F7-F26A-4EA4-BE44-202ABC7CC514")!,
@@ -31,6 +35,12 @@ struct ServiceBootstrap {
         }
     }
     
+    static func runHttpsService(with testPara: Https.Debuging, routes: (Whooshing<Https>, Application) throws -> ()) async throws {
+        let woo = try await Whooshing<Https>.make(.independentDebug(testPara))
+        try routes(woo, woo.app)
+        try await run(woo: woo)
+    }
+
     static func runInlineService(with testPara: Inline.Debuging, routes: (Whooshing<Inline>, Application) throws -> ()) async throws {
         let woo = try await Whooshing<Inline>.make(.independentDebug(testPara))
         try routes(woo, woo.app)

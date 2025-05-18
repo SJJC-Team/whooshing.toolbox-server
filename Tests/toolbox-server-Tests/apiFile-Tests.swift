@@ -14,8 +14,8 @@ struct ApiFileTests {
     func fileSendTest(method: HTTPMethod) async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let url = try #require(Bundle.module.url(forResource: "test", withExtension: "png"))
-        let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.path())))
-        try await client.fileSend(method, to: "http://localhost:\(TestingShared.apiListenPort)/file-echo", file: url.path(), progress: { progress in
+        let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.relativePath)))
+        let res = try await client.fileSend(method, to: "http://localhost:\(TestingShared.apiListenPort)/file-echo", file: url.relativePath, progress: { progress in
             print(progress)
             if let res = progress.response {
                 if progress.index == -1 {
@@ -34,6 +34,8 @@ struct ApiFileTests {
                 }
             }
         })
+        #expect(res.status == .ok)
+        #expect(res.body == nil)
         #expect(storage.isEmpty)
     }
     
@@ -41,8 +43,8 @@ struct ApiFileTests {
     func asyncFileSendTest(method: HTTPMethod) async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let url = try #require(Bundle.module.url(forResource: "test", withExtension: "png"))
-        let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.path())))
-        try await client.asyncFileSend(method, to: "http://localhost:\(TestingShared.apiListenPort)/file-echo", file: url.path(), progress: { progress in
+        let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.relativePath)))
+        let res = try await client.asyncFileSend(method, to: "http://localhost:\(TestingShared.apiListenPort)/file-echo", file: url.relativePath, progress: { progress in
             print(progress)
             if let res = progress.response {
                 if progress.index == -1 {
@@ -61,6 +63,8 @@ struct ApiFileTests {
                 }
             }
         }).get()
+        #expect(res.status == .ok)
+        #expect(res.body == nil)
         #expect(storage.isEmpty)
     }
     
@@ -68,8 +72,8 @@ struct ApiFileTests {
     func largeFilePostTest() async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let url = try #require(Bundle.module.url(forResource: "Books", withExtension: "zip"))
-        let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.path())))
-        try await client.filePost("http://localhost:\(TestingShared.apiListenPort)/file-echo", file: url.path(), progress: { progress in
+        let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.relativePath)))
+        let res = try await client.filePost("http://localhost:\(TestingShared.apiListenPort)/file-echo", file: url.relativePath, progress: { progress in
             print(progress)
             if let res = progress.response {
                 if progress.index == -1 {
@@ -88,6 +92,8 @@ struct ApiFileTests {
                 }
             }
         })
+        #expect(res.status == .ok)
+        #expect(res.body == nil)
         #expect(storage.isEmpty)
     }
 }

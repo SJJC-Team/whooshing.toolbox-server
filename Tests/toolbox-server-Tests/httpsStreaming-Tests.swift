@@ -4,35 +4,36 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("Api 流网络通讯测试集", .enabled(if: TestingShared.apiServiceListening))
-struct ApiStreamingTests {
+@Suite("Https 流网络通讯测试集", .enabled(if: TestingShared.httpsServiceListening))
+struct HttpsStreamingTests {
     
-    let client = makeApiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
+    let client = makeHttpsClient()
     
     @Test("Send stream 流请求测试", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func sendStreamingTest(method: HTTPMethod) async throws {
-        let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 10000
-        let res = try await client.streamSend(method, to: "http://localhost:\(TestingShared.apiListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
+        let verify = Verifier()
+        let counter = Counter(max: totalSize)
+        let res = try await client.streamSend(method, to: "http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
             let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
-            storage[currentIndex] = data
             return data
         }, progress: { progress in
             print(progress)
             if let res = progress.response {
+                #expect(res.status == .ok)
                 if progress.index >= 0 {
-                    #expect(res.status == .ok)
-                    let origin = try #require(storage[progress.index])
-                    #expect(origin == progress.data)
-                    storage[progress.index] = nil
-                } else {
-                    #expect(res.headers.first(name: .contentLength) == String(totalSize))
+                    Task { await counter.add(progress.data.readableBytes) }
+                }
+                if progress.done {
+                    Task { await verify.fullFill() }
+                    #expect(progress.curBytes == totalSize)
                 }
             }
         })
+        #expect(await verify.isFullFill)
+        #expect(await counter.value == totalSize)
         #expect(res.status == .ok)
         #expect(res.body == nil)
-        #expect(storage.isEmpty)
     }
     
     @Test("Send stream 流请求抛错测试")
@@ -40,7 +41,7 @@ struct ApiStreamingTests {
         let totalSize = 10000
         let error = Abort(.init(statusCode: 1111, reasonPhrase: "Testing"))
         await #expect(throws: Abort.self, performing: {
-            try await client.streamPost("http://localhost:\(TestingShared.apiListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
+            try await client.streamPost("http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
                 throw error
             })
         })
@@ -48,54 +49,58 @@ struct ApiStreamingTests {
     
     @Test("Send async stream 流请求测试", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func asyncSendStreamingTest(method: HTTPMethod) async throws {
-        let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 10000
-        let res = try await client.asyncStreamSend(method, to: "http://localhost:\(TestingShared.apiListenPort)/streaming-echo", bodySize: totalSize, stream: { request, eventLoop, maxChunk, currentIndex in
+        let verify = Verifier()
+        let counter = Counter(max: totalSize)
+        let res = try await client.asyncStreamSend(method, to: "http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", bodySize: totalSize, stream: { request, eventLoop, maxChunk, currentIndex in
             let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
-            storage[currentIndex] = data
             return eventLoop.makeSucceededFuture(data)
         }, progress: { progress in
             print(progress)
             if let res = progress.response {
                 if progress.index >= 0 {
+                    print("read i: \(progress.index)")
+                    Task { await counter.add(progress.data.readableBytes) }
                     #expect(res.status == .ok)
-                    let origin = try #require(storage[progress.index])
-                    #expect(origin == progress.data)
-                    storage[progress.index] = nil
-                } else {
-                    #expect(res.headers.first(name: .contentLength) == String(totalSize))
+                }
+                if progress.done {
+                    Task { await verify.fullFill() }
+                    #expect(progress.curBytes == totalSize)
                 }
             }
         }).get()
+        #expect(await verify.isFullFill)
+        #expect(await counter.value == totalSize)
         #expect(res.status == .ok)
         #expect(res.body == nil)
-        #expect(storage.isEmpty)
     }
     
     @Test("Post stream 流大数据请求测试")
     func sendLargeStreamingTest() async throws {
-        let storage = SendableDictionary<Int, ByteBuffer>()
-        let totalSize = 1000000
-        let res = try await client.streamPost("http://localhost:\(TestingShared.apiListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
+        let totalSize = 10000000
+        let verify = Verifier()
+        let counter = Counter(max: totalSize)
+        let res = try await client.streamPost("http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
             let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
-            storage[currentIndex] = data
             return data
         }, progress: { progress in
             print(progress)
             if let res = progress.response {
                 if progress.index >= 0 {
+                    print("read i: \(progress.index)")
+                    Task { await counter.add(progress.data.readableBytes) }
                     #expect(res.status == .ok)
-                    let origin = try #require(storage[progress.index])
-                    #expect(origin == progress.data)
-                    storage[progress.index] = nil
-                } else {
-                    #expect(res.headers.first(name: .contentLength) == String(totalSize))
+                }
+                if progress.done {
+                    Task { await verify.fullFill() }
+                    #expect(progress.curBytes == totalSize)
                 }
             }
         })
+        #expect(await verify.isFullFill)
+        #expect(await counter.value == totalSize)
         #expect(res.status == .ok)
         #expect(res.body == nil)
-        #expect(storage.isEmpty)
     }
     
     static func randomData(size: Int) -> ByteBuffer {

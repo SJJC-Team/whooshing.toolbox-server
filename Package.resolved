@@ -319,10 +319,10 @@
     {
       "identity" : "whooshing.toolbox-client-vapor",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-client-vapor.git",
+      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-client-vapor",
       "state" : {
-        "revision" : "0e8c7b23cdafad416e301575cfb9a3b092cb6a50",
-        "version" : "1.1.5"
+        "revision" : "e7b6bc5d1a1b72a1dee0bc1a34ff12f16f3364c3",
+        "version" : "1.1.6"
       }
     },
     {
@@ -339,8 +339,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SJJC-Team/whooshing.toolbox-websocket-vapor.git",
       "state" : {
-        "revision" : "5c4e639c414286c432767dfa467f7bc1de1277b8",
-        "version" : "1.0.3"
+        "revision" : "826fd50de4e0ceb6dc14048a5ac97b19b9320c74",
+        "version" : "1.0.4"
       }
     }
   ],

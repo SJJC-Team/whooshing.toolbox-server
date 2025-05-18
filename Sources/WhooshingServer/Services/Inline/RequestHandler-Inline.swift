@@ -9,7 +9,7 @@ import WhooshingClient
 /// 该文件从 HTTP 基层 TCP 实现了请求加密的加解密算法。保证整个请求报文都是被加密或被解密的(解密或加密取决于是入站请求还是出站响应)
 /// 是与 ReqClient 配套实现请求加密逻辑的
 
-extension InlineReqClient {
+extension InlineClient {
     var requestIoData: Inline.RequestIOData! { self.storage[Inline.RequestIOData.self] }
 }
 
@@ -30,7 +30,7 @@ extension Inline {
     
     /// 实现 HTTP Request 的加解密
     struct RequestIOCrypto: RequestIOHandler, Sendable {
-        weak var client: InlineReqClient!
+        weak var client: InlineClient!
         let logger: Logger
         
         /// 发送请求时，进行编码并加密

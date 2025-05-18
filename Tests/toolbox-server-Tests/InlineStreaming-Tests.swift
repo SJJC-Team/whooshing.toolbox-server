@@ -13,7 +13,7 @@ struct InlineStreamingTests {
     func sendStreamingTest(method: HTTPMethod) async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 10000
-        try await client.streamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
+        let res = try await client.streamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
             let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
             storage[currentIndex] = data
             return data
@@ -30,6 +30,8 @@ struct InlineStreamingTests {
                 }
             }
         })
+        #expect(res.status == .ok)
+        #expect(res.body == nil)
         #expect(storage.isEmpty)
     }
     
@@ -38,7 +40,7 @@ struct InlineStreamingTests {
         let totalSize = 10000
         let error = Abort(.init(statusCode: 1111, reasonPhrase: "Testing"))
         await #expect(throws: Abort.self, performing: {
-            try await client.streamPost("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
+            try await client.streamPost("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
                 throw error
             })
         })
@@ -48,10 +50,10 @@ struct InlineStreamingTests {
     func asyncSendStreamingTest(method: HTTPMethod) async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 10000
-        try await client.asyncStreamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
+        let res = try await client.asyncStreamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, eventLoop, maxChunk, currentIndex in
             let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
             storage[currentIndex] = data
-            return channel.eventLoop.makeSucceededFuture(data)
+            return eventLoop.makeSucceededFuture(data)
         }, progress: { progress in
             print(progress)
             if let res = progress.response {
@@ -65,6 +67,8 @@ struct InlineStreamingTests {
                 }
             }
         }).get()
+        #expect(res.status == .ok)
+        #expect(res.body == nil)
         #expect(storage.isEmpty)
     }
     
@@ -72,7 +76,7 @@ struct InlineStreamingTests {
     func sendLargeStreamingTest() async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let totalSize = 1000000
-        try await client.streamPost("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, channel, maxChunk, currentIndex in
+        let res = try await client.streamPost("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
             let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
             storage[currentIndex] = data
             return data
@@ -89,6 +93,8 @@ struct InlineStreamingTests {
                 }
             }
         })
+        #expect(res.status == .ok)
+        #expect(res.body == nil)
         #expect(storage.isEmpty)
     }
     

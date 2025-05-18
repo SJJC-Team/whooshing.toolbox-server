@@ -1,5 +1,5 @@
 {
-  "originHash" : "e52ec0e0c8fb336db388554c68c0ce5e90056b819c980ba6a8b7e9bac4f9d9fb",
+  "originHash" : "103f6cc39ffe1854cf7b11e15d17bf18b9941c30dcbd3ecfe831d031c802ccfb",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -317,30 +317,12 @@
       }
     },
     {
-      "identity" : "whooshing.toolbox-client-vapor",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-client-vapor",
-      "state" : {
-        "revision" : "0e8c7b23cdafad416e301575cfb9a3b092cb6a50",
-        "version" : "1.1.5"
-      }
-    },
-    {
       "identity" : "whooshing.toolbox-pgsql",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SJJC-Team/whooshing.toolbox-pgsql.git",
       "state" : {
         "revision" : "5164ad65ae96ae5fd7b1a30950b0e4112f70a2f5",
         "version" : "1.0.2"
-      }
-    },
-    {
-      "identity" : "whooshing.toolbox-websocket-vapor",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-websocket-vapor.git",
-      "state" : {
-        "revision" : "5c4e639c414286c432767dfa467f7bc1de1277b8",
-        "version" : "1.0.3"
       }
     }
   ],

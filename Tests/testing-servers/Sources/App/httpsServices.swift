@@ -2,22 +2,15 @@ import Vapor
 import WhooshingServer
 import Cryptos
 
-struct InlineService {
-    static func makeService() async throws -> Whooshing<Inline> {
-        let testPara = Inline.Debuging(
-            rootKey: Shared.rootKey,
-            config: .init(name: "Testing-Inline-\(Shared.inlineListenPort)", port: Shared.inlineListenPort),
-            serviceId: Shared.serviceIds[0],
-            moduleDatas: Shared.serviceIds.enumerated().map {
-                .init(name: "Testing-Inline-\(Shared.inlineListenPort + $0)", serviceId: $1, connection: nil)
-            }
+struct HttpsService {
+    static func runService() async throws {
+        let testPara = Https.Debuging(
+            config: .init(name: "Testing-Https-\(Shared.httpsListenPort)", port: Shared.httpsListenPort),
         )
-        let woo = try await Whooshing<Inline>.make(.independentDebug(testPara))
-        try routes(woo, app: woo.app)
-        return woo
+        try await ServiceBootstrap.runHttpsService(with: testPara, routes: routes)
     }
         
-    static func routes(_ woo: Whooshing<WhooshingServer.Inline>, app: Application) throws {
+    static func routes(_ woo: Whooshing<WhooshingServer.Https>, app: Application) throws {
 
         struct Query: Content {
             let value: String

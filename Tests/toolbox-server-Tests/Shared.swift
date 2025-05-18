@@ -24,9 +24,11 @@ struct TestingShared {
     static let wrongApiClientTokenStr = "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI="
     
     static let inlineListenPort = 6500
+    static let httpsListenPort = 6501
     static let apiListenPort = 6502
     
     static let inlineServiceListening = isTCPPortOpen(inlineListenPort)
+    static let httpsServiceListening = isTCPPortOpen(httpsListenPort)
     static let apiServiceListening = isTCPPortOpen(apiListenPort)
     
     static let serviceIds = [
@@ -36,14 +38,30 @@ struct TestingShared {
     ]
 }
 
-func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineReqClient {
-    let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+
+func makeHttpsClient() -> HttpsClient {
+    let logger = Logger(label: "Testing-Https")
+    return HttpsClient(in: eventLoopGroup.next(), logger: logger)
+}
+
+func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineClient {
     let logger = Logger(label: "Testing-Inline")
-    let client = InlineReqClient(eventLoop: eventLoop.next(), logger: logger, byteBufferAllocator: .init())
+    let client = InlineClient(eventLoop: eventLoopGroup.next(), logger: logger, byteBufferAllocator: .init())
     let ioHandler = Inline.RequestIOCrypto(client: client, logger: logger)
     client.ioHandler = ioHandler
     client.storage[Inline.RequestIOData.self] = .init(rootKey: rootKey, serviceID: serviceId)
     return client
+}
+
+func makeApiClient(credential: String, token: String) -> ApiClient {
+    let logger = Logger(label: "Testing-Api")
+    return ApiClient(credential: credential, token: token, eventLoop: eventLoopGroup.next(), logger: logger)
+}
+
+func makeHttpsWebSocket() -> HttpsWebSocket {
+    let logger = Logger(label: "Testing-HTTPS")
+    return HttpsWebSocket(eventLoop: eventLoopGroup.next(), logger: logger)
 }
 
 func makeInlineWebSocket(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineWebSocket {
@@ -51,16 +69,12 @@ func makeInlineWebSocket(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineWeb
     return .init(client: client)
 }
 
-func makeApiClient(credential: String, token: String) -> ApiClient {
-    let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-    let logger = Logger(label: "Testing-Api")
-    return ApiClient(credential: credential, token: token, eventLoop: eventLoop.next(), logger: logger)
-}
-
 func makeApiWebSocket(credential: String, token: String) -> ApiWebSocket {
     let client = makeApiClient(credential: credential, token: token)
     return .init(client: client)
 }
+
+#if !canImport(Darwin) || os(macOS)
 
 func isTCPPortOpen(_ port: Int) -> Bool {
     let task = Process()
@@ -74,6 +88,63 @@ func isTCPPortOpen(_ port: Int) -> Bool {
     return task.terminationStatus == 0
 }
 
+#else
+
+import Network
+import NIOConcurrencyHelpers
+
+func isTCPPortOpen(_ port: Int) -> Bool {
+    let semaphore = DispatchSemaphore(value: 0)
+    let isOpen = SendableBool()
+    
+    guard
+        port <= UInt16.max,
+        port >= UInt16.min,
+        let port = NWEndpoint.Port(rawValue: UInt16(port))
+    else { return false }
+    
+    let connection = NWConnection(
+        host: NWEndpoint.Host("localhost"),
+        port: port,
+        using: .tcp
+    )
+
+    connection.stateUpdateHandler = { state in
+        switch state {
+        case .ready:
+            isOpen.bool = true
+            connection.cancel()
+            semaphore.signal()
+
+        case .failed(_), .cancelled:
+            isOpen.bool = false
+            semaphore.signal()
+
+        default:
+            break
+        }
+    }
+
+    connection.start(queue: .global())
+    _ = semaphore.wait(timeout: .now() + 2)
+
+    return isOpen.bool
+}
+
+final class SendableBool: @unchecked Sendable {
+    public var bool: Bool {
+        get { lock.withLock { __bool } }
+        set { lock.withLock { __bool = newValue } }
+    }
+    private var __bool: Bool
+    private let lock = NIOLock()
+    
+    init(_ bool: Bool = false) {
+        self.__bool = bool
+    }
+}
+
+#endif
 
 actor OrderedIndexTracker {
     private var received = Set<Int>()
@@ -98,5 +169,13 @@ actor Counter {
         return current
     }
     
+    func add(_ int: Int) { value += int }
+    
     var isLast: Bool { value == max }
+}
+
+
+actor Verifier {
+    private(set) var isFullFill = false
+    func fullFill() { isFullFill = true }
 }

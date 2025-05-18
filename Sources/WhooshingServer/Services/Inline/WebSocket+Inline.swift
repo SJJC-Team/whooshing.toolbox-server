@@ -7,9 +7,9 @@ final class InlineWebSocket: WhooshingWebSocket, StorageKey, Sendable {
     typealias Value = InlineWebSocket
     static let loggerLabel = "Inline.WS.Client"
     let logger: Logger?
-    let client: InlineReqClient
+    let client: InlineClient
     
-    init(client: InlineReqClient) {
+    init(client: InlineClient) {
         self.logger = client.logger
         self.client = client
     }
