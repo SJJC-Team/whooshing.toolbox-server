@@ -15,7 +15,7 @@ public protocol DebugConfig {
 }
 
 /// 通用服务启动器，封装对 Vapor 应用的初始化、配置与生命周期控制
-/// 可根据不同服务类型（如 API、Inline、Https）统一创建运行实例
+/// 可根据不同服务类型（如 Api、Inline、Https）统一创建运行实例
 ///
 /// 该类用于启动不同的服务模块，使用 `Whooshing.make(_)` 创建一个 Whooshing 实例
 /// 并调用 `execute()` 或 `excuteWithAsyncShutdown()` 令其运行
@@ -31,7 +31,7 @@ public final class Whooshing<Service>: @unchecked Sendable where Service: Servic
     /// 自动内部处理这些认证请求，保证可无依赖运行在本机。
     /// 而这需要提供一些服务参数，不同的服务需要不同的参数，见
     ///
-    /// - ``API.Debuging``
+    /// - ``Api.Debuging``
     /// - ``Inline.Debuging``
     /// - ``Https.Debuging``
     ///
@@ -131,7 +131,7 @@ extension Whooshing where Service == Https {
     }
 }
 
-extension Whooshing where Service == API {
+extension Whooshing where Service == Api {
     /// 构建 API 服务运行实例，并注入 Inline 客户端作为依赖
     ///
     /// API 服务依赖于 Inline 服务，因此请保证先创建 Inline 模块

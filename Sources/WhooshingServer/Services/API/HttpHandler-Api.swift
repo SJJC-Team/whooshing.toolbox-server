@@ -9,11 +9,11 @@ import WhooshingClient
 /// 该文件实现了 API 模块接收和发出的加密机制 Socket 流处理
 /// 每个 API 请求前必须经过身份验证
 
-extension Whooshing where Service == API {
-    var apiServiceData: API.ServiceData! { self.app.storage[API.ServiceData.self] }
+extension Whooshing where Service == Api {
+    var apiServiceData: Api.ServiceData! { self.app.storage[Api.ServiceData.self] }
 }
 
-extension API {
+extension Api {
     
     final class ServiceData: StorageKey, Sendable {
         typealias Value = ServiceData
@@ -27,7 +27,7 @@ extension API {
     }
     
     struct HttpIOCrypto: HTTPIOHandler, Sendable {
-        weak var app: Whooshing<API>!
+        weak var app: Whooshing<Api>!
         
         /// 有客户端请求进入
         func input(request: Data, context: ChannelHandlerContext, streaming: Bool) -> EventLoopFuture<Data?> {

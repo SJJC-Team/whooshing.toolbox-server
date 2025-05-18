@@ -6,7 +6,7 @@ import NIO
 import Logging
 import WhooshingClient
 
-public extension API {
+public extension Api {
     enum ProtocolErr: String, ErrList {
         public typealias ErrType = HTTPResponseError
         public var domain: String { "woo.api.sys.middleware.guard.err" }
@@ -15,13 +15,13 @@ public extension API {
     }
 }
 
-extension API {
+extension Api {
     struct GuardMiddleware: Middleware {
         let authenticationURL: URL
         let debugingAuth: Debuging.Auth?
 
         func respond(to req: Request, chainingTo next: any Responder) -> EventLoopFuture<Response> {
-            guard let channel = req.channel else { return req.eventLoop.makeFailedFuture(API.ProtocolErr.unknowError.d("未找到 Channel", 14006).adds(.internalServerError)) }
+            guard let channel = req.channel else { return req.eventLoop.makeFailedFuture(Api.ProtocolErr.unknowError.d("未找到 Channel", 14006).adds(.internalServerError)) }
             let id = ObjectIdentifier(channel)
             if let _ = req.application.apiServiceData.clientKeys[id] {
                 req.logger.debug("API.Server-处理客户端的真正请求: \(channel.serverAddrInfo)")
@@ -58,7 +58,7 @@ extension API {
                 )
                 .hop(to: channel.eventLoop)
                 .flatMapThrowing { res in
-                    guard res.status == .ok else { throw API.ProtocolErr.requestFailed.d("请求的状态码结果为: \(res.status), 结果为: \(res.body != nil ? String(buffer: res.body!) : "nil")", 12001).adds(.internalServerError) }
+                    guard res.status == .ok else { throw Api.ProtocolErr.requestFailed.d("请求的状态码结果为: \(res.status), 结果为: \(res.body != nil ? String(buffer: res.body!) : "nil")", 12001).adds(.internalServerError) }
                     req.logger.trace("API.Server-与客户端密钥交换: 从认证模块返回的结果解析用户口令")
                     let token = try res.jsonBodyDecode(Crypto.Symm.Key.self)
                     return token
@@ -86,5 +86,5 @@ extension API {
 }
 
 fileprivate extension Application {
-    var apiServiceData: API.ServiceData! { self.storage[API.ServiceData.self] }
+    var apiServiceData: Api.ServiceData! { self.storage[Api.ServiceData.self] }
 }

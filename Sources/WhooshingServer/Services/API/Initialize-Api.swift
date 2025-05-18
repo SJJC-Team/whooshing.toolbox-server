@@ -6,7 +6,7 @@ import NIO
 import Logging
 import WhooshingClient
 
-public enum API: ServiceType {
+public enum Api: ServiceType {
     
     public static var envPrefix: String { "WHOOSHING_API_SERVICE" }
     
@@ -100,7 +100,7 @@ public enum API: ServiceType {
     }
     
     /// 配置 API 服务模块
-    internal static func config(_ woo: Whooshing<API>, inlineClient: WhooshingClient) async throws {
+    internal static func config(_ woo: Whooshing<Api>, inlineClient: WhooshingClient) async throws {
         woo.app.http.server.configuration.serviceName = "API"
         woo.app.logger.debug("从环境变量中取得该服务模块的参数")
         
