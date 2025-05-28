@@ -321,8 +321,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SJJC-Team/whooshing.toolbox-client",
       "state" : {
-        "revision" : "0ce6d30eb5ccac9897a5053b3f84a7f3d4dbb9be",
-        "version" : "1.1.11"
+        "revision" : "fe6054bf2c66085187899d6f5abf5877f16738c3",
+        "version" : "1.1.13"
       }
     },
     {

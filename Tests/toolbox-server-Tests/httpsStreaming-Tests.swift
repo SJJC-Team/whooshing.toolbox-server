@@ -15,9 +15,9 @@ struct HttpsStreamingTests {
         var size = 0
         let stream = AsyncThrowingChannel<ByteBuffer, Error>()
         Task {
-            for i in 0..<10 {
-                let data = Self.randomData(size: 1024)
-                print("\(i): writing")
+            for ctx in Progress(pieces: 10, chunk: 1024) {
+                print("写入中: \(ctx)")
+                let data = Self.randomData(size: ctx.bytes)
                 await stream.send(data)
             }
             stream.finish()
@@ -51,9 +51,9 @@ struct HttpsStreamingTests {
         var size = 0
         let stream = AsyncThrowingChannel<ByteBuffer, Error>()
         Task {
-            for i in 0..<100 {
-                let data = Self.randomData(size: 65535)
-                print("\(i): writing")
+            for ctx in Progress(pieces: 100, chunk: 65535) {
+                print("写入中: \(ctx)")
+                let data = Self.randomData(size: ctx.bytes)
                 await stream.send(data)
             }
             stream.finish()

@@ -15,7 +15,9 @@ struct HttpsFileTests {
         var size = 0
         let url = FilePath(TestingShared.normalFilePath)
         let info = try #require(await FileSystem.shared.info(forFileAt: url))
-        let res = try await client.send(method, to: "http://localhost:\(TestingShared.httpsListenPort)/file-echo", body: .file(from: url))
+        let res = try await client.send(method, to: "http://localhost:\(TestingShared.httpsListenPort)/file-echo", body: .file(from: url, progress: .init { ctx in
+            print("写入中: \(ctx)")
+        }))
         #expect(res.status == .ok)
         
         let body = try #require(res.body)
@@ -34,7 +36,13 @@ struct HttpsFileTests {
         var size = 0
         let url = FilePath(TestingShared.largeFilePath)
         let info = try #require(await FileSystem.shared.info(forFileAt: url))
-        let res = try await client.post("http://localhost:\(TestingShared.httpsListenPort)/file-echo", body: .file(from: url))
+        let progress = AsyncProgress()
+        Task {
+            for try await ctx in progress {
+                print("写入中: \(ctx)")
+            }
+        }
+        let res = try await client.post("http://localhost:\(TestingShared.httpsListenPort)/file-echo", body: .file(from: url, progress: progress))
         #expect(res.status == .ok)
         
         let body = try #require(res.body)

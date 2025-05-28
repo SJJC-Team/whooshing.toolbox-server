@@ -15,10 +15,10 @@ struct ApiStreamingTests {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let stream = AsyncThrowingChannel<ByteBuffer, Error>()
         Task {
-            for i in 0..<10 {
-                let data = Self.randomData(size: 1024)
-                storage[i] = data
-                print("\(i): writing")
+            for ctx in Progress(pieces: 10, chunk: 1024) {
+                print("写入中: \(ctx)")
+                let data = Self.randomData(size: ctx.bytes)
+                storage[ctx.index] = data
                 await stream.send(data)
             }
             stream.finish()
@@ -55,10 +55,10 @@ struct ApiStreamingTests {
         let storage = SendableDictionary<Int, ByteBuffer>()
         let stream = AsyncThrowingChannel<ByteBuffer, Error>()
         Task {
-            for i in 0..<100 {
-                let data = Self.randomData(size: 65535)
-                storage[i] = data
-                print("\(i): writing")
+            for ctx in Progress(pieces: 100, chunk: 65535) {
+                print("写入中: \(ctx)")
+                let data = Self.randomData(size: ctx.bytes)
+                storage[ctx.index] = data
                 await stream.send(data)
             }
             stream.finish()
