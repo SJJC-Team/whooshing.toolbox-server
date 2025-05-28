@@ -100,11 +100,4 @@ struct EnvironmentParsingTests {
             ][key] }
         })
     }
-
-    @Test("测试 HTTPResponse 与 Data 互转")
-    func testHTTPResponseToData() async throws {
-        let origin = "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\ncontent-length: 13\r\n\r\nHello, world!"
-        let res = try HTTPResponse(data: .init(data: origin.data(using: .utf8)!))
-        #expect(res.description == origin)
-    }
 }

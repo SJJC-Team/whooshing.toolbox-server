@@ -175,6 +175,7 @@ private extension Whooshing {
         
         let app = try await Application.make(env)
         app.http.server.configuration.port = config.port
+//        app.logger.logLevel = .trace
         for db in config.databases { app.databases.use(db.config, as: db.id) }
         let service = Self(app: app, config: config, debugingData: debugPara)
         try await conf(service)

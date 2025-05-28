@@ -14,7 +14,7 @@ extension InlineClient {
 }
 
 extension Inline {
-    final class RequestIOData: StorageKey, Sendable {
+    final class RequestIOData: SendableStorage.Key, Sendable {
         typealias Value = RequestIOData
         let rootKey: Crypto.Symm.Key
         let serviceID: UUID
@@ -29,18 +29,21 @@ extension Inline {
     }
     
     /// 实现 HTTP Request 的加解密
-    struct RequestIOCrypto: RequestIOHandler, Sendable {
+    struct RequestIOCrypto: RequestCryptoIOHandler, Sendable {
         weak var client: InlineClient!
         let logger: Logger
         
+        var isAvaliable: Bool { client != nil }
+        
         /// 发送请求时，进行编码并加密
-        func send(request: HTTPRequest, dataChunk: ByteBuffer, context: ChannelHandlerContext, allocator: ByteBufferAllocator, streaming: Bool) -> EventLoopFuture<ByteBuffer> {
+        func send(data: NIOCore.ByteBuffer, context: NIOCore.ChannelHandlerContext) -> EventLoopFuture<ByteBuffer> {
+            guard data.readableBytes > 0 else { return context.eventLoop.makeSucceededFuture(data) }
             do {
                 let cipher: Data
                 let id = ObjectIdentifier(context.channel)
                 logger.trace("Inline.Client.HTTP-发送请求，进行加密(key: \(client.requestIoData.connectionKeys[id] != nil)) in \(context.channel.clientAddrInfo)")
-                if let key = client.requestIoData.connectionKeys[id] { cipher = try Crypto.Symm.encrypt(dataChunk, key: key) }
-                else { cipher = try Crypto.Symm.encrypt(dataChunk, key: client.requestIoData.rootKey) }
+                if let key = client.requestIoData.connectionKeys[id] { cipher = try Crypto.Symm.encrypt(data, key: key) }
+                else { cipher = try Crypto.Symm.encrypt(data, key: client.requestIoData.rootKey) }
                 let buffer = ByteBuffer(data: cipher)
                 return context.eventLoop.makeSucceededFuture(buffer)
             } catch let err {
@@ -49,24 +52,15 @@ extension Inline {
         }
         
         /// 收到响应时，进行解密并解码
-        func get(response: ByteBuffer, bufferStrategy: BufferStrategy, context: ChannelHandlerContext, streaming: Bool) -> EventLoopFuture<(HTTPResponse?, ByteBuffer)> {
+        func get(data: ByteBuffer, context: ChannelHandlerContext) -> EventLoopFuture<ByteBuffer> {
+            guard data.readableBytes > 0 else { return context.eventLoop.makeSucceededFuture(data) }
             do {
                 let id = ObjectIdentifier(context.channel)
                 var plain: ByteBuffer
                 logger.trace("Inline.Client.HTTP-收到响应，进行解密(key: \(client.requestIoData.connectionKeys[id] != nil)) in \(context.channel.clientAddrInfo)")
-                if let key = client.requestIoData.connectionKeys[id] { plain = try Crypto.Symm.decrypt(.init(buffer: response), key: key) }
-                else { plain = try Crypto.Symm.decrypt(.init(buffer: response), key: client.requestIoData.rootKey) }
-                let plainStable = plain
-                return streamingHandle(
-                    chunkData: &plain, 
-                    context: context, 
-                    bufferStrategy: bufferStrategy,
-                    dic: client.requestIoData.readingBufferDatas,
-                    streaming: streaming
-                ).flatMapThrowing { data in
-                    if let d = data { return (try HTTPResponse(data: d), plainStable) } 
-                    else { return (nil, plainStable) }
-                }
+                if let key = client.requestIoData.connectionKeys[id] { plain = try Crypto.Symm.decrypt(.init(buffer: data), key: key) }
+                else { plain = try Crypto.Symm.decrypt(.init(buffer: data), key: client.requestIoData.rootKey) }
+                return context.eventLoop.makeSucceededFuture(plain)
             } catch let err {
                 return context.eventLoop.makeFailedFuture(err)
             }

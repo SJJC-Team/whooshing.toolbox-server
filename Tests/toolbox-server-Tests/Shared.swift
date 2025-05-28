@@ -31,9 +31,9 @@ struct TestingShared {
     static let httpsServiceListening = isTCPPortOpen(httpsListenPort)
     static let apiServiceListening = isTCPPortOpen(apiListenPort)
     
-    static let normalFilePath = URL.homeDirectory.appending(path: "Downloads/test.png")
+    static let normalFilePath = "/Users/clwang/Downloads/test.png"
     static let normalFileName = "test.png"
-    static let largeFilePath = URL.homeDirectory.appending(path: "Downloads/large.zip")
+    static let largeFilePath = "/Users/clwang/Downloads/large.zip"
     static let largeFileName = "large.zip"
     
     static let serviceIds = [
@@ -46,12 +46,14 @@ struct TestingShared {
 let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
 
 func makeHttpsClient() -> HttpsClient {
-    let logger = Logger(label: "Testing-Https")
+    var logger = Logger(label: "Testing-Https")
+//    logger.logLevel = .trace
     return HttpsClient(in: eventLoopGroup.next(), logger: logger)
 }
 
 func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineClient {
-    let logger = Logger(label: "Testing-Inline")
+    var logger = Logger(label: "Testing-Inline")
+//    logger.logLevel = .trace
     let client = InlineClient(eventLoop: eventLoopGroup.next(), logger: logger, byteBufferAllocator: .init())
     let ioHandler = Inline.RequestIOCrypto(client: client, logger: logger)
     client.ioHandler = ioHandler
@@ -60,7 +62,8 @@ func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineClient
 }
 
 func makeApiClient(credential: String, token: String) -> ApiClient {
-    let logger = Logger(label: "Testing-Api")
+    var logger = Logger(label: "Testing-Api")
+//    logger.logLevel = .trace
     return ApiClient(credential: credential, token: token, eventLoop: eventLoopGroup.next(), logger: logger)
 }
 

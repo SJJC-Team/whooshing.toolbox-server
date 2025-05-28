@@ -13,7 +13,7 @@ struct HttpsWebSocketTests {
     
     @Test("WebSocket 数据交互", arguments: [
         (10000, "normal", 10),
-        (10, "largest", ChunkTool.maxChunk - 50),
+        (10, "largest", 65535 * 20),
     ])
     func dataCommuteTest(paras: (Int, String, Int))  {
         let (times, suffix, chunkSize) = paras
@@ -21,7 +21,7 @@ struct HttpsWebSocketTests {
         let semaphore = DispatchSemaphore(value: 0)
         Task {
             do {
-                try await ws.connect(to: "ws://localhost:\(TestingShared.httpsListenPort)/websocket-echo-\(suffix)") { ws in
+                try await ws.connect(to: "ws://localhost:\(TestingShared.httpsListenPort)/websocket-echo-\(suffix)", configuration: .init(maxFrameSize: Int(UInt32.max))) { ws in
                     Task {
                         var printIndex = 0
                         for i in 0..<times {

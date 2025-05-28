@@ -35,33 +35,12 @@ final class InlineClient: ReqClient, WhooshingClient, StorageKey, @unchecked Sen
         return key
     }
     
-    @Sendable
     func send(
-        _ method: HTTPMethod,
-        headers: HTTPHeaders,
-        to url: WebURI,
-        bufferStrategy: BufferStrategy,
-        beforeSend: @escaping BeforeSendAction,
-        afterSend: @escaping AsyncAfterSendAction,
-        progress: @escaping ProgressAction
+        _ request: HTTPRequest
     ) -> EventLoopFuture<HTTPResponse> {
-        let req = HTTPRequest(method: method, url: url, headers: headers, body: nil)
-        return self.makeChannel(url: req.url).flatMap { (channel, handler, _) in
-            do {
-                var request = req
-                try beforeSend(&request, channel)
-                request.channel = channel
-                if case .collect = bufferStrategy {
-                    self.logger?.info("Inline.Client-发送请求: \(channel.clientAddrInfo)")
-                } else {
-                    self.logger?.info("Inline.Client-发送流式请求: \(channel.clientAddrInfo)")
-                }
-                return self._send(request: request, bufferStrategy: bufferStrategy, channel: channel, handler: handler, progress: progress).flatMap { res in
-                    afterSend(channel).map { res }
-                }
-            } catch {
-                return channel.eventLoop.makeFailedFuture(error)
-            }
+        self.makeChannel(url: request.url).flatMap { (channel, handler, _) in
+            self.logger?.info("Inline.Client-发送请求: \(channel.clientAddrInfo)")
+            return self._send(request: request, channel: channel, handler: handler)
         }
     }
     
@@ -74,7 +53,7 @@ final class InlineClient: ReqClient, WhooshingClient, StorageKey, @unchecked Sen
 }
 
 extension InlineClient {
-    private func _send(request: HTTPRequest, bufferStrategy: BufferStrategy, channel: Channel, handler: RequestHandler, progress: @escaping ProgressAction) -> EventLoopFuture<HTTPResponse> {
+    private func _send(request: HTTPRequest, channel: Channel, handler: RequestWrapperHandler) -> EventLoopFuture<HTTPResponse> {
         let id = ObjectIdentifier(channel)
         let procedure: Int
         if self.requestIoData.connectionKeys[id] == nil { procedure = 0 }
@@ -97,7 +76,7 @@ extension InlineClient {
             default:
                 return r.flatMap {
                     self.logger?.debug("Inline.Client-与服务器发送真正请求: \(channel.clientAddrInfo)")
-                    return self.send(request, channel: channel, handler: handler, bufferStrategy: bufferStrategy, progress: progress)
+                    return self.send(request, channel: channel, handler: handler)
                 }
         }
     }
@@ -106,16 +85,16 @@ extension InlineClient {
         let data: Data
     }
     
-    private func keyExchange(req: HTTPRequest, channel: Channel, handler: RequestHandler) -> EventLoopFuture<Void> {
+    private func keyExchange(req: HTTPRequest, channel: Channel, handler: RequestWrapperHandler) -> EventLoopFuture<Void> {
         self.logger?.trace("Inline.Client-密钥交换中: 创建公私钥对")
         let keyPair = Crypto.Asym.makeCryptoKeyPair()
         self.logger?.trace("Inline.Client-密钥交换中: 将公钥发送于目标")
-        guard let body = try? JSONEncoder().encode(JSONData(data: keyPair.public.data())) else { return channel.eventLoop.makeFailedFuture(Inline.RequestInternalErr.unknowSendError.d("JSON 编码失败", 13003)) }
-        return self.send(.init(method: .POST, url: req.url, headers: ["content-type": "application/json"], body: .init(data: body)), channel: channel, handler: handler, bufferStrategy: .collect, progress: { _ in }).flatMapThrowing { response in
+        let req = HTTPRequest(method: .POST, url: req.url, body: try! .json(JSONData(data: keyPair.public.data())))
+        return self.send(req, channel: channel, handler: handler).flatMapThrowing { response in
             // 检查对方的响应，对方应当发来自己的公钥
             self.logger?.trace("Inline.Client-密钥交换中: 检查对方发来的公钥")
             guard response.status == .ok else { throw Inline.RequestErr.unknowError.d("\(response.status.description)(\(response.status.code))", 10090).adds(.internalServerError) }
-            guard let data = response.body?.data() else { throw Inline.RequestErr.targetIncorrectResponseBody.d("预期为公钥，但得到不正确回复", 10091).adds(.internalServerError) }
+            guard let data = try response.body?.data(as: Data.self, ) else { throw Inline.RequestErr.targetIncorrectResponseBody.d("预期为公钥，但得到不正确回复", 10091).adds(.internalServerError) }
             self.logger?.trace("Inline.Client-密钥交换中: 解包对方发来的公钥")
             let targetPub = try Crypto.Asym.CPublicKey(data: data)
             self.logger?.trace("Inline.Client-密钥交换中: 计算共享密钥")
@@ -131,10 +110,10 @@ extension InlineClient {
         }
     }
     
-    private func serviceValidate(req: HTTPRequest, channel: Channel, handler: RequestHandler) -> EventLoopFuture<Void> {
+    private func serviceValidate(req: HTTPRequest, channel: Channel, handler: RequestWrapperHandler) -> EventLoopFuture<Void> {
         self.logger?.trace("Inline.Client-进行服务验证: 将自己的服务 ID 发送于目标")
-        guard let body = try? JSONEncoder().encode(JSONData(data: self.requestIoData.serviceID.data())) else { return channel.eventLoop.makeFailedFuture(Inline.RequestInternalErr.unknowSendError.d("JSON 编码失败", 13004)) }
-        return self.send(.init(method: .POST, url: req.url, headers: ["content-type": "application/json"], body: .init(data: body)), channel: channel, handler: handler, bufferStrategy: .collect, progress: { _ in }).flatMapThrowing { response in
+        let req = HTTPRequest(method: .POST, url: req.url, body: try! .json(JSONData(data: self.requestIoData.serviceID.data())))
+        return self.send(req, channel: channel, handler: handler).flatMapThrowing { response in
             self.logger?.trace("Inline.Client-进行服务验证: 检查对方的响应")
             guard response.status == .ok else { throw Inline.RequestErr.unknowError.d("\(response.status.description)", 10092).adds(response.status) }
             self.logger?.trace("Inline.Client-进行服务验证: 设置标志位")

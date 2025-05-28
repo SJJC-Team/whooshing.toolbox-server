@@ -10,10 +10,6 @@ import Logging
 /// 而非默认的 HTTPS。使用自定加密算法，这也意味着将不受浏览器的支持，
 /// 因此，若配置了该加密中间件，则无法在浏览器上访问该服务
 
-#if canImport(Vapor)
-
-#endif
-
 extension Whooshing where Service == Inline {
     var inlineServiceData: Inline.ServiceData! { self.app.storage[Inline.ServiceData.self] }
 }
@@ -36,7 +32,8 @@ extension Inline {
     struct HttpIOCrypto: HTTPIOHandler, Sendable {
         weak var app: Whooshing<Inline>!
         /// 有客户端请求进入
-        func input(request: Data, context: ChannelHandlerContext, streaming: Bool) -> EventLoopFuture<Data?> {
+        func input(request: Data, context: ChannelHandlerContext) -> EventLoopFuture<Data> {
+            guard request.count > 0 else { return context.eventLoop.makeSucceededFuture(request) }
             let id = ObjectIdentifier(context.channel)
             let req: Data
             do {
@@ -50,7 +47,8 @@ extension Inline {
         }
         
         /// 有服务器响应请求发出
-        func output(response: Data, context: ChannelHandlerContext, info: ChannelInfo, streaming: Bool) -> EventLoopFuture<Data> {
+        func output(response: Data, context: ChannelHandlerContext) -> EventLoopFuture<Data> {
+            guard response.count > 0 else { return context.eventLoop.makeSucceededFuture(response) }
             let id = ObjectIdentifier(context.channel)
             let res: Data
             do {
@@ -72,7 +70,7 @@ extension Inline {
         }
         
         /// 连线结束
-        func connectionEnd(context: ChannelHandlerContext, info: ChannelInfo) -> EventLoopFuture<Void> {
+        func connectionEnd(context: ChannelHandlerContext) -> EventLoopFuture<Void> {
             let id = ObjectIdentifier(context.channel)
             if let app = self.app {
                 app.logger.debug("Inline.Server-连线结束: \(context.channel.serverAddrInfo)")

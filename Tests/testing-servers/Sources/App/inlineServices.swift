@@ -43,12 +43,6 @@ struct InlineService {
 
         for method in [HTTPMethod.POST, .PATCH, .PUT] {
             app.on(method, "streaming-echo", body: .stream) { req in
-                guard 
-                    let contentSizeStr = req.headers.first(name: .contentLength),
-                    let contentSize = Int(contentSizeStr) 
-                else {
-                    throw Abort(.badRequest)
-                }
                 let response = Response(status: .ok)
                 response.body = .init(asyncStream: { writer in
                     do {
@@ -60,7 +54,7 @@ struct InlineService {
                         try await writer.write(.end)
                         throw error
                     }
-                }, count: contentSize)
+                })
                 return response 
             }
         }
@@ -68,9 +62,7 @@ struct InlineService {
         for method in [HTTPMethod.POST, .PATCH, .PUT] {
             app.on(method, "file-echo", body: .stream) { req in
                 guard 
-                    let fileName = req.headers.first(name: .contentDisposition),
-                    let contentSizeStr = req.headers.first(name: .contentLength),
-                    let contentSize = Int(contentSizeStr)
+                    let fileName = req.headers.first(name: .contentDisposition)
                 else { 
                     throw Abort(.badRequest) 
                 }
@@ -85,7 +77,7 @@ struct InlineService {
                         try await writer.write(.end)
                         throw error
                     }
-                }, count: contentSize)
+                })
                 response.headers.replaceOrAdd(name: .contentDisposition, value: fileName)
                 return response 
             }
@@ -93,7 +85,7 @@ struct InlineService {
 
         for (suffix, size) in [
             ("normal", 16384),
-            ("largest", ChunkTool.maxChunk)
+            ("largest", Int(UInt32.max))
         ] {
             app.webSocket("websocket-echo-\(suffix)", maxFrameSize: .init(integerLiteral: size)) { req, ws in
                 ws.onBinary { ws, data in

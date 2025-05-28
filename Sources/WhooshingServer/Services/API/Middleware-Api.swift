@@ -51,16 +51,15 @@ extension Api {
                 r = channel.eventLoop.submit { try debuging(authData) }
             } else {
                 req.logger.trace("API.Server-与客户端密钥交换: 向认证模块发送认证请求")
-                r = req.application.apiServiceData.inlineClient.asyncPost(
+                r = req.application.apiServiceData.inlineClient.post(
                     authenticationURL.toUri(with: "/user/auth"),
-                    beforeSend: { req, _ in try req.jsonBodyEncode(authData) },
-                    afterSend: InlineClient.defaultAfterSend
+                    body: try! .json(authData)
                 )
                 .hop(to: channel.eventLoop)
                 .flatMapThrowing { res in
-                    guard res.status == .ok else { throw Api.ProtocolErr.requestFailed.d("请求的状态码结果为: \(res.status), 结果为: \(res.body != nil ? String(buffer: res.body!) : "nil")", 12001).adds(.internalServerError) }
+                    guard res.status == .ok else { throw Api.ProtocolErr.requestFailed.d("响应的状态码结果为: \(res.status)", 12001).adds(.internalServerError) }
                     req.logger.trace("API.Server-与客户端密钥交换: 从认证模块返回的结果解析用户口令")
-                    let token = try res.jsonBodyDecode(Crypto.Symm.Key.self)
+                    guard let token = try res.body?.json(as: Crypto.Symm.Key.self) else { throw Api.ProtocolErr.requestFailed.d("响应体解析用户口令失败", 15011).adds(.internalServerError) }
                     return token
                 }
             }

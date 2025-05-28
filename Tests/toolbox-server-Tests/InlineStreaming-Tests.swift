@@ -3,6 +3,7 @@ import Testing
 import Vapor
 import Foundation
 import WhooshingClient
+import AsyncAlgorithms
 
 @Suite("Inline 流网络通讯测试集", .enabled(if: TestingShared.inlineServiceListening))
 struct InlineStreamingTests {
@@ -12,89 +13,69 @@ struct InlineStreamingTests {
     @Test("Send stream 流请求测试", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func sendStreamingTest(method: HTTPMethod) async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
-        let totalSize = 10000
-        let res = try await client.streamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
-            let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
-            storage[currentIndex] = data
-            return data
-        }, progress: { progress in
-            print(progress)
-            if let res = progress.response {
-                if progress.index >= 0 {
-                    #expect(res.status == .ok)
-                    let origin = try #require(storage[progress.index])
-                    #expect(origin == progress.data)
-                    storage[progress.index] = nil
-                } else {
-                    #expect(res.headers.first(name: .contentLength) == String(totalSize))
-                }
+        let stream = AsyncThrowingChannel<ByteBuffer, Error>()
+        Task {
+            for i in 0..<10 {
+                let data = Self.randomData(size: 1024)
+                storage[i] = data
+                print("\(i): writing")
+                await stream.send(data)
             }
-        })
+            stream.finish()
+        }
+        let res = try await client.send(method, to: "http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", body: .stream(stream))
         #expect(res.status == .ok)
-        #expect(res.body == nil)
+        
+        let body = try #require(res.body)
+        let bodyStream = try body.stream()
+        
+        for try await (progress, chunk) in bodyStream.withProgress() {
+            print(progress)
+            #expect(storage[progress.index] == chunk)
+            storage[progress.index] = nil
+        }
+        
+        let channel = try #require(res.channel)
+        try await channel.close()
         #expect(storage.isEmpty)
     }
     
     @Test("Send stream 流请求抛错测试")
     func sendStreamingThrowingTest() async throws {
-        let totalSize = 10000
         let error = Abort(.init(statusCode: 1111, reasonPhrase: "Testing"))
+        let stream = AsyncThrowingChannel<ByteBuffer, Error>()
+        stream.fail(error)
         await #expect(throws: Abort.self, performing: {
-            try await client.streamPost("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
-                throw error
-            })
+            try await client.post("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", body: .stream(stream))
         })
-    }
-    
-    @Test("Send async stream 流请求测试", arguments: [HTTPMethod.POST, .PATCH, .PUT])
-    func asyncSendStreamingTest(method: HTTPMethod) async throws {
-        let storage = SendableDictionary<Int, ByteBuffer>()
-        let totalSize = 10000
-        let res = try await client.asyncStreamSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, eventLoop, maxChunk, currentIndex in
-            let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
-            storage[currentIndex] = data
-            return eventLoop.makeSucceededFuture(data)
-        }, progress: { progress in
-            print(progress)
-            if let res = progress.response {
-                if progress.index >= 0 {
-                    #expect(res.status == .ok)
-                    let origin = try #require(storage[progress.index])
-                    #expect(origin == progress.data)
-                    storage[progress.index] = nil
-                } else {
-                    #expect(res.headers.first(name: .contentLength) == String(totalSize))
-                }
-            }
-        }).get()
-        #expect(res.status == .ok)
-        #expect(res.body == nil)
-        #expect(storage.isEmpty)
     }
     
     @Test("Post stream 流大数据请求测试")
     func sendLargeStreamingTest() async throws {
         let storage = SendableDictionary<Int, ByteBuffer>()
-        let totalSize = 1000000
-        let res = try await client.streamPost("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
-            let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
-            storage[currentIndex] = data
-            return data
-        }, progress: { progress in
-            print(progress)
-            if let res = progress.response {
-                if progress.index >= 0 {
-                    #expect(res.status == .ok)
-                    let origin = try #require(storage[progress.index])
-                    #expect(origin == progress.data)
-                    storage[progress.index] = nil
-                } else {
-                    #expect(res.headers.first(name: .contentLength) == String(totalSize))
-                }
+        let stream = AsyncThrowingChannel<ByteBuffer, Error>()
+        Task {
+            for i in 0..<100 {
+                let data = Self.randomData(size: 65535)
+                storage[i] = data
+                print("\(i): writing")
+                await stream.send(data)
             }
-        })
+            stream.finish()
+        }
+        let res = try await client.post("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", body: .stream(stream))
         #expect(res.status == .ok)
-        #expect(res.body == nil)
+        let body = try #require(res.body)
+        let bodyStream = try body.stream()
+        
+        for try await (progress, chunk) in bodyStream.withProgress() {
+            print(progress)
+            #expect(storage[progress.index] == chunk)
+            storage[progress.index] = nil
+        }
+        
+        let channel = try #require(res.channel)
+        try await channel.close()
         #expect(storage.isEmpty)
     }
     

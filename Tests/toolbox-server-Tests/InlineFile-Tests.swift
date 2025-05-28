@@ -12,89 +12,44 @@ struct InlineFileTests {
     
     @Test("Send 文件流传输", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func fileSendTest(method: HTTPMethod) async throws {
-        let storage = SendableDictionary<Int, ByteBuffer>()
-        let url = TestingShared.normalFilePath
-        let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.relativePath)))
-        let res = try await client.fileSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/file-echo", file: url.relativePath, progress: { progress in
-            print(progress)
-            if let res = progress.response {
-                if progress.index == -1 {
-                    print(res)
-                    #expect(res.headers.first(name: .contentDisposition) == TestingShared.normalFileName)
-                    #expect(res.headers.first(name: .contentLength) == String(info.size))
-                } else {
-                    let origin = try #require(storage[progress.index])
-                    #expect(origin == progress.data)
-                    storage[progress.index] = nil
-                }
-            } else {
-                if progress.index >= 0 {
-                    #expect(storage[progress.index] == nil)
-                    storage[progress.index] = progress.data
-                }
-            }
-        })
+        var size = 0
+        let url = FilePath(TestingShared.normalFilePath)
+        let info = try #require(await FileSystem.shared.info(forFileAt: url))
+        let res = try await client.send(method, to: "http://localhost:\(TestingShared.inlineListenPort)/file-echo", body: .file(from: url))
         #expect(res.status == .ok)
-        #expect(res.body == nil)
-        #expect(storage.isEmpty)
+        
+        let body = try #require(res.body)
+        let bodyStream = try body.stream()
+        
+        for try await (progress, chunk) in bodyStream.withProgress() {
+            print(progress)
+            size += chunk.readableBytes
+        }
+        
+        let channel = try #require(res.channel)
+        #expect(size == info.size)
+        try await channel.close()
     }
     
-    @Test("Send async 文件流传输", arguments: [HTTPMethod.POST, .PATCH, .PUT])
-    func asyncFileSendTest(method: HTTPMethod) async throws {
-        let storage = SendableDictionary<Int, ByteBuffer>()
-        let url = TestingShared.normalFilePath
-        let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.relativePath)))
-        let res = try await client.asyncFileSend(method, to: "http://localhost:\(TestingShared.inlineListenPort)/file-echo", file: url.relativePath, progress: { progress in
-            print(progress)
-            if let res = progress.response {
-                if progress.index == -1 {
-                    print(res)
-                    #expect(res.headers.first(name: .contentDisposition) == TestingShared.normalFileName)
-                    #expect(res.headers.first(name: .contentLength) == String(info.size))
-                } else {
-                    let origin = try #require(storage[progress.index])
-                    #expect(origin == progress.data)
-                    storage[progress.index] = nil
-                }
-            } else {
-                if progress.index >= 0 {
-                    #expect(storage[progress.index] == nil)
-                    storage[progress.index] = progress.data
-                }
-            }
-        }).get()
-        #expect(res.status == .ok)
-        #expect(res.body == nil)
-        #expect(storage.isEmpty)
-    }
-    
-    @Test("Post 大文件数据流传输")
+    @Test("Send 大文件流传输")
     func largeFilePostTest() async throws {
-        let storage = SendableDictionary<Int, ByteBuffer>()
-        let url = TestingShared.largeFilePath
-        print(url.relativePath)
-        let info = try #require(await FileSystem.shared.info(forFileAt: .init(url.relativePath)))
-        let res = try await client.filePost("http://localhost:\(TestingShared.inlineListenPort)/file-echo", file: url.relativePath, progress: { progress in
-            print(progress)
-            if let res = progress.response {
-                if progress.index == -1 {
-                    print(res)
-                    #expect(res.headers.first(name: .contentDisposition) == TestingShared.largeFileName)
-                    #expect(res.headers.first(name: .contentLength) == String(info.size))
-                } else {
-                    let origin = try #require(storage[progress.index])
-                    #expect(origin == progress.data)
-                    storage[progress.index] = nil
-                }
-            } else {
-                if progress.index >= 0 {
-                    #expect(storage[progress.index] == nil)
-                    storage[progress.index] = progress.data
-                }
-            }
-        })
+        var size = 0
+        let url = FilePath(TestingShared.largeFilePath)
+        let info = try #require(await FileSystem.shared.info(forFileAt: url))
+        let res = try await client.post("http://localhost:\(TestingShared.inlineListenPort)/file-echo", body: .file(from: url))
         #expect(res.status == .ok)
-        #expect(res.body == nil)
-        #expect(storage.isEmpty)
+        
+        let body = try #require(res.body)
+        let bodyStream = try body.stream()
+        
+        for try await (progress, chunk) in bodyStream.withProgress() {
+            print(progress)
+            size += chunk.readableBytes
+        }
+        
+        let channel = try #require(res.channel)
+        #expect(size == info.size)
+        print(info.size)
+        try await channel.close()
     }
 }

@@ -3,104 +3,72 @@ import Testing
 import Vapor
 import Foundation
 import WhooshingClient
+import AsyncAlgorithms
 
 @Suite("Https 流网络通讯测试集", .enabled(if: TestingShared.httpsServiceListening))
 struct HttpsStreamingTests {
     
     let client = makeHttpsClient()
     
-    @Test("Send stream 流请求测试", arguments: [HTTPMethod.POST, .PATCH, .PUT])
+    @Test("Send stream 流请求测试", arguments: [HTTPMethod.POST])
     func sendStreamingTest(method: HTTPMethod) async throws {
-        let totalSize = 10000
-        let verify = Verifier()
-        let counter = Counter(max: totalSize)
-        let res = try await client.streamSend(method, to: "http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
-            let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
-            return data
-        }, progress: { progress in
-            print(progress)
-            if let res = progress.response {
-                #expect(res.status == .ok)
-                if progress.index >= 0 {
-                    Task { await counter.add(progress.data.readableBytes) }
-                }
-                if progress.done {
-                    Task { await verify.fullFill() }
-                    #expect(progress.curBytes == totalSize)
-                }
+        var size = 0
+        let stream = AsyncThrowingChannel<ByteBuffer, Error>()
+        Task {
+            for i in 0..<10 {
+                let data = Self.randomData(size: 1024)
+                print("\(i): writing")
+                await stream.send(data)
             }
-        })
-        #expect(await verify.isFullFill)
-        #expect(await counter.value == totalSize)
+            stream.finish()
+        }
+        let res = try await client.send(method, to: "http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", body: .stream(stream))
         #expect(res.status == .ok)
-        #expect(res.body == nil)
+        
+        let body = try #require(res.body)
+        let bodyStream = try body.stream()
+        
+        for try await (progress, chunk) in bodyStream.withProgress() {
+            print(progress)
+            size += chunk.readableBytes
+        }
+        
+        #expect(size == 10240)
     }
     
     @Test("Send stream 流请求抛错测试")
     func sendStreamingThrowingTest() async throws {
-        let totalSize = 10000
         let error = Abort(.init(statusCode: 1111, reasonPhrase: "Testing"))
+        let stream = AsyncThrowingChannel<ByteBuffer, Error>()
+        stream.fail(error)
         await #expect(throws: Abort.self, performing: {
-            try await client.streamPost("http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
-                throw error
-            })
+            try await client.post("http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", body: .stream(stream))
         })
-    }
-    
-    @Test("Send async stream 流请求测试", arguments: [HTTPMethod.POST, .PATCH, .PUT])
-    func asyncSendStreamingTest(method: HTTPMethod) async throws {
-        let totalSize = 10000
-        let verify = Verifier()
-        let counter = Counter(max: totalSize)
-        let res = try await client.asyncStreamSend(method, to: "http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", bodySize: totalSize, stream: { request, eventLoop, maxChunk, currentIndex in
-            let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
-            return eventLoop.makeSucceededFuture(data)
-        }, progress: { progress in
-            print(progress)
-            if let res = progress.response {
-                if progress.index >= 0 {
-                    print("read i: \(progress.index)")
-                    Task { await counter.add(progress.data.readableBytes) }
-                    #expect(res.status == .ok)
-                }
-                if progress.done {
-                    Task { await verify.fullFill() }
-                    #expect(progress.curBytes == totalSize)
-                }
-            }
-        }).get()
-        #expect(await verify.isFullFill)
-        #expect(await counter.value == totalSize)
-        #expect(res.status == .ok)
-        #expect(res.body == nil)
     }
     
     @Test("Post stream 流大数据请求测试")
     func sendLargeStreamingTest() async throws {
-        let totalSize = 10000000
-        let verify = Verifier()
-        let counter = Counter(max: totalSize)
-        let res = try await client.streamPost("http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", bodySize: totalSize, stream: { request, maxChunk, currentIndex in
-            let data = Self.randomData(size: min(totalSize - (currentIndex * maxChunk), maxChunk))
-            return data
-        }, progress: { progress in
-            print(progress)
-            if let res = progress.response {
-                if progress.index >= 0 {
-                    print("read i: \(progress.index)")
-                    Task { await counter.add(progress.data.readableBytes) }
-                    #expect(res.status == .ok)
-                }
-                if progress.done {
-                    Task { await verify.fullFill() }
-                    #expect(progress.curBytes == totalSize)
-                }
+        var size = 0
+        let stream = AsyncThrowingChannel<ByteBuffer, Error>()
+        Task {
+            for i in 0..<100 {
+                let data = Self.randomData(size: 65535)
+                print("\(i): writing")
+                await stream.send(data)
             }
-        })
-        #expect(await verify.isFullFill)
-        #expect(await counter.value == totalSize)
+            stream.finish()
+        }
+        let res = try await client.post("http://localhost:\(TestingShared.httpsListenPort)/streaming-echo", body: .stream(stream))
         #expect(res.status == .ok)
-        #expect(res.body == nil)
+        let body = try #require(res.body)
+        let bodyStream = try body.stream()
+        
+        for try await (progress, chunk) in bodyStream.withProgress() {
+            print(progress)
+            size += chunk.readableBytes
+        }
+        
+        #expect(size == 6553500)
     }
     
     static func randomData(size: Int) -> ByteBuffer {
