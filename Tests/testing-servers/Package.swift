@@ -11,8 +11,7 @@ let package = Package(
     ],
     dependencies: [
         // 💧 Vapor -- Swift 服务器端第三方框架
-//        .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", from: "1.0.0"),
-        .package(path: "/Users/clwang/GitHub/whooshing-vapor"),
+        .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", from: "1.0.0"),
         // ⭐️ Whooshing 系统基本框架
         .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-basic.git", from: "1.2.1"),
         // 🔵 Swift 高性能网络通讯模块

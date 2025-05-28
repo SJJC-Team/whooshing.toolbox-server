@@ -94,7 +94,7 @@ extension InlineClient {
             // 检查对方的响应，对方应当发来自己的公钥
             self.logger?.trace("Inline.Client-密钥交换中: 检查对方发来的公钥")
             guard response.status == .ok else { throw Inline.RequestErr.unknowError.d("\(response.status.description)(\(response.status.code))", 10090).adds(.internalServerError) }
-            guard let data = try response.body?.data(as: Data.self, ) else { throw Inline.RequestErr.targetIncorrectResponseBody.d("预期为公钥，但得到不正确回复", 10091).adds(.internalServerError) }
+            guard let data = try response.body?.data(as: Data.self) else { throw Inline.RequestErr.targetIncorrectResponseBody.d("预期为公钥，但得到不正确回复", 10091).adds(.internalServerError) }
             self.logger?.trace("Inline.Client-密钥交换中: 解包对方发来的公钥")
             let targetPub = try Crypto.Asym.CPublicKey(data: data)
             self.logger?.trace("Inline.Client-密钥交换中: 计算共享密钥")
