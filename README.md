@@ -90,3 +90,11 @@ Whooshing 系统用于创建服务模块的依赖工具库，提供了统一的�
 - 当前仅支持 PostgreSQL 作为数据库后端。
 
 如需了解更多，请参阅各模块内的源码注释与文档说明。
+
+-------
+
+### 联系与反馈
+
+如有使用问题或建议，请通过 [GitHub Issues](https://github.com/SJJC-Team/whooshing.toolbox-server/issues) 提交反馈。
+
+或发至邮箱 [contact@official.whooshings.space](mailto:contact@official.whooshings.space)
