@@ -48,7 +48,7 @@ Whooshing 系统用于创建服务模块的依赖工具库，提供了统一的�
 在你的 Package.swift 加入：
 
 ``` swift
-.package(url: "https://github.com/SJJC-Team/whooshing.toolbox-server.git", .upToNextMajor(from: "1.0.10"))
+.package(url: "https://github.com/SJJC-Team/whooshing.toolbox-server.git", .upToNextMajor(from: "1.0.11"))
 ```
 
 并在你所依赖的 target 中添加：

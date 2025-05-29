@@ -22,6 +22,6 @@ public extension HttpsWebSocket {
     /// - Parameters:
     ///   - request: Vapor Request 上下文。
     convenience init(request: Request) {
-        self.init(eventLoop: request.eventLoop, logger: request.logger)
+        self.init(in: request.eventLoop, logger: request.logger)
     }
 }
