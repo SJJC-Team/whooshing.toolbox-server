@@ -39,7 +39,7 @@ Whooshing 系统用于创建服务模块的依赖工具库，提供了统一的�
 - 所有服务模块应向 INLINE 模块注册自身信息，并使用其认证能力。
 - 提供加密通道、服务验证等机制。
 
-关于 Whooshing 加密，另见 [whooshing-module-manager](https://github.com/SJJC-Team/whooshing-module-manager)
+关于 Whooshing 加密，另见 [whooshing.system-manager](https://github.com/SJJC-Team/whooshing.system-manager)
 
 ---------
 
