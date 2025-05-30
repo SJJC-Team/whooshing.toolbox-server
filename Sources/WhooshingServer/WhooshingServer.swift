@@ -177,7 +177,13 @@ private extension Whooshing {
         app.http.server.configuration.port = config.port
         for db in config.databases { app.databases.use(db.config, as: db.id) }
         let service = Self(app: app, config: config, debugingData: debugPara)
-        try await conf(service)
+        do {
+            try await conf(service)
+        } catch {
+            service.logger.report(error: error)
+            try? await service.asyncShutdown()
+            throw error
+        }
         return service
     }
 }
