@@ -35,6 +35,7 @@ let package = Package(
                 .product(name: "DataConvertable", package: "whooshing.toolbox-basic"),
                 .product(name: "WhooshingClient", package: "whooshing.toolbox-client"),
                 .product(name: "WhooshingWebSocket", package: "whooshing.toolbox-websocket"),
+                .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver")
             ]
         ),
         .testTarget(
