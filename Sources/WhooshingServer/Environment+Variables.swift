@@ -48,6 +48,9 @@ public extension Environment {
         public let port: Int
         /// 用于连接数据库的用户名
         public let user: String
+        /// 用于连接数据库的主机名，只有测试时会使用。
+        /// PostgreSQL 生产环境仅允许运行在本地
+        public let unsafeTestOnlyHost: String?
         /// 数据库访问密码（内部使用）
         internal let password: String
         /// 每个事件循环最大连接数
@@ -74,6 +77,7 @@ public extension Environment {
             port: Int = 5432,
             user: String = "postgres",
             password: String = "password",
+            unsafeTestOnlyHost: String? = nil,
             maxConnectionsPerEventLoop: Int = 1,
             connectionPoolTimeout: TimeAmount = .seconds(10),
             sqlLogLevel: Logger.Level = .info
@@ -84,6 +88,7 @@ public extension Environment {
             self.password = password
             self.maxConnectionsPerEventLoop = maxConnectionsPerEventLoop
             self.connectionPoolTimeout = connectionPoolTimeout
+            self.unsafeTestOnlyHost = unsafeTestOnlyHost
             self.sqlLogLevel = sqlLogLevel
         }
         
@@ -91,7 +96,22 @@ public extension Environment {
         public var id: DatabaseID { .init(string: name) }
         
         /// 返回当前数据库的实际连接配置对象
-        public var config: DatabaseConfigurationFactory {
+        /// 仅仅在测试时使用
+        public var testingConfig: DatabaseConfigurationFactory {
+            .postgres(configuration: .init(
+                hostname: unsafeTestOnlyHost != nil ? unsafeTestOnlyHost! : "localhost",
+                port: port,
+                username: user,
+                password: password,
+                database: name,
+                tls: .disable
+            ),
+            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
+            connectionPoolTimeout: connectionPoolTimeout,
+            sqlLogLevel: sqlLogLevel)
+        }
+        
+        internal var config: DatabaseConfigurationFactory {
             .postgres(configuration: .init(
                 hostname: "localhost",
                 port: port,

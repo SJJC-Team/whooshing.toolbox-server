@@ -19,6 +19,7 @@ extension Environment.DB: Environment.Template {
         self.port = data["port"] as! Int
         self.user = data["user"] as! String
         self.password = data["password"] as! String
+        self.unsafeTestOnlyHost = nil
         self.connectionPoolTimeout = .seconds(10)
         self.maxConnectionsPerEventLoop = 1
         self.sqlLogLevel = .info
