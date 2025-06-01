@@ -158,9 +158,10 @@ private extension Whooshing {
             fatalError("环境变量 \(mode.envrionment.name) 无法识别")
         }
         
-        let debugPara = mode.debuging
-        if let dp = debugPara {
+        var debugPara: Service.Debuging? = nil
+        if let dp = mode.debuging {
             if [Environment.development, .testing].contains(env) {
+                debugPara = dp
                 config = dp.config
             } else {
                 config = try Environment.get(with: Service.envPrefix)
