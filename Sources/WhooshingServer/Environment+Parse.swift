@@ -5,7 +5,7 @@ extension Environment.Config: Environment.Template {
     internal static var envs: [String: Environment.Types] { [
         "name": .string,
         "port": .int,
-        "listen_addr": .string,
+        "hostname": .string,
         "#domain": .string,
         "manager_url": .url,
         "db": .dataTemplates(Environment.DB.self),
@@ -15,7 +15,7 @@ extension Environment.Config: Environment.Template {
     internal init(data: [String : Any]) {
         self.name = data["name"] as! String
         self.port = data["port"] as! Int
-        self.listenAddr = data["listen_addr"] as! String
+        self.hostname = data["hostname"] as! String
         self.databases = data["db"] as! [Environment.DB]
         self.domain = data["domain"] as? String
         self.managerUrl = data["manager_url"] as! URL

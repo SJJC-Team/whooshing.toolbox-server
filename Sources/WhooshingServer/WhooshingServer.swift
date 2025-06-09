@@ -175,6 +175,7 @@ private extension Whooshing {
         }
         
         let app = try await Application.make(env)
+        app.http.server.configuration.hostname = config.hostname
         app.http.server.configuration.port = config.port
         if env == .testing {
             for db in config.databases { app.databases.use(db.testingConfig, as: db.id) }

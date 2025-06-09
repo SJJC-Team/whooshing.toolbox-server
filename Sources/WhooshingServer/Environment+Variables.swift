@@ -9,7 +9,7 @@ public extension Environment {
         /// 当前服务监听的端口号
         public let port: Int
         /// 当前服务的监听地址
-        public let listenAddr: String
+        public let hostname: String
         /// 所配置的数据库列表，仅支持 PostgreSQL 数据库
         public let databases: [DB]
         /// 服务管理平台的基础 URL，用于内部通信
@@ -25,6 +25,7 @@ public extension Environment {
         /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
         /// - Parameters:
         ///   - name: 环境名称
+        ///   - hostname: 服务监听地址
         ///   - port: 服务监听端口
         ///   - databases: 数据库列表
         ///   - managerUrl: 服务管理平台 URL
@@ -32,7 +33,7 @@ public extension Environment {
         public init(
             name: String,
             port: Int = 6500,
-            listenAddr: String = "127.0.0.1",
+            hostname: String = "127.0.0.1",
             databases: [DB] = [],
             managerUrl: URL = .init(string: "http://testing.com")!,
             domain: String? = nil,
@@ -40,7 +41,7 @@ public extension Environment {
         ) {
             self.name = name
             self.port = port
-            self.listenAddr = listenAddr
+            self.hostname = hostname
             self.databases = databases
             self.managerUrl = managerUrl
             self.domain = domain
