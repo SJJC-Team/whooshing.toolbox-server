@@ -8,12 +8,16 @@ public extension Environment {
         public let name: String
         /// 当前服务监听的端口号
         public let port: Int
+        /// 当前服务的监听地址
+        public let listenAddr: String
         /// 所配置的数据库列表，仅支持 PostgreSQL 数据库
         public let databases: [DB]
         /// 服务管理平台的基础 URL，用于内部通信
         public let managerUrl: URL
         /// 可选的域名信息
         public let domain: String?
+        /// 文件存储配置信息
+        public let fileStorage: FileStorage?
         
         public init() { self = Self(name: "Testing") }
         
@@ -28,15 +32,42 @@ public extension Environment {
         public init(
             name: String,
             port: Int = 6500,
+            listenAddr: String = "127.0.0.1",
             databases: [DB] = [],
             managerUrl: URL = .init(string: "http://testing.com")!,
-            domain: String? = nil
+            domain: String? = nil,
+            fileStorage: FileStorage? = nil
         ) {
             self.name = name
             self.port = port
+            self.listenAddr = listenAddr
             self.databases = databases
             self.managerUrl = managerUrl
             self.domain = domain
+            self.fileStorage = fileStorage
+        }
+    }
+    
+    /// 配置文件存储的配置项，配置文件存储的位置，以及文件索引数据库的连接配置
+    struct FileStorage: Sendable {
+        /// 文件存储的主文件夹路径
+        public let path: String
+        /// 文件索引数据库的连接配置
+        public let database: DB
+        
+        public init() { self = Self(path: "") }
+        
+        /// 初始化文件存储配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
+        /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
+        /// - Parameters:
+        ///   - path: 文件存储的主文件夹路径
+        ///   - database: 文件索引数据库的连接配置
+        public init(
+            path: String,
+            database: DB = .init()
+        ) {
+            self.path = path
+            self.database = database
         }
     }
     
