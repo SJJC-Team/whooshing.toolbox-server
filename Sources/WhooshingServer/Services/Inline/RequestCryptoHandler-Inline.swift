@@ -16,7 +16,7 @@ extension InlineClient {
 
 extension Inline {
     @frozen
-    public enum CryptoErrcase: String, ErrList {
+    public enum RequestCryptoErrcase: String, ErrList {
         case requestEncryptFailed = "请求数据加密时失败"
         case responseDecryptFailed = "响应数据解密时失败"
         
@@ -45,18 +45,18 @@ extension Inline {
         var isAvaliable: Bool { client != nil }
         
         /// 发送请求时，进行编码并加密
-        func send(data: NIOCore.ByteBuffer, context: NIOCore.ChannelHandlerContext) -> EventLoopRes<ByteBuffer, CryptoErrcase> {
-            context.eventLoop.makeResultWithTask { () throws(CryptoErrcase.ErrType) in
+        func send(data: NIOCore.ByteBuffer, context: NIOCore.ChannelHandlerContext) -> EventLoopRes<ByteBuffer, RequestCryptoErrcase> {
+            context.eventLoop.makeResultWithTask { () throws(RequestCryptoErrcase.ErrType) in
                 guard data.readableBytes > 0 else { return data }
                 let cipher: Data
                 let id = ObjectIdentifier(context.channel)
                 logger.trace("Inline.Client.HTTP-发送请求，进行加密(key: \(client.requestIoData.connectionKeys[id] != nil)) in \(context.channel.clientAddrInfo)")
                 if let key = client.requestIoData.connectionKeys[id] {
-                    cipher = try required(throws: CryptoErrcase.requestEncryptFailed) {
+                    cipher = try required(throws: RequestCryptoErrcase.requestEncryptFailed) {
                         try Crypto.Symm.encrypt(data, key: key).get()
                     }
                 } else {
-                    cipher = try required(throws: CryptoErrcase.requestEncryptFailed) {
+                    cipher = try required(throws: RequestCryptoErrcase.requestEncryptFailed) {
                         try Crypto.Symm.encrypt(data, key: client.requestIoData.rootKey).get()
                     }
                 }
@@ -66,18 +66,18 @@ extension Inline {
         }
         
         /// 收到响应时，进行解密并解码
-        func get(data: ByteBuffer, context: ChannelHandlerContext) -> EventLoopRes<ByteBuffer, CryptoErrcase> {
-            context.eventLoop.makeResultWithTask { () throws(CryptoErrcase.ErrType) in
+        func get(data: ByteBuffer, context: ChannelHandlerContext) -> EventLoopRes<ByteBuffer, RequestCryptoErrcase> {
+            context.eventLoop.makeResultWithTask { () throws(RequestCryptoErrcase.ErrType) in
                 guard data.readableBytes > 0 else { return data }
                 let id = ObjectIdentifier(context.channel)
                 var plain: ByteBuffer
                 logger.trace("Inline.Client.HTTP-收到响应，进行解密(key: \(client.requestIoData.connectionKeys[id] != nil)) in \(context.channel.clientAddrInfo)")
                 if let key = client.requestIoData.connectionKeys[id] {
-                    plain = try required(throws: CryptoErrcase.responseDecryptFailed) {
+                    plain = try required(throws: RequestCryptoErrcase.responseDecryptFailed) {
                         try Crypto.Symm.decrypt(.init(buffer: data), key: key).get()
                     }
                 } else {
-                    plain = try required(throws: CryptoErrcase.responseDecryptFailed) {
+                    plain = try required(throws: RequestCryptoErrcase.responseDecryptFailed) {
                         try Crypto.Symm.decrypt(.init(buffer: data), key: client.requestIoData.rootKey).get()
                     }
                 }
@@ -86,13 +86,13 @@ extension Inline {
         }
 
         // 连线建立
-        func connectionStart(context: ChannelHandlerContext) -> EventLoopRes<Void, CryptoErrcase> {
+        func connectionStart(context: ChannelHandlerContext) -> EventLoopRes<Void, RequestCryptoErrcase> {
             logger.debug("Inline.Client-连线建立: \(context.channel.clientAddrInfo)")
             return context.eventLoop.makeSucceededVoidResult()
         }
         
         // 连线结束，进行清理
-        func connectionEnd(context: ChannelHandlerContext) -> EventLoopRes<Void, CryptoErrcase> {
+        func connectionEnd(context: ChannelHandlerContext) -> EventLoopRes<Void, RequestCryptoErrcase> {
             logger.debug("Inline.Client-连线结束: \(context.channel.clientAddrInfo)")
             let id = ObjectIdentifier(context.channel)
             if let client = self.client {

@@ -140,7 +140,7 @@ extension Inline {
         }
         
         woo.app.logger.debug("注册 HTTP IO 加密模块")
-        woo.app.use(httpIOHandler: HttpIOCrypto(app: woo))
+        woo.app.use(httpIOHandler: .init(HttpIOCrypto(app: woo)))
         woo.app.logger.debug("注册服务来源验证中间件")
         woo.app.middleware.use(GuardMiddleware(serviceId: serviceId))
         woo.app.logger.debug("与模块管理器交互，取得可信服务列表并交换密钥")

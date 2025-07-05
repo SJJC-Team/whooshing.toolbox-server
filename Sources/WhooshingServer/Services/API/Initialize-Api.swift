@@ -121,7 +121,7 @@ public enum Api: ServiceType {
         }
         
         woo.app.logger.debug("注册 HTTP IO 加密模块")
-        woo.app.use(httpIOHandler: HttpIOCrypto(app: woo))
+        woo.app.use(httpIOHandler: .init(HttpIOCrypto(app: woo)))
         woo.app.logger.debug("注册客户端身份验证中间件")
         woo.app.middleware.use(GuardMiddleware(authenticationURL: authenticationURL, debugingAuth: debugAuth))
         woo.app.logger.debug("初始化服务数据")

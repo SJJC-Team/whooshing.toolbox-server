@@ -1,9 +1,10 @@
 import Vapor
+import NIO
+import NIOAdvanced
+import Logging
 import Cryptos
 import ErrorHandle
 import DataConvertable
-import NIO
-import Logging
 import WhooshingClient
 
 /// 该文件实现了 API 模块接收和发出的加密机制 Socket 流处理
@@ -14,6 +15,12 @@ extension Whooshing where Service == Api {
 }
 
 extension Api {
+    @frozen
+    public enum CryptoErrcase: String, ErrList, Sendable {
+        case requestDecryptFailed = "请求数据解密失败"
+        case responseEncryptFailed = "响应数据加密失败"
+        case internalFailure = "内部错误"
+    }
     
     final class ServiceData: StorageKey, Sendable {
         typealias Value = ServiceData
@@ -30,63 +37,65 @@ extension Api {
         weak var app: Whooshing<Api>!
         
         /// 有客户端请求进入
-        func input(request: Data, context: ChannelHandlerContext) -> EventLoopFuture<Data> {
-            guard request.count > 0 else { return context.eventLoop.makeSucceededFuture(request) }
-            let id = ObjectIdentifier(context.channel)
-            do {
+        func input(request: Data, context: ChannelHandlerContext) -> EventLoopRes<Data, CryptoErrcase> {
+            context.eventLoop.submitResult { () throws(CryptoErrcase.ErrType) in
+                guard request.count > 0 else { return request }
+                let id = ObjectIdentifier(context.channel)
                 app.logger.trace("API.HTTP-客户端请求进入，进行解密(key: \(app.apiServiceData.clientKeys[id] != nil)) in \(context.channel.serverAddrInfo)")
                 let req: Data
                 if let key = app.apiServiceData.clientKeys[id] {
-                    req = try Crypto.Symm.decrypt(request, key: key).get()
+                    req = try required(throws: CryptoErrcase.requestDecryptFailed) {
+                        try Crypto.Symm.decrypt(request, key: key).get()
+                    }
                 } else {
                     // 客户端第一次连线的认证请求
                     // 这里对方将发送明文，因为用户凭据可明文发送，而用户口令会加密处理
                     req = request
                 }
-                return context.eventLoop.makeSucceededFuture(req)
-            } catch let err {
-                return context.eventLoop.makeFailedFuture(err)
+                return req
             }
         }
         
         /// 有服务器响应请求发出
-        func output(response: Data, context: ChannelHandlerContext) -> EventLoopFuture<Data> {
-            let id = ObjectIdentifier(context.channel)
-            guard response.count > 0 else {
-                app.apiServiceData.clientTokens[id] = nil
-                return context.eventLoop.makeSucceededFuture(response)
-            }
-            do {
+        func output(response: Data, context: ChannelHandlerContext) -> EventLoopRes<Data, CryptoErrcase> {
+            context.eventLoop.submitResult { () throws(CryptoErrcase.ErrType) in
+                let id = ObjectIdentifier(context.channel)
+                guard response.count > 0 else {
+                    app.apiServiceData.clientTokens[id] = nil
+                    return response
+                }
                 app.logger.trace("API.HTTP-客户端响应发出，进行加密(temp: \(app.apiServiceData.clientTokens[id] != nil), key: \(app.apiServiceData.clientKeys[id] != nil)) in \(context.channel.serverAddrInfo)")
                 let res: Data
                 // 使用 clientTokens 加密，是临时的，仅仅是作为服务器第一次响应时的加密密钥
                 if let key = app.apiServiceData.clientTokens[id] {
-                    res = try Crypto.Symm.encrypt(response, key: key).get()
+                    res = try required(throws: CryptoErrcase.responseEncryptFailed) {
+                        try Crypto.Symm.encrypt(response, key: key).get()
+                    }
                 } else if let key = app.apiServiceData.clientKeys[id] {
-                    res = try Crypto.Symm.encrypt(response, key: key).get()
+                    res = try required(throws: CryptoErrcase.responseEncryptFailed) {
+                        try Crypto.Symm.encrypt(response, key: key).get()
+                    }
                 } else {
                     res = response
                 }
-                return context.eventLoop.makeSucceededFuture(res)
-            } catch let err {
-                return context.eventLoop.makeFailedFuture(err)
+                return res
             }
         }
         
-        func connectionStart(context: ChannelHandlerContext) -> EventLoopFuture<Void> {
+        func connectionStart(context: ChannelHandlerContext) -> EventLoopRes<Void, CryptoErrcase> {
             app.logger.debug("API.Server-连线建立: \(context.channel.serverAddrInfo)")
-            return context.eventLoop.makeSucceededVoidFuture()
+            return context.eventLoop.makeSucceededVoidResult()
         }
 
         /// 连线结束
-        func connectionEnd(context: ChannelHandlerContext) -> EventLoopFuture<Void> {
+        func connectionEnd(context: ChannelHandlerContext) -> EventLoopRes<Void, CryptoErrcase> {
             let id = ObjectIdentifier(context.channel)
             if let app = self.app {
                 app.logger.debug("API.Server-连线结束: \(context.channel.serverAddrInfo)")
                 app.apiServiceData.clientKeys[id] = nil
                 app.apiServiceData.clientTokens[id] = nil
             }
-            return context.eventLoop.makeSucceededVoidFuture()
+            return context.eventLoop.makeSucceededVoidResult()
         }
     }
 }
