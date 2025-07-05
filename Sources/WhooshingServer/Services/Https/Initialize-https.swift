@@ -15,7 +15,7 @@ public enum Https: ServiceType {
         }
     }
     
-    internal static func config(_ woo: Whooshing<Https>) async throws {
+    internal static func config(_ woo: Whooshing<Https>) async throws(Failure) {
         woo.app.http.server.configuration.serviceName = "HTTPS"
     }
 }

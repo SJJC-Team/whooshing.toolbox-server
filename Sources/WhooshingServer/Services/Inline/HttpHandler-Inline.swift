@@ -38,8 +38,8 @@ extension Inline {
             let req: Data
             do {
                 app.logger.trace("Inline.HTTP-客户端请求进入，进行解密(key: \(app.inlineServiceData.connectionKeys[id] != nil)) in \(context.channel.serverAddrInfo)")
-                if let key = app.inlineServiceData.connectionKeys[id] { req = try Crypto.Symm.decrypt(request, key: key) }
-                else { req = try Crypto.Symm.decrypt(request, key: app.inlineServiceData.rootKey) }
+                if let key = app.inlineServiceData.connectionKeys[id] { req = try Crypto.Symm.decrypt(request, key: key).get() }
+                else { req = try Crypto.Symm.decrypt(request, key: app.inlineServiceData.rootKey).get() }
                 return context.eventLoop.makeSucceededFuture(req)
             } catch let err {
                 return context.eventLoop.makeFailedFuture(err)
@@ -55,8 +55,8 @@ extension Inline {
                 app.logger.trace("Inline.HTTP-客户端响应发出，进行加密(key: \(app.inlineServiceData.connectionKeys[id] != nil), validated: \(app.inlineServiceData.connectionValidate[id] != nil)) in \(context.channel.serverAddrInfo)")
                 // 若 key 存在，但 validate 不存在，则仍然使用 rootKey 加密
                 if let key = app.inlineServiceData.connectionKeys[id], let _ = app.inlineServiceData.connectionValidate[id] {
-                    res = try Crypto.Symm.encrypt(response, key: key)
-                } else { res = try Crypto.Symm.encrypt(response, key: app.inlineServiceData.rootKey) }
+                    res = try Crypto.Symm.encrypt(response, key: key).get()
+                } else { res = try Crypto.Symm.encrypt(response, key: app.inlineServiceData.rootKey).get() }
                 return context.eventLoop.makeSucceededFuture(res)
             } catch let err {
                 return context.eventLoop.makeFailedFuture(err)

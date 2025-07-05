@@ -48,3 +48,4 @@ extension Crypto.Asym.SPublicKey: @retroactive AsyncRequestDecodable {}
 extension Crypto.Asym.SPublicKey: @retroactive ResponseEncodable {}
 extension Crypto.Asym.SPublicKey: @retroactive RequestDecodable {}
 extension Crypto.Asym.SPublicKey: @retroactive Content {}
+

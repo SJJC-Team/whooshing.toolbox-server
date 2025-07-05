@@ -56,7 +56,7 @@ extension Environment.DB: Environment.Template {
 }
 
 extension Environment {
-    static func get(with prefix: String) throws -> Config { try .parse(prefix: prefix) }
+    static func get(with prefix: String) throws(Errcase.ErrType) -> Config { try .parse(prefix: prefix) }
     
     enum Types {
         case string
@@ -76,7 +76,7 @@ extension Environment {
         init()
     }
 
-    public enum Err: String, ErrList {
+    public enum Errcase: String, ErrList {
         public var domain: String { "woo.sys.env.err" }
         case parseFailed = "环境变量解析失败"
         case typeIncorrect = "环境变量配置类型不匹配"
@@ -85,7 +85,7 @@ extension Environment {
 }
 
 extension Environment.Template {
-    static func parse(prefix: String?, getValue: @escaping ((String) -> String?) = { Environment.get($0) }) throws -> Self {
+    static func parse(prefix: String?, getValue: @escaping ((String) -> String?) = { Environment.get($0) }) throws(Environment.Errcase.ErrType) -> Self {
         var values: [String: Any] = [:]
         for (key, v) in Self.envs {
             if key.hasPrefix("#") {
@@ -100,7 +100,7 @@ extension Environment.Template {
             switch v {
             case .string, .int, .intArr, .url, .uri, .uuid, .stringArr:
                 guard let vv = getValue(k) else {
-                    throw Environment.Err.missingKey.d(k, 10000)
+                    throw Environment.Errcase.missingKey.d(k)
                 }
                 value = vv
             default: value = nil
@@ -117,20 +117,22 @@ extension Environment.Template {
                 values[key] = URI(string: value)
                 
             case .int:
-                guard let v = Int(value) else { throw Environment.Err.typeIncorrect.d(k, 10003) }
+                guard let v = Int(value) else { throw Environment.Errcase.typeIncorrect.d(k) }
                 values[key] = v
                 
             case .url:
-                guard let v = URL(string: value) else { throw Environment.Err.typeIncorrect.d(k, 10004) }
+                guard let v = URL(string: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
                 values[key] = v
                 
             case .uuid:
-                guard let v = UUID(uuidString: value) else { throw Environment.Err.typeIncorrect.d(k, 10096) }
+                guard let v = UUID(uuidString: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
                 values[key] = v
                 
             case .intArr:
-                values[key] = try value.split(separator: ",").map {
-                    guard let v = Int($0) else { throw Environment.Err.typeIncorrect.d(k) }
+                values[key] = try value.split(separator: ",").map { v throws(Environment.Errcase.ErrType) in
+                    guard let v = Int(v) else {
+                        throw Environment.Errcase.typeIncorrect.d(k)
+                    }
                     return v
                 }
                 
@@ -138,8 +140,8 @@ extension Environment.Template {
                 values[key] = try template.parse(prefix: k, getValue: getValue)
                 
             case .dataTemplates(let template):
-                guard let countStr = getValue(k + "_COUNT") else { throw Environment.Err.missingKey.d(k + "_COUNT", 10001) }
-                guard let count = Int(countStr) else { throw Environment.Err.typeIncorrect.d(k, 10002) }
+                guard let countStr = getValue(k + "_COUNT") else { throw Environment.Errcase.missingKey.d(k + "_COUNT") }
+                guard let count = Int(countStr) else { throw Environment.Errcase.typeIncorrect.d(k) }
                 var vs: [Environment.Template] = []
                 for i in 0..<count {
                     vs.append(try template.parse(prefix: "\(k)_\(i + 1)", getValue: getValue))

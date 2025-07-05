@@ -4,27 +4,14 @@ import DataConvertable
 import NIOCore
 import Logging
 import Cryptos
+import NIOAdvanced
 import WhooshingClient
 
 /// 该文件实现了发送加密请求的功能。由于目标模块的加密算法并非传统的 HTTPS，
 /// 而是自定的加密算法，因此向其请求时需要使用特定的加密逻辑。
 
-public extension Inline {
-    enum RequestErr: String, ErrList {
-        public typealias ErrType = HTTPResponseError
-        public var domain: String { "woo.sys.inline.reqclient.err" }
-        case targetIncorrectResponseBody = "响应体解析失败"
-        case unknowError = "响应不正确，未知错误"
-    }
-    
-    enum RequestInternalErr: String, ErrList {
-        public var domain: String { "woo.sys.inline.reqclient.internal.err" }
-        case unknowSendError = "发送时遇到未知错误"
-    }
-}
-
-final class InlineClient: ReqClient, WhooshingClient, StorageKey, @unchecked Sendable {
-    typealias Value = InlineClient
+final class InlineClient: ReqClient<Inline.RequestIOCrypto>, WhooshingClient, @unchecked Sendable {
+    typealias Errcase = InlineClientErrcase
     
     var key: Crypto.Symm.Key? {
         guard
@@ -37,11 +24,22 @@ final class InlineClient: ReqClient, WhooshingClient, StorageKey, @unchecked Sen
     
     func send(
         _ request: HTTPRequest
-    ) -> EventLoopFuture<HTTPResponse> {
-        self.makeChannel(url: request.url).flatMap { (channel, handler, _) in
+    ) -> EventLoopResult<HTTPResponse, Failure> {
+        self.makeChannel(url: request.url)
+            .errCast(Errcase.tcpChannelAssignFailed)
+            .flatMap
+        { channel, handler, _ in
             self.logger?.info("Inline.Client-发送请求: \(channel.clientAddrInfo)")
             return self._send(request: request, channel: channel, handler: handler)
         }
+    }
+    
+    func removeHTTPHandlers() async -> Result<Void, Failure> {
+        await super.removeHTTPHandlers().mapError(as: Errcase.tcpHandleRemoveFailed)
+    }
+    
+    func removeHTTPHandlers(in eventLoop: any EventLoop) -> EventLoopResult<Void, Failure> {
+        super.removeHTTPHandlers(in: eventLoop).errCast(Errcase.tcpHandleRemoveFailed)
     }
     
     deinit {
@@ -53,13 +51,17 @@ final class InlineClient: ReqClient, WhooshingClient, StorageKey, @unchecked Sen
 }
 
 extension InlineClient {
-    private func _send(request: HTTPRequest, channel: Channel, handler: RequestWrapperHandler) -> EventLoopFuture<HTTPResponse> {
+    private func _send(
+        request: HTTPRequest,
+        channel: Channel,
+        handler: RequestWrapperHandler
+    ) -> EventLoopResult<HTTPResponse, Failure> {
         let id = ObjectIdentifier(channel)
         let procedure: Int
         if self.requestIoData.connectionKeys[id] == nil { procedure = 0 }
         else if self.requestIoData.connectionValidate[id] != true { procedure = 1 }
         else { procedure = 2 }
-        var r = channel.eventLoop.makeSucceededVoidFuture()
+        var r = channel.eventLoop.makeSucceededVoidResult(throws: Failure.self)
         switch (procedure) {
             case 0:
                 r = r.flatMap {
@@ -76,7 +78,7 @@ extension InlineClient {
             default:
                 return r.flatMap {
                     self.logger?.debug("Inline.Client-与服务器发送真正请求: \(channel.clientAddrInfo)")
-                    return self.send(request, channel: channel, handler: handler)
+                    return self.send(request, channel: channel, handler: handler).errCast(Errcase.tcpSendFailed, "发送用户请求失败")
                 }
         }
     }
@@ -85,45 +87,85 @@ extension InlineClient {
         let data: Data
     }
     
-    private func keyExchange(req: HTTPRequest, channel: Channel, handler: RequestWrapperHandler) -> EventLoopFuture<Void> {
-        self.logger?.trace("Inline.Client-密钥交换中: 创建公私钥对")
-        let keyPair = Crypto.Asym.makeCryptoKeyPair()
-        self.logger?.trace("Inline.Client-密钥交换中: 将公钥发送于目标")
-        let req = HTTPRequest(method: .POST, url: req.url, body: try! .json(JSONData(data: keyPair.public.data())))
-        return self.send(req, channel: channel, handler: handler).flatMapThrowing { response in
+    private func keyExchange(
+        req: HTTPRequest,
+        channel: Channel,
+        handler: RequestWrapperHandler
+    ) -> EventLoopResult<Void, Failure> {
+        channel.eventLoop.submitResult { () throws(Failure) in
+            self.logger?.trace("Inline.Client-密钥交换中: 创建公私钥对")
+            let keyPair = Crypto.Asym.makeCryptoKeyPair()
+            
+            self.logger?.trace("Inline.Client-密钥交换中: 编码 json 数据")
+            let body = try required(throws: Errcase.jsonEncodeFailed) {
+                try HTTPBody.json(JSONData(data: keyPair.public.data)).get()
+            }
+            
+            self.logger?.trace("Inline.Client-密钥交换中: 将公钥发送于目标")
+            return (
+                HTTPRequest(method: .POST, url: req.url, body: body),
+                keyPair
+            )
+        }.flatMap { req, keyPair in
+            self.send(req, channel: channel, handler: handler).errCast(Errcase.tcpSendFailed).map { ($0, keyPair) }
+        }.flatMapThrowing { res, keyPair throws(Failure) in
             // 检查对方的响应，对方应当发来自己的公钥
             self.logger?.trace("Inline.Client-密钥交换中: 检查对方发来的公钥")
-            guard response.status == .ok else { throw Inline.RequestErr.unknowError.d("\(response.status.description)(\(response.status.code))", 10090).adds(.internalServerError) }
-            guard let data = try response.body?.data(as: Data.self) else { throw Inline.RequestErr.targetIncorrectResponseBody.d("预期为公钥，但得到不正确回复", 10091).adds(.internalServerError) }
+            guard res.status == .ok else {
+                throw Errcase.badResponse.d("响应状态码为: \(res.status)")
+            }
+            
+            guard let resBody = res.body else {
+                throw Errcase.badResponse.d("响应体为空")
+            }
+            
+            self.logger?.trace("Inline.Client-密钥交换中: 解析对方的公钥")
+            let data = try required(throws: Errcase.dataDecodeFailed) {
+                try resBody.data(as: Data.self).get()
+            }
+            
             self.logger?.trace("Inline.Client-密钥交换中: 解包对方发来的公钥")
-            let targetPub = try Crypto.Asym.CPublicKey(data: data)
+            let targetPub = try required(throws: Errcase.decryptFailed) {
+                try Crypto.Asym.CPublicKey.make(data: data).get()
+            }
+            
             self.logger?.trace("Inline.Client-密钥交换中: 计算共享密钥")
-            let sharedKey = try Crypto.Asym.keyEncapsulate(key: keyPair.private, partyPublic: targetPub, salt: Crypto.hash("inline.shared.key"), info: "")
+            let sharedKey = try required(throws: Errcase.keyEncapsulateFailed) {
+                try Crypto.Asym.keyEncapsulate(
+                    key: keyPair.private,
+                    partyPublic: targetPub,
+                    salt: Crypto.hash("inline.shared.key").get(),
+                    info: ""
+                ).get()
+            }
+            
             self.logger?.trace("Inline.Client-密钥交换中: 设置标志位")
             self.requestIoData.connectionKeys[ObjectIdentifier(channel)] = sharedKey
-        }.flatMapError { err in
-            if let err = err as? HTTPResponseError {
-                return channel.eventLoop.makeFailedFuture(err)
-            } else {
-                return channel.eventLoop.makeFailedFuture(Inline.RequestErr.unknowError.d(15020).subErr(err).adds(.internalServerError))
-            }
         }
     }
     
-    private func serviceValidate(req: HTTPRequest, channel: Channel, handler: RequestWrapperHandler) -> EventLoopFuture<Void> {
-        self.logger?.trace("Inline.Client-进行服务验证: 将自己的服务 ID 发送于目标")
-        let req = HTTPRequest(method: .POST, url: req.url, body: try! .json(JSONData(data: self.requestIoData.serviceID.data())))
-        return self.send(req, channel: channel, handler: handler).flatMapThrowing { response in
+    private func serviceValidate(
+        req: HTTPRequest,
+        channel: Channel,
+        handler: RequestWrapperHandler
+    ) -> EventLoopResult<Void, Failure> {
+        channel.eventLoop.submitResult { () throws(Failure) in
+            self.logger?.trace("Inline.Client-进行服务验证: 将自己的服务 ID 发送于目标")
+            let body = try required(throws: Errcase.jsonEncodeFailed) {
+                try HTTPBody.json(JSONData(data: self.requestIoData.serviceID.data)).get()
+            }
+            
+            return HTTPRequest(method: .POST, url: req.url, body: body)
+        }.flatMap { req in
+            self.send(req, channel: channel, handler: handler).errCast(Errcase.tcpSendFailed)
+        }.flatMapThrowing { res throws(Failure) in
             self.logger?.trace("Inline.Client-进行服务验证: 检查对方的响应")
-            guard response.status == .ok else { throw Inline.RequestErr.unknowError.d("\(response.status.description)", 10092).adds(response.status) }
+            guard res.status == .ok else {
+                throw Errcase.badResponse.d("响应状态码为: \(res.status)")
+            }
+            
             self.logger?.trace("Inline.Client-进行服务验证: 设置标志位")
             self.requestIoData.connectionValidate[ObjectIdentifier(channel)] = true
-        }.flatMapError { err in
-            if let err = err as? HTTPResponseError {
-                return channel.eventLoop.makeFailedFuture(err)
-            } else {
-                return channel.eventLoop.makeFailedFuture(Inline.RequestErr.unknowError.d(15021).subErr(err).adds(.internalServerError))
-            }
         }
     }
 }

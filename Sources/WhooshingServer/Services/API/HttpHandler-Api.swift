@@ -17,11 +17,11 @@ extension Api {
     
     final class ServiceData: StorageKey, Sendable {
         typealias Value = ServiceData
-        unowned let inlineClient: WhooshingClient
+        unowned let inlineClient: AnyWhooshingClient<InlineClientErrcase>
         let clientKeys: SendableDictionary<ObjectIdentifier, Crypto.Symm.Key> = .init()
         let clientTokens: SendableDictionary<ObjectIdentifier, Crypto.Symm.Key> = .init()
 
-        init(inlineClient: WhooshingClient) {
+        init(inlineClient: AnyWhooshingClient<InlineClientErrcase>) {
             self.inlineClient = inlineClient
         }
     }
@@ -37,7 +37,7 @@ extension Api {
                 app.logger.trace("API.HTTP-客户端请求进入，进行解密(key: \(app.apiServiceData.clientKeys[id] != nil)) in \(context.channel.serverAddrInfo)")
                 let req: Data
                 if let key = app.apiServiceData.clientKeys[id] {
-                    req = try Crypto.Symm.decrypt(request, key: key)
+                    req = try Crypto.Symm.decrypt(request, key: key).get()
                 } else {
                     // 客户端第一次连线的认证请求
                     // 这里对方将发送明文，因为用户凭据可明文发送，而用户口令会加密处理
@@ -61,10 +61,10 @@ extension Api {
                 let res: Data
                 // 使用 clientTokens 加密，是临时的，仅仅是作为服务器第一次响应时的加密密钥
                 if let key = app.apiServiceData.clientTokens[id] {
-                    res = try Crypto.Symm.encrypt(response, key: key)
+                    res = try Crypto.Symm.encrypt(response, key: key).get()
                 } else if let key = app.apiServiceData.clientKeys[id] {
-                    res = try Crypto.Symm.encrypt(response, key: key)
-                } else { 
+                    res = try Crypto.Symm.encrypt(response, key: key).get()
+                } else {
                     res = response
                 }
                 return context.eventLoop.makeSucceededFuture(res)

@@ -1,15 +1,13 @@
 import WhooshingClient
 import Vapor
 
-extension HTTPResponseError: AbortError {}
-
-extension HTTPResponse: AsyncResponseEncodable {
+extension HTTPResponse: @retroactive AsyncResponseEncodable {
     public func encodeResponse(for request: Request) async throws -> Response {
         return try await encodeResponse(for: request).get()
     }
 }
 
-extension HTTPResponse: ResponseEncodable {
+extension HTTPResponse: @retroactive ResponseEncodable {
     public func encodeResponse(for request: Request) -> EventLoopFuture<Response> {
         request.eventLoop.makeFutureWithTask {
             let b: Response.Body
