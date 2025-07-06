@@ -41,12 +41,11 @@ extension Inline {
         weak var app: Whooshing<Inline>!
         /// 有客户端请求进入
         func input(request: Data, context: ChannelHandlerContext) -> EventLoopRes<Data, CryptoErrcase> {
-            context.eventLoop.submitResult { () throws(CryptoErrcase.ErrType) in
-                guard request.count > 0 else { return request }
-                let id = ObjectIdentifier(context.channel)
-                let req: Data
-                app.logger.trace("Inline.HTTP-客户端请求进入，进行解密(key: \(app.inlineServiceData.connectionKeys[id] != nil)) in \(context.channel.serverAddrInfo)")
-                
+            guard request.count > 0 else { return context.eventLoop.makeSucceededResult(request) }
+            let id = ObjectIdentifier(context.channel)
+            let req: Data
+            app.logger.trace("Inline.HTTP-客户端请求进入，进行解密(key: \(app.inlineServiceData.connectionKeys[id] != nil)) in \(context.channel.serverAddrInfo)")
+            do {
                 if let key = app.inlineServiceData.connectionKeys[id] {
                     req = try required(throws: CryptoErrcase.requestDecryptFailed) {
                         try Crypto.Symm.decrypt(request, key: key).get()
@@ -57,17 +56,19 @@ extension Inline {
                     }
                 }
                 
-                return req
+                return context.eventLoop.makeSucceededResult(req)
+            } catch {
+                return context.eventLoop.makeFailedResult(error)
             }
         }
         
         /// 有服务器响应请求发出
         func output(response: Data, context: ChannelHandlerContext) -> EventLoopRes<Data, CryptoErrcase> {
-            context.eventLoop.submitResult { () throws(CryptoErrcase.ErrType) in
-                guard response.count > 0 else { return response }
-                let id = ObjectIdentifier(context.channel)
-                let res: Data
-                app.logger.trace("Inline.HTTP-客户端响应发出，进行加密(key: \(app.inlineServiceData.connectionKeys[id] != nil), validated: \(app.inlineServiceData.connectionValidate[id] != nil)) in \(context.channel.serverAddrInfo)")
+            guard response.count > 0 else { return context.eventLoop.makeSucceededResult(response) }
+            let id = ObjectIdentifier(context.channel)
+            let res: Data
+            app.logger.trace("Inline.HTTP-客户端响应发出，进行加密(key: \(app.inlineServiceData.connectionKeys[id] != nil), validated: \(app.inlineServiceData.connectionValidate[id] != nil)) in \(context.channel.serverAddrInfo)")
+            do {
                 // 若 key 存在，但 validate 不存在，则仍然使用 rootKey 加密
                 if let key = app.inlineServiceData.connectionKeys[id], let _ = app.inlineServiceData.connectionValidate[id] {
                     res = try required(throws: CryptoErrcase.responseEncryptFailed) {
@@ -78,7 +79,9 @@ extension Inline {
                         try Crypto.Symm.encrypt(response, key: app.inlineServiceData.rootKey).get()
                     }
                 }
-                return res
+                return context.eventLoop.makeSucceededResult(res)
+            } catch {
+                return context.eventLoop.makeFailedResult(error)
             }
         }
         

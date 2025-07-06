@@ -18,17 +18,17 @@ struct InlineNormalTests {
         #expect(res.headers.contains(name: "content-length"))
         let length = try Int(#require(res.headers.first(name: "content-length")))
         #expect(length == "NO-BODY".lengthOfBytes(using: .utf8))
-        #expect(try res.body?.text() == "NO-BODY")
+        #expect(try res.body?.text().get() == "NO-BODY")
     }
     
     @Test("HTTP send 请求测试", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func sendRequestTest(method: HTTPMethod) async throws {
-        let res = try await client.send(method, to: "http://localhost:\(TestingShared.inlineListenPort)/string-echo?value=\(testString)", body: .text(testString))
+        let res = try await client.send(method, to: "http://localhost:\(TestingShared.inlineListenPort)/string-echo?value=\(testString)", body: .text(testString).get())
         #expect(res.status == .ok)
         #expect(res.headers.contains(name: "content-length"))
         let length = try Int(#require(res.headers.first(name: "content-length")))
         #expect(length == testString.lengthOfBytes(using: .utf8))
-        #expect(try res.body?.text() == testString)
+        #expect(try res.body?.text().get() == testString)
     }
     
 }

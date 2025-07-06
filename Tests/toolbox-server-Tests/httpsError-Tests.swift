@@ -16,9 +16,9 @@ struct HttpsErrorTests {
     @Test("连线失败", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func connectionFailedTest(method: HTTPMethod) async throws {
         #if !canImport(Darwin) || os(macOS)
-        await #expect(throws: Curl.Err.self, performing: { try await client.send(method, to: "http://localhost:1000000/") })
+        await #expect(throws: HttpsClient.Failure.self, performing: { try await client.send(method, to: "http://localhost:1000000/") })
         #else
-        await #expect(throws: URLError.self, performing: { try await client.send(method, to: "http://localhost:1000000/") })
+        await #expect(throws: HttpsClient.Failure.self, performing: { try await client.send(method, to: "http://localhost:1000000/") })
         #endif
     }
     

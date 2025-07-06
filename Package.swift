@@ -15,10 +15,10 @@ let package = Package(
         .library( name: "WhooshingServer", targets: ["WhooshingServer"] )
     ],
     dependencies: [
-//        .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", .upToNextMajor(from: "1.0.0")),
-        .package(path: "/Users/clwang/GitHub/whooshing-vapor"),
+        .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", .upToNextMajor(from: "1.0.7")),
+//        .package(path: "/Users/clwang/GitHub/whooshing-vapor"),
         .package(url: "https://github.com/SJJC-Team/whooshing-fluent.git", .upToNextMajor(from: "1.0.0")),
-//        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-basic.git", .upToNextMajor(from: "1.4.2")),
+//        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-basic.git", .upToNextMajor(from: "1.4.3")),
         .package(path: "/Users/clwang/GitHub/whooshing.toolbox-basic"),
 //        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-client", .upToNextMajor(from: "1.0.0")),
         .package(path: "/Users/clwang/GitHub/whooshing.toolbox-client"),

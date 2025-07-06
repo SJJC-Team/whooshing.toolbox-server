@@ -46,10 +46,10 @@ extension Inline {
         
         /// 发送请求时，进行编码并加密
         func send(data: NIOCore.ByteBuffer, context: NIOCore.ChannelHandlerContext) -> EventLoopRes<ByteBuffer, RequestCryptoErrcase> {
-            context.eventLoop.makeResultWithTask { () throws(RequestCryptoErrcase.ErrType) in
-                guard data.readableBytes > 0 else { return data }
+            let id = ObjectIdentifier(context.channel)
+            guard data.readableBytes > 0 else { return context.eventLoop.makeSucceededResult(data) }
+            do {
                 let cipher: Data
-                let id = ObjectIdentifier(context.channel)
                 logger.trace("Inline.Client.HTTP-发送请求，进行加密(key: \(client.requestIoData.connectionKeys[id] != nil)) in \(context.channel.clientAddrInfo)")
                 if let key = client.requestIoData.connectionKeys[id] {
                     cipher = try required(throws: RequestCryptoErrcase.requestEncryptFailed) {
@@ -61,15 +61,17 @@ extension Inline {
                     }
                 }
                 let buffer = ByteBuffer(data: cipher)
-                return buffer
+                return context.eventLoop.makeSucceededResult(buffer)
+            } catch {
+                return context.eventLoop.makeFailedResult(error)
             }
         }
         
         /// 收到响应时，进行解密并解码
         func get(data: ByteBuffer, context: ChannelHandlerContext) -> EventLoopRes<ByteBuffer, RequestCryptoErrcase> {
-            context.eventLoop.makeResultWithTask { () throws(RequestCryptoErrcase.ErrType) in
-                guard data.readableBytes > 0 else { return data }
-                let id = ObjectIdentifier(context.channel)
+            let id = ObjectIdentifier(context.channel)
+            guard data.readableBytes > 0 else { return context.eventLoop.makeSucceededResult(data) }
+            do {
                 var plain: ByteBuffer
                 logger.trace("Inline.Client.HTTP-收到响应，进行解密(key: \(client.requestIoData.connectionKeys[id] != nil)) in \(context.channel.clientAddrInfo)")
                 if let key = client.requestIoData.connectionKeys[id] {
@@ -81,7 +83,9 @@ extension Inline {
                         try Crypto.Symm.decrypt(.init(buffer: data), key: client.requestIoData.rootKey).get()
                     }
                 }
-                return plain
+                return context.eventLoop.makeSucceededResult(plain)
+            } catch {
+                return context.eventLoop.makeFailedResult(error)
             }
         }
 

@@ -27,7 +27,7 @@ struct InlineStreamingTests {
         #expect(res.status == .ok)
         
         let body = try #require(res.body)
-        let bodyStream = try body.stream()
+        let bodyStream = try body.stream().get()
         
         for try await (progress, chunk) in bodyStream.withProgress() {
             print(progress)
@@ -45,7 +45,7 @@ struct InlineStreamingTests {
         let error = Abort(.init(statusCode: 1111, reasonPhrase: "Testing"))
         let stream = AsyncThrowingChannel<ByteBuffer, Error>()
         stream.fail(error)
-        await #expect(throws: Abort.self, performing: {
+        await #expect(throws: InlineClient.Failure.self, performing: {
             try await client.post("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", body: .stream(stream))
         })
     }
@@ -66,7 +66,7 @@ struct InlineStreamingTests {
         let res = try await client.post("http://localhost:\(TestingShared.inlineListenPort)/streaming-echo", body: .stream(stream))
         #expect(res.status == .ok)
         let body = try #require(res.body)
-        let bodyStream = try body.stream()
+        let bodyStream = try body.stream().get()
         
         for try await (progress, chunk) in bodyStream.withProgress() {
             print(progress)

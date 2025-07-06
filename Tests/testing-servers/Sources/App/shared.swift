@@ -28,27 +28,27 @@ struct ServiceBootstrap {
     
     static func run<T>(woo: Whooshing<T>) async throws {
         do {
-            try await woo.executeWithAsyncShutdown()
+            try await woo.executeWithAsyncShutdown().get()
         } catch {
-            try await woo.asyncShutdown()
+            try await woo.asyncShutdown().get()
             throw error
         }
     }
     
     static func runHttpsService(with testPara: Https.Debuging, routes: (Whooshing<Https>, Application) throws -> ()) async throws {
-        let woo = try await Whooshing<Https>.make(.detect(testPara))
+        let woo = try await Whooshing<Https>.make(.detect(testPara)).get()
         try routes(woo, woo.app)
         try await run(woo: woo)
     }
 
     static func runInlineService(with testPara: Inline.Debuging, routes: (Whooshing<Inline>, Application) throws -> ()) async throws {
-        let woo = try await Whooshing<Inline>.make(.detect(testPara))
+        let woo = try await Whooshing<Inline>.make(.detect(testPara)).get()
         try routes(woo, woo.app)
         try await run(woo: woo)
     }
     
     static func runApiService(with testPara: Api.Debuging, inline: Whooshing<Inline>, routes: (Whooshing<Api>, Application) throws -> ()) async throws {
-        let woo = try await Whooshing<Api>.make(.detect(testPara), with: inline)
+        let woo = try await Whooshing<Api>.make(.detect(testPara), with: inline).get()
         try routes(woo, woo.app)
         try await run(woo: woo)
     }

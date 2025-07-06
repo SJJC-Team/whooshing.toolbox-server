@@ -38,11 +38,11 @@ extension Api {
         
         /// 有客户端请求进入
         func input(request: Data, context: ChannelHandlerContext) -> EventLoopRes<Data, CryptoErrcase> {
-            context.eventLoop.submitResult { () throws(CryptoErrcase.ErrType) in
-                guard request.count > 0 else { return request }
+            guard request.count > 0 else { return context.eventLoop.makeSucceededResult(request) }
                 let id = ObjectIdentifier(context.channel)
                 app.logger.trace("API.HTTP-客户端请求进入，进行解密(key: \(app.apiServiceData.clientKeys[id] != nil)) in \(context.channel.serverAddrInfo)")
                 let req: Data
+            do {
                 if let key = app.apiServiceData.clientKeys[id] {
                     req = try required(throws: CryptoErrcase.requestDecryptFailed) {
                         try Crypto.Symm.decrypt(request, key: key).get()
@@ -52,20 +52,22 @@ extension Api {
                     // 这里对方将发送明文，因为用户凭据可明文发送，而用户口令会加密处理
                     req = request
                 }
-                return req
+                return context.eventLoop.makeSucceededResult(req)
+            } catch {
+                return context.eventLoop.makeFailedResult(error)
             }
         }
         
         /// 有服务器响应请求发出
         func output(response: Data, context: ChannelHandlerContext) -> EventLoopRes<Data, CryptoErrcase> {
-            context.eventLoop.submitResult { () throws(CryptoErrcase.ErrType) in
-                let id = ObjectIdentifier(context.channel)
-                guard response.count > 0 else {
-                    app.apiServiceData.clientTokens[id] = nil
-                    return response
-                }
-                app.logger.trace("API.HTTP-客户端响应发出，进行加密(temp: \(app.apiServiceData.clientTokens[id] != nil), key: \(app.apiServiceData.clientKeys[id] != nil)) in \(context.channel.serverAddrInfo)")
-                let res: Data
+            let id = ObjectIdentifier(context.channel)
+            guard response.count > 0 else {
+                app.apiServiceData.clientTokens[id] = nil
+                return context.eventLoop.makeSucceededResult(response)
+            }
+            app.logger.trace("API.HTTP-客户端响应发出，进行加密(temp: \(app.apiServiceData.clientTokens[id] != nil), key: \(app.apiServiceData.clientKeys[id] != nil)) in \(context.channel.serverAddrInfo)")
+            let res: Data
+            do {
                 // 使用 clientTokens 加密，是临时的，仅仅是作为服务器第一次响应时的加密密钥
                 if let key = app.apiServiceData.clientTokens[id] {
                     res = try required(throws: CryptoErrcase.responseEncryptFailed) {
@@ -78,7 +80,9 @@ extension Api {
                 } else {
                     res = response
                 }
-                return res
+                return context.eventLoop.makeSucceededResult(res)
+            } catch {
+                return context.eventLoop.makeFailedResult(error)
             }
         }
         
