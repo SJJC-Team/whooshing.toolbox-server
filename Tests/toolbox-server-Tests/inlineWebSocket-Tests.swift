@@ -80,7 +80,7 @@ struct InlineWebSocketTests {
     
     @Test("连线失败")
     func connectionErrorTest() async throws {
-        await #expect(throws: NIOConnectionError.self, performing: { try await ws.connect(to: "ws://127.0.0.1:100000", onUpgrade: { _ in }) })
+        await #expect(throws: InlineWebSocket.Failure.self, performing: { try await ws.connect(to: "ws://127.0.0.1:100000", onUpgrade: { _ in }) })
     }
     
     static func randomData(size: Int) -> ByteBuffer {

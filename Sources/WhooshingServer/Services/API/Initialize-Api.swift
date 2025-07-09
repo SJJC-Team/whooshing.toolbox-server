@@ -8,7 +8,17 @@ import WhooshingClient
 
 public enum Api: ServiceType {
     
+    @inlinable
     public static var envPrefix: String { "WHOOSHING_API_SERVICE" }
+    
+    /// 记录用户的认证信息，用于之后的认证验证机制
+    @frozen
+    public struct AuthExchangeData: Content {
+        /// 用户凭据
+        public let credential: Data
+        /// 加密后的用户口令
+        public let tokenEncrypted: Data
+    }
     
     /// 用于在无依赖 debug (Whooshing.Env.independentDebug) 模式下运行的依赖参数
     ///
@@ -17,7 +27,9 @@ public enum Api: ServiceType {
     /// > 在一般的 .production 或 .debug 模式下，
     /// 这些参数会通过 Whooshing 系统的环境变量解析得到，
     /// 而在独立无依赖运行模式下，需要手动提供
+    @frozen
     public struct Debuging: DebugConfig, Sendable {
+        
         public typealias UserToken = Crypto.Symm.Key
         public typealias Auth = @Sendable (AuthExchangeData) throws -> UserToken
         /// 用户身份认证的机制回调函数
@@ -68,6 +80,7 @@ public enum Api: ServiceType {
         ///   - rootKey: 服务根密钥，用于初始化 Inline 服务
         /// - Returns:
         ///   初始化的 Inline 依赖参数
+        @inlinable
         public init(
             config: Environment.Config = .init(),
             auth: @escaping Auth
@@ -85,22 +98,19 @@ public enum Api: ServiceType {
         ///   若 encrypted 确为 origin 加密得到的，则返回原用户密钥
         /// - Throws
         ///   若 encrypted 并非为 origin 加密得到的，则抛出错误 "用户口令不正确"
+        @inlinable
         public static func testingTokenAuth(with origin: String, encrypted: Data) throws -> Crypto.Symm.Key {
-            let keyData = try Base64String(origin).data()
+            let keyData = try Base64String(origin).dataRes.get()
             let key = Crypto.Symm.Key(data: keyData)
-            let authData: Data = try Crypto.Symm.decrypt(encrypted, key: key)
+            let authData: Data = try Crypto.Symm.decrypt(encrypted, key: key).get()
             guard keyData == authData else { throw Abort(.badRequest, reason: "用户口令不正确") }
             return key
         }
     }
     
-    public struct AuthExchangeData: Content {
-        public let credential: Data
-        public let tokenEncrypted: Data
-    }
-    
     /// 配置 API 服务模块
-    internal static func config(_ woo: Whooshing<Api>, inlineClient: WhooshingClient) async throws {
+    @usableFromInline
+    internal static func config(_ woo: Whooshing<Api>, inlineClient: AnyWhooshingClient<InlineClientErrcase>) async throws(Failure) {
         woo.app.http.server.configuration.serviceName = "API"
         woo.app.logger.debug("从环境变量中取得该服务模块的参数")
         
@@ -110,12 +120,14 @@ public enum Api: ServiceType {
             authenticationURL = .init(string: "http://testing.com")!
             debugAuth = debug.auth
         } else {
-            authenticationURL = try ServicePara.parse(prefix: "WHOOSHING_API_SERVICE_PRIVATE").authenticationURL
+            authenticationURL = try required(throws: Errcase.initFailed, "环境变量解析失败") {
+                try ServicePara.parse(prefix: "WHOOSHING_API_SERVICE_PRIVATE").authenticationURL
+            }
             debugAuth = nil
         }
         
         woo.app.logger.debug("注册 HTTP IO 加密模块")
-        woo.app.use(httpIOHandler: HttpIOCrypto(app: woo))
+        woo.app.use(httpIOHandler: .init(HttpIOCrypto(app: woo)))
         woo.app.logger.debug("注册客户端身份验证中间件")
         woo.app.middleware.use(GuardMiddleware(authenticationURL: authenticationURL, debugingAuth: debugAuth))
         woo.app.logger.debug("初始化服务数据")

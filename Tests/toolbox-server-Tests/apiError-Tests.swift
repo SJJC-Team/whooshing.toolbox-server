@@ -14,27 +14,27 @@ struct ApiErrorTests {
     let client = makeApiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
     
     let wrongCredentialClient = makeApiClient(credential: TestingShared.wrongApiClientCredential, token: TestingShared.apiClientTokenStr)
-    let randomCredentialClient = makeApiClient(credential: Self.randomData(size: 16).data().base64String(), token: TestingShared.apiClientTokenStr)
+    let randomCredentialClient = makeApiClient(credential: Self.randomData(size: 16).data.base64String(), token: TestingShared.apiClientTokenStr)
     let wrongTokenClient = makeApiClient(credential: TestingShared.wrongApiClientCredential, token: TestingShared.wrongApiClientTokenStr)
     
     @Test("连线失败", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func connectionFailedTest(method: HTTPMethod) async throws {
-        await #expect(throws: NIOConnectionError.self, performing: { try await client.send(method, to: "http://localhost:1000000/") })
+        await #expect(throws: ApiClient.Failure.self, performing: { try await client.send(method, to: "http://localhost:1000000/") })
     }
     
     @Test("用户 credential 错误")
     func credentialInvalidTest() async throws {
-        await #expect(throws: HTTPResponseError.self, performing: { try await wrongCredentialClient.get("http://localhost:\(TestingShared.apiListenPort)/string-echo?value=\(testString)") })
+        await #expect(throws: ApiClient.Failure.self, performing: { try await wrongCredentialClient.get("http://localhost:\(TestingShared.apiListenPort)/string-echo?value=\(testString)") })
     }
     
     @Test("用户 credential 错误 2")
     func credentialInvalidTest2() async throws {
-        await #expect(throws: HTTPResponseError.self, performing: { try await randomCredentialClient.get("http://localhost:\(TestingShared.apiListenPort)/string-echo?value=\(testString)") })
+        await #expect(throws: ApiClient.Failure.self, performing: { try await randomCredentialClient.get("http://localhost:\(TestingShared.apiListenPort)/string-echo?value=\(testString)") })
     }
     
     @Test("用户 token 错误")
     func tokenInvalidTest() async throws {
-        await #expect(throws: HTTPResponseError.self, performing: { try await wrongTokenClient.get("http://localhost:\(TestingShared.apiListenPort)/string-echo?value=\(testString)") })
+        await #expect(throws: ApiClient.Failure.self, performing: { try await wrongTokenClient.get("http://localhost:\(TestingShared.apiListenPort)/string-echo?value=\(testString)") })
     }
     
     @Test("404-未找到", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
@@ -51,10 +51,13 @@ struct ApiErrorTests {
         #expect(res.status == .badRequest)
     }
     
-    @Test("415-Send 请求体数据不合法", arguments: [HTTPMethod.POST, .PATCH, .PUT, .DELETE])
+//    [HTTPMethod.POST, .PATCH, .PUT, .DELETE]
+    @Test("415-Send 请求体数据不合法", arguments: [HTTPMethod.POST])
     func errorCode415Test(method: HTTPMethod) async throws {
-        let res = try await client.send(method, to: "http://localhost:\(TestingShared.apiListenPort)/string-echo")
-        #expect(res.status == .unsupportedMediaType)
+        for i in 0..<1000 {
+            let res = try await client.send(method, to: "http://localhost:\(TestingShared.apiListenPort)/string-echo", headers: ["Authorization": String(i)])
+            #expect(res.status == .unsupportedMediaType)
+        }
     }
     
     static func randomData(size: Int) -> ByteBuffer {

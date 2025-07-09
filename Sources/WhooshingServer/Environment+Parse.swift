@@ -2,19 +2,54 @@ import Vapor
 import ErrorHandle
 
 extension Environment.Config: Environment.Template {
-    internal static var envs: [String: Environment.Types] { [ "name": .string, "port": .int, "#domain": .string, "db": .dataTemplate(Environment.DB.self), "manager_url": .url ] }
-    internal init(data: [String : Any]) {
+    @inlinable
+    static var envs: [String: Environment.Types] { [
+        "name": .string,
+        "port": .int,
+        "hostname": .string,
+        "#domain": .string,
+        "manager_url": .url,
+        "db": .dataTemplates(Environment.DB.self),
+        "#file_storage": .dataTemplate(Environment.FileStorage.self)
+    ] }
+    
+    @usableFromInline
+    init(data: [String : Any]) {
         self.name = data["name"] as! String
         self.port = data["port"] as! Int
+        self.hostname = data["hostname"] as! String
         self.databases = data["db"] as! [Environment.DB]
         self.domain = data["domain"] as? String
         self.managerUrl = data["manager_url"] as! URL
+        self.fileStorage = data["file_storage"] as? Environment.FileStorage
+    }
+}
+
+extension Environment.FileStorage: Environment.Template {
+    @inlinable
+    static var envs: [String: Environment.Types] { [
+        "path": .string,
+        "db": .dataTemplate(Environment.DB.self)
+    ] }
+    
+    @inlinable
+    init(data: [String : Any]) {
+        self.path = data["path"] as! String
+        self.database = data["db"] as! Environment.DB
     }
 }
 
 extension Environment.DB: Environment.Template {
-    internal static var envs: [String: Environment.Types] { [ "name": .string, "port": .int, "user": .string, "password": .string ] }
-    internal init(data: [String : Any]) {
+    @inlinable
+    static var envs: [String: Environment.Types] { [
+        "name": .string,
+        "port": .int,
+        "user": .string,
+        "password": .string
+    ] }
+    
+    @usableFromInline
+    init(data: [String : Any]) {
         self.name = data["name"] as! String
         self.port = data["port"] as! Int
         self.user = data["user"] as! String
@@ -27,8 +62,10 @@ extension Environment.DB: Environment.Template {
 }
 
 extension Environment {
-    static func get(with prefix: String) throws -> Config { try .parse(prefix: prefix) }
+    @inlinable
+    static func get(with prefix: String) throws(Errcase.ErrType) -> Config { try .parse(prefix: prefix) }
     
+    @usableFromInline
     enum Types {
         case string
         case int
@@ -38,15 +75,18 @@ extension Environment {
         case uri
         case uuid
         case dataTemplate(Template.Type)
+        case dataTemplates(Template.Type)
     }
 
+    @usableFromInline
     protocol Template {
         static var envs: [String: Types] { get }
         init(data: [String: Any])
         init()
     }
 
-    public enum Err: String, ErrList {
+    @frozen
+    public enum Errcase: String, ErrList {
         public var domain: String { "woo.sys.env.err" }
         case parseFailed = "环境变量解析失败"
         case typeIncorrect = "环境变量配置类型不匹配"
@@ -55,7 +95,8 @@ extension Environment {
 }
 
 extension Environment.Template {
-    static func parse(prefix: String?, getValue: @escaping ((String) -> String?) = { Environment.get($0) }) throws -> Self {
+    @inlinable
+    static func parse(prefix: String?, getValue: @escaping ((String) -> String?) = { Environment.get($0) }) throws(Environment.Errcase.ErrType) -> Self {
         var values: [String: Any] = [:]
         for (key, v) in Self.envs {
             if key.hasPrefix("#") {
@@ -68,26 +109,55 @@ extension Environment.Template {
             let value: String!
             
             switch v {
-            case .string, .int, .intArr, .url, .uri, .uuid, .stringArr: guard let vv = getValue(k) else { throw Environment.Err.missingKey.d(k, 10000) }; value = vv
-                default: value = nil
+            case .string, .int, .intArr, .url, .uri, .uuid, .stringArr:
+                guard let vv = getValue(k) else {
+                    throw Environment.Errcase.missingKey.d(k)
+                }
+                value = vv
+            default: value = nil
             }
             
             switch v {
-                case .string: values[key] = value
-                case .int: guard let v = Int(value) else { throw Environment.Err.typeIncorrect.d(k, 10003) }; values[key] = v
-                case .stringArr: values[key] = value.split(separator: ",").map { String($0) }
-                case .url: guard let v = URL(string: value) else { throw Environment.Err.typeIncorrect.d(k, 10004) }; values[key] = v
-                case .uri: values[key] = URI(string: value)
-                case .uuid: guard let v = UUID(uuidString: value) else { throw Environment.Err.typeIncorrect.d(k, 10096) }; values[key] = v
-                case .intArr: values[key] = try value.split(separator: ",").map { guard let v = Int($0) else { throw Environment.Err.typeIncorrect.d(k) }; return v }
-                case .dataTemplate(let template):
-                    guard let countStr = getValue(k + "_COUNT") else { throw Environment.Err.missingKey.d(k + "_COUNT", 10001) }
-                    guard let count = Int(countStr) else { throw Environment.Err.typeIncorrect.d(k, 10002) }
-                    var vs: [Environment.Template] = []
-                    for i in 0..<count {
-                        vs.append(try template.parse(prefix: "\(k)_\(i + 1)", getValue: getValue))
+            case .string:
+                values[key] = value
+                
+            case .stringArr:
+                values[key] = value.split(separator: ",").map { String($0) }
+                
+            case .uri:
+                values[key] = URI(string: value)
+                
+            case .int:
+                guard let v = Int(value) else { throw Environment.Errcase.typeIncorrect.d(k) }
+                values[key] = v
+                
+            case .url:
+                guard let v = URL(string: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
+                values[key] = v
+                
+            case .uuid:
+                guard let v = UUID(uuidString: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
+                values[key] = v
+                
+            case .intArr:
+                values[key] = try value.split(separator: ",").map { v throws(Environment.Errcase.ErrType) in
+                    guard let v = Int(v) else {
+                        throw Environment.Errcase.typeIncorrect.d(k)
                     }
-                    values[key] = vs
+                    return v
+                }
+                
+            case .dataTemplate(let template):
+                values[key] = try template.parse(prefix: k, getValue: getValue)
+                
+            case .dataTemplates(let template):
+                guard let countStr = getValue(k + "_COUNT") else { throw Environment.Errcase.missingKey.d(k + "_COUNT") }
+                guard let count = Int(countStr) else { throw Environment.Errcase.typeIncorrect.d(k) }
+                var vs: [Environment.Template] = []
+                for i in 0..<count {
+                    vs.append(try template.parse(prefix: "\(k)_\(i + 1)", getValue: getValue))
+                }
+                values[key] = vs
             }
         }
         return Self(data: values)

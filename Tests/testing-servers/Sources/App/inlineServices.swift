@@ -1,6 +1,7 @@
 import Vapor
 import WhooshingServer
 import Cryptos
+import Foundation
 
 struct InlineService {
     static func makeService() async throws -> Whooshing<Inline> {
@@ -12,7 +13,7 @@ struct InlineService {
                 .init(name: "Testing-Inline-\(Shared.inlineListenPort + $0)", serviceId: $1, connection: nil)
             }
         )
-        let woo = try await Whooshing<Inline>.make(.detect(testPara))
+        let woo = try await Whooshing<Inline>.make(.detect(testPara)).get()
         try routes(woo, app: woo.app)
         return woo
     }
@@ -69,8 +70,12 @@ struct InlineService {
                 let response = Response(status: .ok)
                 response.body = .init(asyncStream: { writer in
                     do {
+                        var bytes = 0
+                        var i = 0
                         for try await chunk in req.body {
+                            bytes += chunk.readableBytes
                             try await writer.write(.buffer(chunk))
+                            i += 1
                         }
                         try await writer.write(.end)
                     } catch {

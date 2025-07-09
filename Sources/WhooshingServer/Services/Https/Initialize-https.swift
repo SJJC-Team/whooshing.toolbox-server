@@ -7,15 +7,18 @@ public enum Https: ServiceType {
     
     public static var envPrefix: String { "WHOOSHING_HTTPS_SERVICE" }
     
+    @frozen
     public struct Debuging: DebugConfig, Sendable {
         public let config: Environment.Config
         
+        @inlinable
         public init(config: Environment.Config = .init()) {
             self.config = config
         }
     }
     
-    internal static func config(_ woo: Whooshing<Https>) async throws {
+    @usableFromInline
+    internal static func config(_ woo: Whooshing<Https>) async throws(Failure) {
         woo.app.http.server.configuration.serviceName = "HTTPS"
     }
 }

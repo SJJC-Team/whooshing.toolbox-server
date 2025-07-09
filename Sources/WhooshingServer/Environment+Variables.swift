@@ -3,44 +3,83 @@ import Vapor
 
 public extension Environment {
     /// 代表服务模块当前环境的配置项，例如服务端口、数据库信息、域名等。
+    @frozen
     struct Config: Sendable {
         /// 当前环境名称，如 "Production"、"Debug"
         public let name: String
         /// 当前服务监听的端口号
         public let port: Int
+        /// 当前服务的监听地址
+        public let hostname: String
         /// 所配置的数据库列表，仅支持 PostgreSQL 数据库
         public let databases: [DB]
         /// 服务管理平台的基础 URL，用于内部通信
         public let managerUrl: URL
         /// 可选的域名信息
         public let domain: String?
+        /// 文件存储配置信息
+        public let fileStorage: FileStorage?
         
+        @inlinable
         public init() { self = Self(name: "Testing") }
         
         /// 初始化环境配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
         /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
         /// - Parameters:
         ///   - name: 环境名称
+        ///   - hostname: 服务监听地址
         ///   - port: 服务监听端口
         ///   - databases: 数据库列表
         ///   - managerUrl: 服务管理平台 URL
         ///   - domain: 可选域名信息
+        @inlinable
         public init(
             name: String,
             port: Int = 6500,
+            hostname: String = "127.0.0.1",
             databases: [DB] = [],
             managerUrl: URL = .init(string: "http://testing.com")!,
-            domain: String? = nil
+            domain: String? = nil,
+            fileStorage: FileStorage? = nil
         ) {
             self.name = name
             self.port = port
+            self.hostname = hostname
             self.databases = databases
             self.managerUrl = managerUrl
             self.domain = domain
+            self.fileStorage = fileStorage
+        }
+    }
+    
+    /// 配置文件存储的配置项，配置文件存储的位置，以及文件索引数据库的连接配置
+    @frozen
+    struct FileStorage: Sendable {
+        /// 文件存储的主文件夹路径
+        public let path: String
+        /// 文件索引数据库的连接配置
+        public let database: DB
+        
+        @inlinable
+        public init() { self = Self(path: "") }
+        
+        /// 初始化文件存储配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
+        /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
+        /// - Parameters:
+        ///   - path: 文件存储的主文件夹路径
+        ///   - database: 文件索引数据库的连接配置
+        @inlinable
+        public init(
+            path: String,
+            database: DB = .init()
+        ) {
+            self.path = path
+            self.database = database
         }
     }
     
     /// 表示一个数据库连接的配置项，仅支持 PostgreSQL 数据库
+    @frozen
     struct DB: Sendable {
         /// 数据库名称
         public let name: String
@@ -60,6 +99,7 @@ public extension Environment {
         /// 数据库日志级别（如 info、debug）
         public let sqlLogLevel: Logger.Level
         
+        @inlinable
         public init() { self = Self(name: "postgres") }
         
         /// 初始化数据库配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
@@ -93,6 +133,7 @@ public extension Environment {
         }
         
         /// 当前数据库标识符（基于名称）
+        @inlinable
         public var id: DatabaseID { .init(string: name) }
         
         /// 返回当前数据库的实际连接配置对象
@@ -111,7 +152,8 @@ public extension Environment {
             sqlLogLevel: sqlLogLevel)
         }
         
-        internal var config: DatabaseConfigurationFactory {
+        @usableFromInline
+        var config: DatabaseConfigurationFactory {
             .postgres(configuration: .init(
                 hostname: "localhost",
                 port: port,

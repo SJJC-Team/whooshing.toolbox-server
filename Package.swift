@@ -15,11 +15,11 @@ let package = Package(
         .library( name: "WhooshingServer", targets: ["WhooshingServer"] )
     ],
     dependencies: [
-        .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", .upToNextMajor(from: "1.0.0")),
-        .package(url: "https://github.com/SJJC-Team/whooshing-fluent.git", .upToNextMajor(from: "1.0.0")),
-        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-basic.git", .upToNextMajor(from: "1.2.3")),
-        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-client", .upToNextMajor(from: "1.0.0")),
-        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-websocket.git", .upToNextMajor(from: "1.0.0")),
+        .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", .upToNextMajor(from: "1.0.7")),
+        .package(url: "https://github.com/SJJC-Team/whooshing-fluent.git", .upToNextMajor(from: "1.0.2")),
+        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-basic.git", .upToNextMajor(from: "1.4.4")),
+        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-client", .upToNextMajor(from: "1.2.2")),
+        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-websocket.git", .upToNextMajor(from: "1.1.2")),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.10.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
     ],

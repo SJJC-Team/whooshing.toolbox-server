@@ -3,6 +3,7 @@ import Cryptos
 import ErrorHandle
 import DataConvertable
 import NIO
+import NIOAdvanced
 import Logging
 import WhooshingClient
 
@@ -14,6 +15,13 @@ extension InlineClient {
 }
 
 extension Inline {
+    @frozen
+    public enum RequestCryptoErrcase: String, ErrList {
+        case requestEncryptFailed = "请求数据加密时失败"
+        case responseDecryptFailed = "响应数据解密时失败"
+        case internalFailure = "内部错误"
+    }
+    
     final class RequestIOData: SendableStorage.Key, Sendable {
         typealias Value = RequestIOData
         let rootKey: Crypto.Symm.Key
@@ -36,44 +44,58 @@ extension Inline {
         var isAvaliable: Bool { client != nil }
         
         /// 发送请求时，进行编码并加密
-        func send(data: NIOCore.ByteBuffer, context: NIOCore.ChannelHandlerContext) -> EventLoopFuture<ByteBuffer> {
-            guard data.readableBytes > 0 else { return context.eventLoop.makeSucceededFuture(data) }
+        func send(data: NIOCore.ByteBuffer, context: NIOCore.ChannelHandlerContext) -> EventLoopRes<ByteBuffer, RequestCryptoErrcase> {
+            let id = ObjectIdentifier(context.channel)
+            guard data.readableBytes > 0 else { return context.eventLoop.makeSucceededResult(data) }
             do {
                 let cipher: Data
-                let id = ObjectIdentifier(context.channel)
                 logger.trace("Inline.Client.HTTP-发送请求，进行加密(key: \(client.requestIoData.connectionKeys[id] != nil)) in \(context.channel.clientAddrInfo)")
-                if let key = client.requestIoData.connectionKeys[id] { cipher = try Crypto.Symm.encrypt(data, key: key) }
-                else { cipher = try Crypto.Symm.encrypt(data, key: client.requestIoData.rootKey) }
+                if let key = client.requestIoData.connectionKeys[id] {
+                    cipher = try required(throws: RequestCryptoErrcase.requestEncryptFailed) {
+                        try Crypto.Symm.encrypt(data, key: key).get()
+                    }
+                } else {
+                    cipher = try required(throws: RequestCryptoErrcase.requestEncryptFailed) {
+                        try Crypto.Symm.encrypt(data, key: client.requestIoData.rootKey).get()
+                    }
+                }
                 let buffer = ByteBuffer(data: cipher)
-                return context.eventLoop.makeSucceededFuture(buffer)
-            } catch let err {
-                return context.eventLoop.makeFailedFuture(err)
+                return context.eventLoop.makeSucceededResult(buffer)
+            } catch {
+                return context.eventLoop.makeFailedResult(error)
             }
         }
         
         /// 收到响应时，进行解密并解码
-        func get(data: ByteBuffer, context: ChannelHandlerContext) -> EventLoopFuture<ByteBuffer> {
-            guard data.readableBytes > 0 else { return context.eventLoop.makeSucceededFuture(data) }
+        func get(data: ByteBuffer, context: ChannelHandlerContext) -> EventLoopRes<ByteBuffer, RequestCryptoErrcase> {
+            let id = ObjectIdentifier(context.channel)
+            guard data.readableBytes > 0 else { return context.eventLoop.makeSucceededResult(data) }
             do {
-                let id = ObjectIdentifier(context.channel)
                 var plain: ByteBuffer
                 logger.trace("Inline.Client.HTTP-收到响应，进行解密(key: \(client.requestIoData.connectionKeys[id] != nil)) in \(context.channel.clientAddrInfo)")
-                if let key = client.requestIoData.connectionKeys[id] { plain = try Crypto.Symm.decrypt(.init(buffer: data), key: key) }
-                else { plain = try Crypto.Symm.decrypt(.init(buffer: data), key: client.requestIoData.rootKey) }
-                return context.eventLoop.makeSucceededFuture(plain)
-            } catch let err {
-                return context.eventLoop.makeFailedFuture(err)
+                if let key = client.requestIoData.connectionKeys[id] {
+                    plain = try required(throws: RequestCryptoErrcase.responseDecryptFailed) {
+                        try Crypto.Symm.decrypt(.init(buffer: data), key: key).get()
+                    }
+                } else {
+                    plain = try required(throws: RequestCryptoErrcase.responseDecryptFailed) {
+                        try Crypto.Symm.decrypt(.init(buffer: data), key: client.requestIoData.rootKey).get()
+                    }
+                }
+                return context.eventLoop.makeSucceededResult(plain)
+            } catch {
+                return context.eventLoop.makeFailedResult(error)
             }
         }
 
         // 连线建立
-        func connectionStart(context: ChannelHandlerContext) -> EventLoopFuture<Void> {
+        func connectionStart(context: ChannelHandlerContext) -> EventLoopRes<Void, RequestCryptoErrcase> {
             logger.debug("Inline.Client-连线建立: \(context.channel.clientAddrInfo)")
-            return context.eventLoop.makeSucceededVoidFuture()
+            return context.eventLoop.makeSucceededVoidResult()
         }
         
         // 连线结束，进行清理
-        func connectionEnd(context: ChannelHandlerContext) -> EventLoopFuture<Void> {
+        func connectionEnd(context: ChannelHandlerContext) -> EventLoopRes<Void, RequestCryptoErrcase> {
             logger.debug("Inline.Client-连线结束: \(context.channel.clientAddrInfo)")
             let id = ObjectIdentifier(context.channel)
             if let client = self.client {
@@ -81,7 +103,7 @@ extension Inline {
                 client.requestIoData.connectionValidate[id] = nil
                 client.requestIoData.readingBufferDatas[id] = nil
             }
-            return context.eventLoop.makeSucceededVoidFuture()
+            return context.eventLoop.makeSucceededVoidResult()
         }
     }
 }

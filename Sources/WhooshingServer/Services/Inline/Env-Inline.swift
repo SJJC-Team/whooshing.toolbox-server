@@ -5,15 +5,17 @@ import Vapor
 /// 因为它的加密机制依赖于该参数
 
 extension Inline {
+    @usableFromInline
     struct ServicePara {
+        @usableFromInline
         let serviceId: UUID
     }
 }
 
 extension Inline.ServicePara: Environment.Template {
-    static var envs: [String : Environment.Types] { ["service_id": .uuid] }
-    init() { self.serviceId = .init() }
-    init(data: [String : Any]) {
+    @inlinable static var envs: [String : Environment.Types] { ["service_id": .uuid] }
+    @inlinable init() { self.serviceId = .init() }
+    @inlinable init(data: [String : Any]) {
         self.serviceId = data["service_id"] as! UUID
     }
 }

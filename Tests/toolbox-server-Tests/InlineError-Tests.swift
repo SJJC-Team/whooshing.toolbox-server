@@ -19,22 +19,22 @@ struct InlineErrorTests {
     
     @Test("连线失败", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func connectionFailedTest(method: HTTPMethod) async throws {
-        await #expect(throws: NIOConnectionError.self, performing: { try await client.send(method, to: "http://localhost:1000000/") })
+        await #expect(throws: InlineClient.Failure.self, performing: { try await client.send(method, to: "http://localhost:1000000/") })
     }
     
     @Test("请求服务 ID 错误")
     func serviceIDInvalidTest() async throws {
-        await #expect(throws: HTTPResponseError.self, performing: { try await wrongServiceIdClient.get("http://localhost:\(TestingShared.inlineListenPort)/string-echo?value=\(testString)") })
+        await #expect(throws: InlineClient.Failure.self, performing: { try await wrongServiceIdClient.get("http://localhost:\(TestingShared.inlineListenPort)/string-echo?value=\(testString)") })
     }
     
     @Test("请求服务 ID 错误 2")
     func serviceIDInvalidTest2() async throws {
-        await #expect(throws: HTTPResponseError.self, performing: { try await randomServiceIdClient.get("http://localhost:\(TestingShared.inlineListenPort)/string-echo?value=\(testString)") })
+        await #expect(throws: InlineClient.Failure.self, performing: { try await randomServiceIdClient.get("http://localhost:\(TestingShared.inlineListenPort)/string-echo?value=\(testString)") })
     }
     
     @Test("RootKey 错误")
     func rootKeyInvalidTest() async throws {
-        await #expect(throws: HTTPResponseError.self, performing: { try await wrongRootKeyClient.get("http://localhost:\(TestingShared.inlineListenPort)/string-echo?value=\(testString)") })
+        await #expect(throws: InlineClient.Failure.self, performing: { try await wrongRootKeyClient.get("http://localhost:\(TestingShared.inlineListenPort)/string-echo?value=\(testString)") })
     }
     
     @Test("404-未找到", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])

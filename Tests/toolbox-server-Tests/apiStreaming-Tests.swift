@@ -27,7 +27,7 @@ struct ApiStreamingTests {
         #expect(res.status == .ok)
         
         let body = try #require(res.body)
-        let bodyStream = try body.stream()
+        let bodyStream = try body.stream().get()
         
         for try await (progress, chunk) in bodyStream.withProgress() {
             print(progress)
@@ -45,7 +45,7 @@ struct ApiStreamingTests {
         let error = Abort(.init(statusCode: 1111, reasonPhrase: "Testing"))
         let stream = AsyncThrowingChannel<ByteBuffer, Error>()
         stream.fail(error)
-        await #expect(throws: Abort.self, performing: {
+        await #expect(throws: ApiClient.Failure.self, performing: {
             try await client.post("http://localhost:\(TestingShared.apiListenPort)/streaming-echo", body: .stream(stream))
         })
     }
@@ -66,7 +66,7 @@ struct ApiStreamingTests {
         let res = try await client.post("http://localhost:\(TestingShared.apiListenPort)/streaming-echo", body: .stream(stream))
         #expect(res.status == .ok)
         let body = try #require(res.body)
-        let bodyStream = try body.stream()
+        let bodyStream = try body.stream().get()
         
         for try await (progress, chunk) in bodyStream.withProgress() {
             print(progress)

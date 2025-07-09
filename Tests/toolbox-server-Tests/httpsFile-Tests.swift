@@ -21,7 +21,7 @@ struct HttpsFileTests {
         #expect(res.status == .ok)
         
         let body = try #require(res.body)
-        let bodyStream = try body.stream()
+        let bodyStream = try body.stream().get()
         
         for try await (progress, chunk) in bodyStream.withProgress() {
             print(progress)
@@ -46,7 +46,7 @@ struct HttpsFileTests {
         #expect(res.status == .ok)
         
         let body = try #require(res.body)
-        let bodyStream = try body.stream()
+        let bodyStream = try body.stream().get()
         
         for try await (progress, chunk) in bodyStream.withProgress() {
             print(progress)

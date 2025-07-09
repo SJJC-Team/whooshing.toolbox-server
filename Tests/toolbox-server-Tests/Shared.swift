@@ -43,7 +43,7 @@ struct TestingShared {
     ]
 }
 
-let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 30)
 
 func makeHttpsClient() -> HttpsClient {
     let logger = Logger(label: "Testing-Https")
