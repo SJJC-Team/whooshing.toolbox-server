@@ -46,13 +46,13 @@ struct TestingShared {
 let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 30)
 
 func makeHttpsClient() -> HttpsClient {
-    var logger = Logger(label: "Testing-Https")
+    let logger = Logger(label: "Testing-Https")
 //    logger.logLevel = .trace
     return HttpsClient(in: eventLoopGroup.next(), logger: logger)
 }
 
 func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineClient {
-    var logger = Logger(label: "Testing-Inline")
+    let logger = Logger(label: "Testing-Inline")
 //    logger.logLevel = .trace
     let client = InlineClient(eventLoop: eventLoopGroup.next(), logger: logger, byteBufferAllocator: .init())
     let ioHandler = Inline.RequestIOCrypto(client: client, logger: logger)
@@ -62,7 +62,7 @@ func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineClient
 }
 
 func makeApiClient(credential: String, token: String) -> ApiClient {
-    var logger = Logger(label: "Testing-Api")
+    let logger = Logger(label: "Testing-Api")
 //    logger.logLevel = .trace
     return ApiClient(credential: credential, token: token, eventLoop: eventLoopGroup.next(), logger: logger)
 }
