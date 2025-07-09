@@ -1,5 +1,5 @@
 {
-  "originHash" : "034825bc118446778eb46fcfe5407f14c2b7b124dfe64522e6108743b2b2043f",
+  "originHash" : "b651e61b76ac0a6a261787265e42b7beccdfa52e4dd47bd9b77e892f287052a9",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -132,8 +132,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-certificates.git",
       "state" : {
-        "revision" : "999fd70c7803da89f3904d635a6815a2a7cd7585",
-        "version" : "1.10.0"
+        "revision" : "870f4d5fe5fcfedc13f25d70e103150511746404",
+        "version" : "1.11.0"
       }
     },
     {
@@ -294,8 +294,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SJJC-Team/whooshing-fluent.git",
       "state" : {
-        "revision" : "10dd640ccddc5b51beaf11a0380672fc89da591c",
-        "version" : "1.0.1"
+        "revision" : "73c493426642a9551aba1ba4c4a3532b5960db3d",
+        "version" : "1.0.2"
       }
     },
     {
