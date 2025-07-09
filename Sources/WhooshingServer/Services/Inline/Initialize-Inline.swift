@@ -12,8 +12,10 @@ public extension Whooshing where Service == Inline {
     var inlineWebSocket: any WhooshingWebSocket { self.app.storage[InlineWebSocket.self]! }
 }
 
+@frozen
 public enum Inline: ServiceType {
     
+    @inlinable
     public static var envPrefix: String { "WHOOSHING_INLINE_SERVICE" }
     
     /// 用于在无依赖 debug (Whooshing.Env.independentDebug) 模式下运行的依赖参数
@@ -23,6 +25,7 @@ public enum Inline: ServiceType {
     /// > 在一般的 .production 或 .debug 模式下，
     /// 这些参数会通过 Whooshing 系统的环境变量解析得到，
     /// 而在独立无依赖运行模式下，需要手动提供
+    @frozen
     public struct Debuging: DebugConfig, Sendable {
         /// 服务根密钥，用于初始化 Inline 服务
         public let rootKey: Crypto.Symm.Key
@@ -46,6 +49,7 @@ public enum Inline: ServiceType {
         ///   - moduleDatas: 其他服务模块的信息，用于验证服务来源是否可信
         /// - Returns:
         ///   初始化的 Inline 依赖参数
+        @inlinable
         public init(
             rootKey: Crypto.Symm.Key,
             config: Environment.Config = .init(),
@@ -59,8 +63,10 @@ public enum Inline: ServiceType {
         }
     }
     
+    @frozen
     public struct ModuleData: Content, Sendable, ThrowableDataConvertable {
         
+        @frozen
         public enum Errcase: String, ErrList {
             case decodeFailed = "解码失败"
             case encodeFailed = "编码失败"
@@ -70,12 +76,14 @@ public enum Inline: ServiceType {
         public let serviceId: UUID
         public let connection: String?
         
+        @inlinable
         public init(name: String, serviceId: UUID, connection: String?) {
             self.name = name
             self.serviceId = serviceId
             self.connection = connection
         }
         
+        @inlinable
         public var dataRes: Res<Data, Errcase> {
             let d: [String: (any ThrowableDataConvertable)?] = [
                 "name": name,
@@ -87,6 +95,7 @@ public enum Inline: ServiceType {
             }
         }
         
+        @inlinable
         public static func make(data: Data) -> Res<Self, Errcase> {
             .init { () throws(Errcase.ErrType) in
                 let paras = try required(throws: Errcase.encodeFailed, "类型擦除转换数据失败") {
@@ -101,6 +110,7 @@ public enum Inline: ServiceType {
             }
         }
         
+        @usableFromInline
         static func requireData<T>(
             from paras: [String: AnyThrowableDataConvertable],
             for field: String
@@ -116,15 +126,11 @@ public enum Inline: ServiceType {
             return res
         }
     }
-    
-    public enum ConfigErr: String, ErrList {
-        public var domain: String { "woo.inline.sys.init.err" }
-        case initializeFailed = "服务初始化失败"
-    }
 }
 
 extension Inline {
     /// 配置 Inline 服务模块
+    @usableFromInline
     static func config(_ woo: Whooshing<Inline>) async throws(Failure) {
         woo.app.http.server.configuration.serviceName = "INLINE"
         

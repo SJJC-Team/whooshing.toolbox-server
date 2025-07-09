@@ -19,7 +19,6 @@ extension Inline {
     public enum RequestCryptoErrcase: String, ErrList {
         case requestEncryptFailed = "请求数据加密时失败"
         case responseDecryptFailed = "响应数据解密时失败"
-        
         case internalFailure = "内部错误"
     }
     

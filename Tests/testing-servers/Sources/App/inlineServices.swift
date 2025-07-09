@@ -1,6 +1,7 @@
 import Vapor
 import WhooshingServer
 import Cryptos
+import Foundation
 
 struct InlineService {
     static func makeService() async throws -> Whooshing<Inline> {
@@ -69,18 +70,13 @@ struct InlineService {
                 let response = Response(status: .ok)
                 response.body = .init(asyncStream: { writer in
                     do {
-                        print("-----------")
                         var bytes = 0
+                        var i = 0
                         for try await chunk in req.body {
                             bytes += chunk.readableBytes
-                            print(chunk.readableBytes)
                             try await writer.write(.buffer(chunk))
+                            i += 1
                         }
-                        if bytes != 122269 {
-                            print("Error happend!")
-                            print(bytes)
-                        }
-                        print("-----end------")
                         try await writer.write(.end)
                     } catch {
                         try await writer.write(.end)

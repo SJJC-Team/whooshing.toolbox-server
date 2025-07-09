@@ -107,9 +107,6 @@ extension Inline {
     }
 }
 
-extension Inline.GuardMiddleware {
-}
-
 fileprivate extension Application {
     var inlineServiceData: Inline.ServiceData! { self.storage[Inline.ServiceData.self] }
 }

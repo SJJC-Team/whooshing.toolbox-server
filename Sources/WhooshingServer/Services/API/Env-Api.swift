@@ -5,15 +5,17 @@ import Vapor
 /// 因为它的加密机制依赖于该参数
 
 extension Api {
+    @usableFromInline
     struct ServicePara {
+        @usableFromInline
         let authenticationURL: URL
     }
 }
 
 extension Api.ServicePara: Environment.Template {
-    static var envs: [String : Environment.Types] { ["authentication_url": .url] }
-    init() { self.authenticationURL = URL(string: "https://example.com")! }
-    init(data: [String : Any]) {
+    @inlinable static var envs: [String : Environment.Types] { ["authentication_url": .url] }
+    @inlinable init() { self.authenticationURL = URL(string: "https://example.com")! }
+    @inlinable init(data: [String : Any]) {
         self.authenticationURL = data["authentication_url"] as! URL
     }
 }

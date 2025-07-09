@@ -3,6 +3,7 @@ import Vapor
 
 public extension Environment {
     /// 代表服务模块当前环境的配置项，例如服务端口、数据库信息、域名等。
+    @frozen
     struct Config: Sendable {
         /// 当前环境名称，如 "Production"、"Debug"
         public let name: String
@@ -19,6 +20,7 @@ public extension Environment {
         /// 文件存储配置信息
         public let fileStorage: FileStorage?
         
+        @inlinable
         public init() { self = Self(name: "Testing") }
         
         /// 初始化环境配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
@@ -30,6 +32,7 @@ public extension Environment {
         ///   - databases: 数据库列表
         ///   - managerUrl: 服务管理平台 URL
         ///   - domain: 可选域名信息
+        @inlinable
         public init(
             name: String,
             port: Int = 6500,
@@ -50,12 +53,14 @@ public extension Environment {
     }
     
     /// 配置文件存储的配置项，配置文件存储的位置，以及文件索引数据库的连接配置
+    @frozen
     struct FileStorage: Sendable {
         /// 文件存储的主文件夹路径
         public let path: String
         /// 文件索引数据库的连接配置
         public let database: DB
         
+        @inlinable
         public init() { self = Self(path: "") }
         
         /// 初始化文件存储配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
@@ -63,6 +68,7 @@ public extension Environment {
         /// - Parameters:
         ///   - path: 文件存储的主文件夹路径
         ///   - database: 文件索引数据库的连接配置
+        @inlinable
         public init(
             path: String,
             database: DB = .init()
@@ -73,6 +79,7 @@ public extension Environment {
     }
     
     /// 表示一个数据库连接的配置项，仅支持 PostgreSQL 数据库
+    @frozen
     struct DB: Sendable {
         /// 数据库名称
         public let name: String
@@ -92,6 +99,7 @@ public extension Environment {
         /// 数据库日志级别（如 info、debug）
         public let sqlLogLevel: Logger.Level
         
+        @inlinable
         public init() { self = Self(name: "postgres") }
         
         /// 初始化数据库配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
@@ -125,6 +133,7 @@ public extension Environment {
         }
         
         /// 当前数据库标识符（基于名称）
+        @inlinable
         public var id: DatabaseID { .init(string: name) }
         
         /// 返回当前数据库的实际连接配置对象
@@ -143,7 +152,8 @@ public extension Environment {
             sqlLogLevel: sqlLogLevel)
         }
         
-        internal var config: DatabaseConfigurationFactory {
+        @usableFromInline
+        var config: DatabaseConfigurationFactory {
             .postgres(configuration: .init(
                 hostname: "localhost",
                 port: port,

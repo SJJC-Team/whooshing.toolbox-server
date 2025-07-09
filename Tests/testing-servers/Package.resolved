@@ -306,6 +306,33 @@
         "revision" : "6cab3308295423f109a505d2f73aeec5ef726d69",
         "version" : "1.0.7"
       }
+    },
+    {
+      "identity" : "whooshing.toolbox-basic",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-basic.git",
+      "state" : {
+        "revision" : "e11c118d7d8201c626e2e7d687aad154c1ce241e",
+        "version" : "1.4.4"
+      }
+    },
+    {
+      "identity" : "whooshing.toolbox-client",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-client",
+      "state" : {
+        "revision" : "dc86b2dbacddc0930876ab31d0b9b21914b4e4d8",
+        "version" : "1.2.2"
+      }
+    },
+    {
+      "identity" : "whooshing.toolbox-websocket",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-websocket.git",
+      "state" : {
+        "revision" : "eeb0e97ac9b5e2650bc8c464148af8f298eaa323",
+        "version" : "1.1.2"
+      }
     }
   ],
   "version" : 3

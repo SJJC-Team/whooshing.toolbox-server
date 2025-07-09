@@ -2,12 +2,14 @@ import WhooshingClient
 import Vapor
 
 extension HTTPResponse: @retroactive AsyncResponseEncodable {
+    @inlinable
     public func encodeResponse(for request: Request) async throws -> Response {
         return try await encodeResponse(for: request).get()
     }
 }
 
 extension HTTPResponse: @retroactive ResponseEncodable {
+    @inlinable
     public func encodeResponse(for request: Request) -> EventLoopFuture<Response> {
         request.eventLoop.makeFutureWithTask {
             let b: Response.Body
@@ -35,6 +37,7 @@ extension HTTPResponse: @retroactive ResponseEncodable {
 }
 
 public extension WebURI {
+    @inlinable
     var uri: URI {
         .init(stringLiteral: self.string)
     }
@@ -50,6 +53,7 @@ public extension ApiClient {
     ///   - credential: 用户凭据（Base64 编码的字符串）。
     ///   - token: 用户令牌（Base64 编码的字符串）。
     ///   - request: 当前的 Vapor Request 实例。
+    @inlinable
     convenience init(credential: String, token: String, request: Request) {
         self.init(credential: credential, token: token, eventLoop: request.eventLoop, logger: request.logger)
     }

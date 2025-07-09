@@ -2,7 +2,8 @@ import Vapor
 import ErrorHandle
 
 extension Environment.Config: Environment.Template {
-    internal static var envs: [String: Environment.Types] { [
+    @inlinable
+    static var envs: [String: Environment.Types] { [
         "name": .string,
         "port": .int,
         "hostname": .string,
@@ -12,7 +13,8 @@ extension Environment.Config: Environment.Template {
         "#file_storage": .dataTemplate(Environment.FileStorage.self)
     ] }
     
-    internal init(data: [String : Any]) {
+    @usableFromInline
+    init(data: [String : Any]) {
         self.name = data["name"] as! String
         self.port = data["port"] as! Int
         self.hostname = data["hostname"] as! String
@@ -24,26 +26,30 @@ extension Environment.Config: Environment.Template {
 }
 
 extension Environment.FileStorage: Environment.Template {
-    internal static var envs: [String: Environment.Types] { [
+    @inlinable
+    static var envs: [String: Environment.Types] { [
         "path": .string,
         "db": .dataTemplate(Environment.DB.self)
     ] }
     
-    internal init(data: [String : Any]) {
+    @inlinable
+    init(data: [String : Any]) {
         self.path = data["path"] as! String
         self.database = data["db"] as! Environment.DB
     }
 }
 
 extension Environment.DB: Environment.Template {
-    internal static var envs: [String: Environment.Types] { [
+    @inlinable
+    static var envs: [String: Environment.Types] { [
         "name": .string,
         "port": .int,
         "user": .string,
         "password": .string
     ] }
     
-    internal init(data: [String : Any]) {
+    @usableFromInline
+    init(data: [String : Any]) {
         self.name = data["name"] as! String
         self.port = data["port"] as! Int
         self.user = data["user"] as! String
@@ -56,8 +62,10 @@ extension Environment.DB: Environment.Template {
 }
 
 extension Environment {
+    @inlinable
     static func get(with prefix: String) throws(Errcase.ErrType) -> Config { try .parse(prefix: prefix) }
     
+    @usableFromInline
     enum Types {
         case string
         case int
@@ -70,12 +78,14 @@ extension Environment {
         case dataTemplates(Template.Type)
     }
 
+    @usableFromInline
     protocol Template {
         static var envs: [String: Types] { get }
         init(data: [String: Any])
         init()
     }
 
+    @frozen
     public enum Errcase: String, ErrList {
         public var domain: String { "woo.sys.env.err" }
         case parseFailed = "环境变量解析失败"
@@ -85,6 +95,7 @@ extension Environment {
 }
 
 extension Environment.Template {
+    @inlinable
     static func parse(prefix: String?, getValue: @escaping ((String) -> String?) = { Environment.get($0) }) throws(Environment.Errcase.ErrType) -> Self {
         var values: [String: Any] = [:]
         for (key, v) in Self.envs {
