@@ -1,5 +1,5 @@
 {
-  "originHash" : "7089ada4356dd30d83f7bb665842a602b2e66b9e0f77d5d943d3adfeadf52545",
+  "originHash" : "9bd1d36181a231147ed12609dc212c8b7446f97d787b5ed367008b54a44af158",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -294,8 +294,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SJJC-Team/whooshing-fluent.git",
       "state" : {
-        "revision" : "10dd640ccddc5b51beaf11a0380672fc89da591c",
-        "version" : "1.0.1"
+        "revision" : "73c493426642a9551aba1ba4c4a3532b5960db3d",
+        "version" : "1.0.2"
       }
     },
     {

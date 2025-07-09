@@ -15,7 +15,7 @@ struct ApiFileTests {
         let url = FilePath(TestingShared.normalFilePath)
         let info = try #require(await FileSystem.shared.info(forFileAt: url))
         
-        try await withThrowingDiscardingTaskGroup(returning: Void.self) { group in
+        await withThrowingTaskGroup(returning: Void.self) { group in
             for _ in 0..<20 {
                 group.addTask {
                     var size = 0
