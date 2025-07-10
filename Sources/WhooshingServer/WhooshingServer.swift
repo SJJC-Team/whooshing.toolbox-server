@@ -4,6 +4,7 @@ import FluentPostgresDriver
 import ErrorHandle
 import WhooshingClient
 import Cryptos
+import FileStorage
 
 public protocol ServiceType {
     associatedtype Debuging: DebugConfig
@@ -172,6 +173,27 @@ extension Whooshing where Service == Api {
 }
 
 extension Whooshing {
+    public func makeFileStorage(
+        for db: Environment.DB,
+        storagePath: StoragePath,
+        logger: Logger,
+        testing: Bool = false
+    ) async -> Result<FileStorage, Failure> {
+        guard let fileStorageDir = config.fileStorageDir else {
+            return .failure(.fileStorageInitFailed, "主目录未设置，不支持文件加密系统")
+        }
+        
+        return await FileStorage.new(
+            eventLoop: app.eventLoopGroup.next(),
+            storagePath: FileSystemTools.resolvePath(basePath: fileStorageDir, append: storagePath.string),
+            dbConfigure: testing ? db.testingConfig : db.config,
+            masterKey: db.parameter.fileStorageKey,
+            logger: logger
+        ).mapError(as: Errcase.fileStorageInitFailed)
+    }
+}
+
+extension Whooshing {
     @inlinable
     static func makeService(
         mode: Mode,
@@ -212,9 +234,33 @@ extension Whooshing {
             app.http.server.configuration.hostname = config.hostname
             app.http.server.configuration.port = config.port
             if env == .testing {
-                for db in config.databases { app.databases.use(db.testingConfig, as: db.id) }
+                for dbService in config.databaseServices {
+                    for db in dbService.dbs {
+                        app.databases.use(
+                            .postgres(
+                                configuration: db.testingConfig,
+                                maxConnectionsPerEventLoop: 1,
+                                connectionPoolTimeout: .seconds(10),
+                                sqlLogLevel: .debug
+                            ),
+                            as: db.id
+                        )
+                    }
+                }
             } else {
-                for db in config.databases { app.databases.use(db.config, as: db.id) }
+                for dbService in config.databaseServices {
+                    for db in dbService.dbs {
+                        app.databases.use(
+                            .postgres(
+                                configuration: db.config,
+                                maxConnectionsPerEventLoop: 1,
+                                connectionPoolTimeout: .seconds(10),
+                                sqlLogLevel: .info
+                            ),
+                            as: db.id
+                        )
+                    }
+                }
             }
             let service = Self(app: app, config: config, debugingData: debugPara)
             do {

@@ -1,63 +1,74 @@
 import Vapor
+import FluentKit
 import ErrorHandle
+import DataConvertable
+import Collections
 
 extension Environment.Config: Environment.Template {
     @inlinable
-    static var envs: [String: Environment.Types] { [
-        "name": .string,
-        "port": .int,
-        "hostname": .string,
-        "#domain": .string,
-        "manager_url": .url,
-        "db": .dataTemplates(Environment.DB.self),
-        "#file_storage": .dataTemplate(Environment.FileStorage.self)
-    ] }
+    static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
+        origin["name"] = .string
+        origin["port"] = .int
+        origin["hostname"] = .string
+        origin["#domain"] = .string
+        origin["#file_storage_dir"] = .string
+        origin["manager_url"] = .url
+        origin["db_services"] = .dataTemplates(Environment.DBService.self)
+    }
     
     @usableFromInline
-    init(data: [String : Any]) {
+    init(data: [String: Any], extra: [String: Any]) {
         self.name = data["name"] as! String
         self.port = data["port"] as! Int
         self.hostname = data["hostname"] as! String
-        self.databases = data["db"] as! [Environment.DB]
+        self.dbServices = data["db_services"] as! [Environment.DBService]
         self.domain = data["domain"] as? String
         self.managerUrl = data["manager_url"] as! URL
-        self.fileStorage = data["file_storage"] as? Environment.FileStorage
+        self.fileStorageDir = data["file_storage_dir"] as? String
     }
 }
 
-extension Environment.FileStorage: Environment.Template {
-    @inlinable
-    static var envs: [String: Environment.Types] { [
-        "path": .string,
-        "db": .dataTemplate(Environment.DB.self)
-    ] }
+extension Environment.DBService: Environment.Template {
     
     @inlinable
-    init(data: [String : Any]) {
-        self.path = data["path"] as! String
-        self.database = data["db"] as! Environment.DB
+    static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
+        origin["name"] = .string
+        origin["port"] = .int
+        origin["dbs"] = .dataTemplates(Environment.DB.self)
+    }
+    
+    @usableFromInline
+    init(data: [String : Any], extra: [String: Any]) {
+        self = Self.init(
+            name: data["name"] as! String,
+            port: data["port"] as! Int,
+            dbParameters: data["dbs"] as! [Environment.DB.Parameter]
+        )
     }
 }
 
 extension Environment.DB: Environment.Template {
     @inlinable
-    static var envs: [String: Environment.Types] { [
-        "name": .string,
-        "port": .int,
-        "user": .string,
-        "password": .string
-    ] }
+    static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
+        origin["name"] = .string
+        origin["user"] = .string
+        origin["password"] = .string
+        origin["file_storage_key"] = .base64Data
+    }
     
     @usableFromInline
-    init(data: [String : Any]) {
-        self.name = data["name"] as! String
-        self.port = data["port"] as! Int
-        self.user = data["user"] as! String
-        self.password = data["password"] as! String
-        self.unsafeTestOnlyHost = nil
-        self.connectionPoolTimeout = .seconds(10)
-        self.maxConnectionsPerEventLoop = 1
-        self.sqlLogLevel = .info
+    init(data: [String : Any], extra: [String : Any]) {
+        self = Self.init(
+            dbServiceId: extra["name"] as! DatabaseID,
+            port: extra["port"] as! Int,
+            parameter: .init(
+                name: data["name"] as! String,
+                user: data["user"] as! String,
+                password: data["password"] as! String,
+                unsafeTestOnlyHost: nil,
+                fileStorageKey: .new(data: data["file_storage_key"] as! Data)
+            )
+        )
     }
 }
 
@@ -71,6 +82,8 @@ extension Environment {
         case int
         case stringArr
         case intArr
+        case base64String
+        case base64Data
         case url
         case uri
         case uuid
@@ -80,14 +93,14 @@ extension Environment {
 
     @usableFromInline
     protocol Template {
-        static var envs: [String: Types] { get }
-        init(data: [String: Any])
+        static var envs: OrderedDictionary<String, Environment.Types> { get }
+        static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>)
+        init(data: [String: Any], extra: [String: Any])
         init()
     }
 
     @frozen
     public enum Errcase: String, ErrList {
-        public var domain: String { "woo.sys.env.err" }
         case parseFailed = "环境变量解析失败"
         case typeIncorrect = "环境变量配置类型不匹配"
         case missingKey = "环境变量配置字段缺失"
@@ -96,7 +109,20 @@ extension Environment {
 
 extension Environment.Template {
     @inlinable
-    static func parse(prefix: String?, getValue: @escaping ((String) -> String?) = { Environment.get($0) }) throws(Environment.Errcase.ErrType) -> Self {
+    static var envs: OrderedDictionary<String, Environment.Types> {
+        var res = OrderedDictionary<String, Environment.Types>()
+        withEnv(dic: &res)
+        return res
+    }
+}
+
+extension Environment.Template {
+    @inlinable
+    static func parse(
+        prefix: String?,
+        getValue: @escaping ((String) -> String?) = { Environment.get($0) },
+        extra: [String: Any] = [:]
+    ) throws(Environment.Errcase.ErrType) -> Self {
         var values: [String: Any] = [:]
         for (key, v) in Self.envs {
             if key.hasPrefix("#") {
@@ -124,6 +150,14 @@ extension Environment.Template {
             case .stringArr:
                 values[key] = value.split(separator: ",").map { String($0) }
                 
+            case .base64String:
+                values[key] = Base64String(value)
+                
+            case .base64Data:
+                values[key] = try required(throws: Environment.Errcase.parseFailed, k) {
+                    try Base64String(value).dataRes.get()
+                }
+                
             case .uri:
                 values[key] = URI(string: value)
                 
@@ -148,18 +182,18 @@ extension Environment.Template {
                 }
                 
             case .dataTemplate(let template):
-                values[key] = try template.parse(prefix: k, getValue: getValue)
+                values[key] = try template.parse(prefix: k, getValue: getValue, extra: values)
                 
             case .dataTemplates(let template):
                 guard let countStr = getValue(k + "_COUNT") else { throw Environment.Errcase.missingKey.d(k + "_COUNT") }
                 guard let count = Int(countStr) else { throw Environment.Errcase.typeIncorrect.d(k) }
                 var vs: [Environment.Template] = []
                 for i in 0..<count {
-                    vs.append(try template.parse(prefix: "\(k)_\(i + 1)", getValue: getValue))
+                    vs.append(try template.parse(prefix: "\(k)_\(i + 1)", getValue: getValue, extra: values))
                 }
                 values[key] = vs
             }
         }
-        return Self(data: values)
+        return Self(data: values, extra: extra)
     }
 }
