@@ -39,11 +39,9 @@ extension Environment.DBService: Environment.Template {
     
     @usableFromInline
     init(data: [String : Any], extra: [String: Any]) {
-        self = Self.init(
-            name: data["name"] as! String,
-            port: data["port"] as! Int,
-            dbParameters: data["dbs"] as! [Environment.DB.Parameter]
-        )
+        self.id = .init(string: data["name"] as! String)
+        self.port = data["port"] as! Int
+        self.dbs = data["dbs"] as! [Environment.DB]
     }
 }
 
@@ -53,20 +51,21 @@ extension Environment.DB: Environment.Template {
         origin["name"] = .string
         origin["user"] = .string
         origin["password"] = .string
-        origin["file_storage_key"] = .base64Data
+        origin["#file_storage_key"] = .base64Data
     }
     
     @usableFromInline
     init(data: [String : Any], extra: [String : Any]) {
+        let keyData = data["file_storage_key"]
         self = Self.init(
-            dbServiceId: extra["name"] as! DatabaseID,
+            dbServiceId: .init(string: extra["name"] as! String),
             port: extra["port"] as! Int,
             parameter: .init(
                 name: data["name"] as! String,
                 user: data["user"] as! String,
                 password: data["password"] as! String,
                 unsafeTestOnlyHost: nil,
-                fileStorageKey: .new(data: data["file_storage_key"] as! Data)
+                fileStorageKey: keyData == nil ? nil : .new(data: keyData as! Data)
             )
         )
     }
@@ -124,23 +123,29 @@ extension Environment.Template {
         extra: [String: Any] = [:]
     ) throws(Environment.Errcase.ErrType) -> Self {
         var values: [String: Any] = [:]
-        for (key, v) in Self.envs {
-            if key.hasPrefix("#") {
-                let key = String(key.dropFirst())
-                let k = prefix == nil ? key : "\(prefix!)_\(key.uppercased())"
-                values[key] = getValue(k)
-                continue
-            }
+        for (var key, v) in Self.envs {
+            
+            let optional = key.hasPrefix("#")
+            
+            if optional { key = String(key.dropFirst()) }
             let k = prefix == nil ? key : "\(prefix!)_\(key.uppercased())"
             let value: String!
             
             switch v {
-            case .string, .int, .intArr, .url, .uri, .uuid, .stringArr:
+            case .string, .int, .intArr, .url, .uri, .uuid, .stringArr, .base64Data, .base64String:
                 guard let vv = getValue(k) else {
-                    throw Environment.Errcase.missingKey.d(k)
+                    if optional {
+                        continue
+                    } else {
+                        throw Environment.Errcase.missingKey.d(k)
+                    }
                 }
                 value = vv
-            default: value = nil
+            default:
+                guard !optional else {
+                    fatalError("暂不支持 Template 类型为可选解包")
+                }
+                value = nil
             }
             
             switch v {

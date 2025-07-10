@@ -326,6 +326,15 @@
       }
     },
     {
+      "identity" : "whooshing.toolbox-pgsql",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-pgsql.git",
+      "state" : {
+        "revision" : "91d19bb8307b3bc3c2e6c9c0693d7b783cb9d55c",
+        "version" : "1.0.5"
+      }
+    },
+    {
       "identity" : "whooshing.toolbox-websocket",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SJJC-Team/whooshing.toolbox-websocket.git",

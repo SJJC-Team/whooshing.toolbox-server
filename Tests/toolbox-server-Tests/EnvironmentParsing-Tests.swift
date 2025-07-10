@@ -13,32 +13,61 @@ struct EnvironmentParsingTests {
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
-            "WHOOSHING_API_SERVICE_DB_COUNT": "2",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
-            "WHOOSHING_API_SERVICE_DB_1_NAME": "testdb",
-            "WHOOSHING_API_SERVICE_DB_1_PORT": "5432",
-            "WHOOSHING_API_SERVICE_DB_1_USER": "woo",
-            "WHOOSHING_API_SERVICE_DB_1_PASSWORD": "woo_test",
-            "WHOOSHING_API_SERVICE_DB_2_NAME": "testdb_2",
-            "WHOOSHING_API_SERVICE_DB_2_PORT": "6000",
-            "WHOOSHING_API_SERVICE_DB_2_USER": "woowoo",
-            "WHOOSHING_API_SERVICE_DB_2_PASSWORD": "woo_testwoo_test",
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
+            "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+            
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
+            
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_NAME": "woo_db",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_USER": "woo",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_PASSWORD": "woo_test",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_FILE_STORAGE_KEY": "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI=",
+                
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "2",
+            
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_NAME": "woo_db_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_USER": "woo_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_PASSWORD": "woo_test_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_FILE_STORAGE_KEY": "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI=",
+                    
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_NAME": "woo_db_2_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_USER": "woo_2_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_PASSWORD": "woo_test_2_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_FILE_STORAGE_KEY": "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI=",
         ][key] }
         #expect(project.name == "Testing Project")
         #expect(project.domain == "testing.whooshing.space")
         #expect(project.port == 7777)
         #expect(project.hostname == "localhost")
-        #expect(project.databases.count == 2)
+        #expect(project.fileStorageDir == "~/testing")
+        #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
-        #expect(project.databases[0].name == "testdb")
-        #expect(project.databases[0].port == 5432)
-        #expect(project.databases[0].user == "woo")
-        #expect(project.databases[0].password == "woo_test")
-        #expect(project.databases[1].name == "testdb_2")
-        #expect(project.databases[1].port == 6000)
-        #expect(project.databases[1].user == "woowoo")
-        #expect(project.databases[1].password == "woo_testwoo_test")
+        
+        #expect(project.dbServices[0].id == .init(string: "service_1"))
+        #expect(project.dbServices[0].port == 5432)
+        #expect(project.dbServices[0].dbs.count == 1)
+        #expect(project.dbServices[0].dbs[0].id.string == "service_1/woo_db")
+        #expect(project.dbServices[0].dbs[0].parameter.user == "woo")
+        #expect(project.dbServices[0].dbs[0].parameter.password == "woo_test")
+        #expect(project.dbServices[0].dbs[0].parameter.fileStorageKey == TestingShared.wrongApiClientToken)
+        
+        #expect(project.dbServices[1].id == .init(string: "service_2"))
+        #expect(project.dbServices[1].port == 5433)
+        #expect(project.dbServices[1].dbs.count == 2)
+        #expect(project.dbServices[1].dbs[0].id.string == "service_2/woo_db_2")
+        #expect(project.dbServices[1].dbs[0].parameter.user == "woo_2")
+        #expect(project.dbServices[1].dbs[0].parameter.password == "woo_test_2")
+        #expect(project.dbServices[1].dbs[0].parameter.fileStorageKey == TestingShared.wrongApiClientToken)
+        #expect(project.dbServices[1].dbs[1].id.string == "service_2/woo_db_2_2")
+        #expect(project.dbServices[1].dbs[1].parameter.user == "woo_2_2")
+        #expect(project.dbServices[1].dbs[1].parameter.password == "woo_test_2_2")
+        #expect(project.dbServices[1].dbs[1].parameter.fileStorageKey == TestingShared.wrongApiClientToken)
     }
     
     @Test("测试环境变量读取2")
@@ -46,47 +75,117 @@ struct EnvironmentParsingTests {
         let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
-            "WHOOSHING_API_SERVICE_DB_COUNT": "2",
+            "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
-            "WHOOSHING_API_SERVICE_DB_1_NAME": "testdb",
-            "WHOOSHING_API_SERVICE_DB_1_PORT": "5432",
-            "WHOOSHING_API_SERVICE_DB_1_USER": "woo",
-            "WHOOSHING_API_SERVICE_HOSTNAME": "127.0.0.1",
-            "WHOOSHING_API_SERVICE_DB_1_PASSWORD": "woo_test",
-            "WHOOSHING_API_SERVICE_DB_2_NAME": "testdb_2",
-            "WHOOSHING_API_SERVICE_DB_2_PORT": "6000",
-            "WHOOSHING_API_SERVICE_DB_2_USER": "woowoo",
-            "WHOOSHING_API_SERVICE_DB_2_PASSWORD": "woo_testwoo_test",
+            "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+            "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+            
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
+            
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_NAME": "woo_db",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_USER": "woo",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_PASSWORD": "woo_test",
+                
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "2",
+            
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_NAME": "woo_db_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_USER": "woo_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_PASSWORD": "woo_test_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_FILE_STORAGE_KEY": "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI=",
+                    
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_NAME": "woo_db_2_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_USER": "woo_2_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_PASSWORD": "woo_test_2_2",
         ][key] }
         #expect(project.name == "Testing Project")
-        #expect(project.domain == nil)
+        #expect(project.domain == "testing.whooshing.space")
         #expect(project.port == 7777)
-        #expect(project.hostname == "127.0.0.1")
-        #expect(project.databases.count == 2)
+        #expect(project.hostname == "localhost")
+        #expect(project.fileStorageDir == nil)
+        #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
-        #expect(project.databases[0].name == "testdb")
-        #expect(project.databases[0].port == 5432)
-        #expect(project.databases[0].user == "woo")
-        #expect(project.databases[0].password == "woo_test")
-        #expect(project.databases[1].name == "testdb_2")
-        #expect(project.databases[1].port == 6000)
-        #expect(project.databases[1].user == "woowoo")
-        #expect(project.databases[1].password == "woo_testwoo_test")
+        
+        #expect(project.dbServices[0].id == .init(string: "service_1"))
+        #expect(project.dbServices[0].port == 5432)
+        #expect(project.dbServices[0].dbs.count == 1)
+        #expect(project.dbServices[0].dbs[0].id.string == "service_1/woo_db")
+        #expect(project.dbServices[0].dbs[0].parameter.user == "woo")
+        #expect(project.dbServices[0].dbs[0].parameter.password == "woo_test")
+        #expect(project.dbServices[0].dbs[0].parameter.fileStorageKey == nil)
+        
+        #expect(project.dbServices[1].id == .init(string: "service_2"))
+        #expect(project.dbServices[1].port == 5433)
+        #expect(project.dbServices[1].dbs.count == 2)
+        #expect(project.dbServices[1].dbs[0].id.string == "service_2/woo_db_2")
+        #expect(project.dbServices[1].dbs[0].parameter.user == "woo_2")
+        #expect(project.dbServices[1].dbs[0].parameter.password == "woo_test_2")
+        #expect(project.dbServices[1].dbs[0].parameter.fileStorageKey == TestingShared.wrongApiClientToken)
+        #expect(project.dbServices[1].dbs[1].id.string == "service_2/woo_db_2_2")
+        #expect(project.dbServices[1].dbs[1].parameter.user == "woo_2_2")
+        #expect(project.dbServices[1].dbs[1].parameter.password == "woo_test_2_2")
+        #expect(project.dbServices[1].dbs[1].parameter.fileStorageKey == nil)
     }
     
     @Test("测试环境变量读取3")
     func testEnvironmentDetect3() async throws {
-        #expect(throws: Environment.Errcase.ErrType.self, performing: {
-            let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
-                "WHOOSHING_API_SERVICE_NAME": "Testing Project",
-                "WHOOSHING_API_SERVICE_DB_COUNT": "3",
-                "WHOOSHING_API_SERVICE_DB_1_NAME": "testdb",
-                "WHOOSHING_API_SERVICE_DB_1_PORT": "5432",
-                "WHOOSHING_API_SERVICE_DB_2_NAME": "testdb_2",
-                "WHOOSHING_API_SERVICE_DB_2_PORT": "6000",
-                "WHOOSHING_API_SERVICE_DB_3_NAME": "testdb_3",
-            ][key] }
-        })
+        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            "WHOOSHING_API_SERVICE_NAME": "Testing Project",
+            "WHOOSHING_API_SERVICE_PORT": "7777",
+            "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
+            "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+            "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+            
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
+            
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_NAME": "woo_db",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_USER": "woo",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_PASSWORD": "woo_test",
+                
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "2",
+            
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_NAME": "woo_db_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_USER": "woo_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_PASSWORD": "woo_test_2",
+                    
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_NAME": "woo_db_2_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_USER": "woo_2_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_PASSWORD": "woo_test_2_2",
+        ][key] }
+        #expect(project.name == "Testing Project")
+        #expect(project.domain == nil)
+        #expect(project.port == 7777)
+        #expect(project.hostname == "localhost")
+        #expect(project.fileStorageDir == nil)
+        #expect(project.dbServices.count == 2)
+        #expect(project.managerUrl.absoluteString == "https://example.com")
+        
+        #expect(project.dbServices[0].id == .init(string: "service_1"))
+        #expect(project.dbServices[0].port == 5432)
+        #expect(project.dbServices[0].dbs.count == 1)
+        #expect(project.dbServices[0].dbs[0].id.string == "service_1/woo_db")
+        #expect(project.dbServices[0].dbs[0].parameter.user == "woo")
+        #expect(project.dbServices[0].dbs[0].parameter.password == "woo_test")
+        #expect(project.dbServices[0].dbs[0].parameter.fileStorageKey == nil)
+        
+        #expect(project.dbServices[1].id == .init(string: "service_2"))
+        #expect(project.dbServices[1].port == 5433)
+        #expect(project.dbServices[1].dbs.count == 2)
+        #expect(project.dbServices[1].dbs[0].id.string == "service_2/woo_db_2")
+        #expect(project.dbServices[1].dbs[0].parameter.user == "woo_2")
+        #expect(project.dbServices[1].dbs[0].parameter.password == "woo_test_2")
+        #expect(project.dbServices[1].dbs[0].parameter.fileStorageKey == nil)
+        #expect(project.dbServices[1].dbs[1].id.string == "service_2/woo_db_2_2")
+        #expect(project.dbServices[1].dbs[1].parameter.user == "woo_2_2")
+        #expect(project.dbServices[1].dbs[1].parameter.password == "woo_test_2_2")
+        #expect(project.dbServices[1].dbs[1].parameter.fileStorageKey == nil)
     }
     
     @Test("测试环境变量读取4")
@@ -94,13 +193,115 @@ struct EnvironmentParsingTests {
         #expect(throws: Environment.Errcase.ErrType.self, performing: {
             let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
-                "WHOOSHING_API_SERVICE_DB_COUNT": "3",
-                "WHOOSHING_API_SERVICE_DB_1_NAME": "testdb",
-                "WHOOSHING_API_SERVICE_DB_1_PORT": "5432",
-                "WHOOSHING_API_SERVICE_DB_2_NAME": "testdb_2",
-                "WHOOSHING_API_SERVICE_DB_2_PORT": "6000",
-                "WHOOSHING_API_SERVICE_DB_3_NAME": "testdb_3",
-                "WHOOSHING_API_SERVICE_DB_3_PORT": "HELLOWORLD!",
+                "WHOOSHING_API_SERVICE_PORT": "7777",
+                "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
+                "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+                
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
+                
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_NAME": "woo_db",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_USER": "woo",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_PASSWORD": "woo_test",
+                    
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "2",
+                
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_NAME": "woo_db_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_USER": "woo_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_PASSWORD": "woo_test_2",
+                        
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_NAME": "woo_db_2_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_USER": "woo_2_2",
+            ][key] }
+        })
+    }
+    
+    @Test("测试环境变量读取5")
+    func testEnvironmentDetect5() async throws {
+        #expect(throws: Environment.Errcase.ErrType.self, performing: {
+            let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+                "WHOOSHING_API_SERVICE_NAME": "Testing Project",
+                "WHOOSHING_API_SERVICE_PORT": "7777",
+                "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
+                "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+                
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
+                
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_NAME": "woo_db",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_USER": "woo",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_PASSWORD": "woo_test",
+                    
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "2",
+                
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_NAME": "woo_db_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_USER": "woo_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_PASSWORD": "woo_test_2",
+                        
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_NAME": "woo_db_2_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_PASSWORD": "woo_test_2_2"
+            ][key] }
+        })
+    }
+    
+    @Test("测试环境变量读取6")
+    func testEnvironmentDetect6() async throws {
+        #expect(throws: Environment.Errcase.ErrType.self, performing: {
+            let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+                "WHOOSHING_API_SERVICE_NAME": "Testing Project",
+                "WHOOSHING_API_SERVICE_PORT": "7777",
+                "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
+                "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+                
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
+                
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_NAME": "woo_db",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_USER": "woo",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_PASSWORD": "woo_test",
+                    
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "2",
+                
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_NAME": "woo_db_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_USER": "woo_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_PASSWORD": "woo_test_2"
+            ][key] }
+        })
+    }
+    
+    @Test("测试环境变量读取7")
+    func testEnvironmentDetect7() async throws {
+        #expect(throws: Environment.Errcase.ErrType.self, performing: {
+            let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+                "WHOOSHING_API_SERVICE_NAME": "Testing Project",
+                "WHOOSHING_API_SERVICE_PORT": "7777",
+                "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
+                "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+                    
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "2",
+                
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_NAME": "woo_db_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_USER": "woo_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_PASSWORD": "woo_test_2",
+                        
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_NAME": "woo_db_2_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_USER": "woo_2_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_PASSWORD": "woo_test_2_2",
             ][key] }
         })
     }

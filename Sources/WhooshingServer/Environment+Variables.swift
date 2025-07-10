@@ -19,7 +19,7 @@ public extension Environment {
         public let managerUrl: URL
         /// 可选的域名信息
         public let domain: String?
-        /// 文件存储的主存储目录
+        /// 文件存储的主存储目录，为 nil 表示不支持文件加密系统
         public let fileStorageDir: String?
         
         @inlinable
@@ -34,7 +34,7 @@ public extension Environment {
         ///   - dbServices: 数据库服务列表
         ///   - managerUrl: 模块管理器的 URL 链接
         ///   - domain: 可选域名信息
-        ///   - fileStorageDir: 文件存储的主存储目录，指定为 nil 表示不支持文件存储
+        ///   - fileStorageDir: 文件存储的主存储目录，为 nil 表示不支持文件加密系统
         @inlinable
         public init(
             name: String,
@@ -104,9 +104,9 @@ public extension Environment {
             /// 数据库访问密码（内部使用）
             /// 内部存储，不允许外界访问
             internal let password: String
-            /// 文件存储系统的加密密钥
+            /// 文件存储系统的加密密钥，为 nil 表示不支持文件加密系统
             /// 内部存储，不允许外界访问
-            internal let fileStorageKey: Crypto.Symm.Key
+            internal let fileStorageKey: Crypto.Symm.Key?
             
             /// 初始化数据库配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
             /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
@@ -115,13 +115,13 @@ public extension Environment {
             ///   - user: 连接用户名
             ///   - password: 连接密码
             ///   - unsafeTestOnlyHost: 用于连接数据库的主机名，只有测试时会使用。
-            ///   - fileStorageKey: 文件存储系统的加密密钥
+            ///   - fileStorageKey: 文件存储系统的加密密钥，为 nil 表示不支持文件加密系统
             public init(
                 name: String,
                 user: String = "postgres",
                 password: String = "password",
                 unsafeTestOnlyHost: String? = nil,
-                fileStorageKey: Crypto.Symm.Key = Crypto.Symm.makeKey(),
+                fileStorageKey: Crypto.Symm.Key? = nil,
             ) {
                 self.name = name
                 self.user = user
@@ -150,7 +150,7 @@ public extension Environment {
             parameter: Parameter
         ) {
             self.dbServiceId = dbServiceId
-            self.id = DatabaseID(string: "\(dbServiceId)/\(parameter.name)")
+            self.id = DatabaseID(string: "\(dbServiceId.string)/\(parameter.name)")
             self.port = port
             self.parameter = parameter
         }

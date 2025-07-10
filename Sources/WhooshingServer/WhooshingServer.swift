@@ -183,11 +183,15 @@ extension Whooshing {
             return .failure(.fileStorageInitFailed, "主目录未设置，不支持文件加密系统")
         }
         
+        guard let key = db.parameter.fileStorageKey else {
+            return .failure(.fileStorageInitFailed, "数据库 \(db.id) 未设置加密密钥，不支持文件加密系统")
+        }
+        
         return await FileStorage.new(
             eventLoop: app.eventLoopGroup.next(),
             storagePath: FileSystemTools.resolvePath(basePath: fileStorageDir, append: storagePath.string),
             dbConfigure: testing ? db.testingConfig : db.config,
-            masterKey: db.parameter.fileStorageKey,
+            masterKey: key,
             logger: logger
         ).mapError(as: Errcase.fileStorageInitFailed)
     }
@@ -234,7 +238,7 @@ extension Whooshing {
             app.http.server.configuration.hostname = config.hostname
             app.http.server.configuration.port = config.port
             if env == .testing {
-                for dbService in config.databaseServices {
+                for dbService in config.dbServices {
                     for db in dbService.dbs {
                         app.databases.use(
                             .postgres(
@@ -248,7 +252,7 @@ extension Whooshing {
                     }
                 }
             } else {
-                for dbService in config.databaseServices {
+                for dbService in config.dbServices {
                     for db in dbService.dbs {
                         app.databases.use(
                             .postgres(
