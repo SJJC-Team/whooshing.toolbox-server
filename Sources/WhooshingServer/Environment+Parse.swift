@@ -29,7 +29,6 @@ extension Environment.Config: Environment.Template {
 }
 
 extension Environment.DBService: Environment.Template {
-    
     @inlinable
     static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
         origin["name"] = .string

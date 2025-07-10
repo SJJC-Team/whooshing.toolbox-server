@@ -305,4 +305,58 @@ struct EnvironmentParsingTests {
             ][key] }
         })
     }
+    
+    @Test("测试环境变量读取8")
+    func testEnvironmentDetect8() async throws {
+        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            "WHOOSHING_API_SERVICE_NAME": "Testing Project",
+            "WHOOSHING_API_SERVICE_PORT": "7777",
+            "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
+            "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
+            "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
+            "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "0",
+        ][key] }
+        #expect(project.name == "Testing Project")
+        #expect(project.domain == "testing.whooshing.space")
+        #expect(project.port == 7777)
+        #expect(project.hostname == "localhost")
+        #expect(project.fileStorageDir == "~/testing")
+        #expect(project.dbServices.count == 0)
+        #expect(project.managerUrl.absoluteString == "https://example.com")
+    }
+    
+    @Test("测试环境变量读取9")
+    func testEnvironmentDetect9() async throws {
+        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            "WHOOSHING_API_SERVICE_NAME": "Testing Project",
+            "WHOOSHING_API_SERVICE_PORT": "7777",
+            "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
+            "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+            "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+            
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "0",
+                
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
+        ][key] }
+        #expect(project.name == "Testing Project")
+        #expect(project.domain == nil)
+        #expect(project.port == 7777)
+        #expect(project.hostname == "localhost")
+        #expect(project.fileStorageDir == nil)
+        #expect(project.dbServices.count == 2)
+        #expect(project.managerUrl.absoluteString == "https://example.com")
+        
+        #expect(project.dbServices[0].id == .init(string: "service_1"))
+        #expect(project.dbServices[0].port == 5432)
+        #expect(project.dbServices[0].dbs.count == 0)
+        
+        #expect(project.dbServices[1].id == .init(string: "service_2"))
+        #expect(project.dbServices[1].port == 5433)
+        #expect(project.dbServices[1].dbs.count == 0)
+    }
 }

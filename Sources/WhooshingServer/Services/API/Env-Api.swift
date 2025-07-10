@@ -24,7 +24,8 @@ extension Api.ServicePara: Environment.Template {
         self.authenticationURL = URL(string: "https://example.com")!
     }
     
-    @inlinable init(data: [String: Any], extra: [String: Any]) {
+    @inlinable
+    init(data: [String: Any], extra: [String: Any]) {
         self.authenticationURL = data["authentication_url"] as! URL
     }
 }
