@@ -161,7 +161,7 @@ public extension Environment {
                 user: String = "postgres",
                 password: String = "password",
                 unsafeTestOnlyHost: String? = nil,
-                fileStorageKey: Crypto.Symm.Key? = Crypto.Symm.makeKey(),
+                fileStorageKey: Crypto.Symm.Key? = Crypto.Symm.makeKey()
             ) {
                 self.name = name
                 self.user = user
