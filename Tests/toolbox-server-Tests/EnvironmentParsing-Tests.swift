@@ -3,6 +3,7 @@ import Testing
 import Vapor
 import Foundation
 import WhooshingClient
+import System
 
 @Suite("环境变量解析测试集")
 struct EnvironmentParsingTests {
@@ -15,7 +16,12 @@ struct EnvironmentParsingTests {
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+            
             "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_OWNER_ID": "1001",
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_GROUP_ID": "1002",
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_RWX": "480",
+            
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
@@ -45,7 +51,21 @@ struct EnvironmentParsingTests {
         #expect(project.domain == "testing.whooshing.space")
         #expect(project.port == 7777)
         #expect(project.hostname == "localhost")
-        #expect(project.fileStorageDir == "~/testing")
+        
+        let fileStoragePara = try #require(project.fileStorage)
+        #expect(fileStoragePara.dir == "~/testing")
+        
+        guard case let .id(ownerId) = fileStoragePara.permission.owner else {
+            throw "Owner Id Invalid"
+        }
+        
+        guard case let .id(groupId) = fileStoragePara.permission.group else {
+            throw "Group Id Invalid"
+        }
+        #expect(ownerId == 1001)
+        #expect(groupId == 1002)
+        #expect(fileStoragePara.permission.rwxPermissions == [.ownerReadWriteExecute, .groupRead])
+        
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
         
@@ -78,6 +98,11 @@ struct EnvironmentParsingTests {
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+            
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_OWNER_ID": "1001",
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_GROUP_ID": "1002",
+            
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
@@ -105,7 +130,7 @@ struct EnvironmentParsingTests {
         #expect(project.domain == "testing.whooshing.space")
         #expect(project.port == 7777)
         #expect(project.hostname == "localhost")
-        #expect(project.fileStorageDir == nil)
+        #expect(project.fileStorage == nil)
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
         
@@ -163,7 +188,7 @@ struct EnvironmentParsingTests {
         #expect(project.domain == nil)
         #expect(project.port == 7777)
         #expect(project.hostname == "localhost")
-        #expect(project.fileStorageDir == nil)
+        #expect(project.fileStorage == nil)
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
         
@@ -314,14 +339,33 @@ struct EnvironmentParsingTests {
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+            
             "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_OWNER_ID": "1001",
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_GROUP_ID": "1002",
+            "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_RWX": "480",
+            
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "0",
         ][key] }
         #expect(project.name == "Testing Project")
         #expect(project.domain == "testing.whooshing.space")
         #expect(project.port == 7777)
         #expect(project.hostname == "localhost")
-        #expect(project.fileStorageDir == "~/testing")
+
+        let fileStoragePara = try #require(project.fileStorage)
+        #expect(fileStoragePara.dir == "~/testing")
+        
+        guard case let .id(ownerId) = fileStoragePara.permission.owner else {
+            throw "Owner Id Invalid"
+        }
+        
+        guard case let .id(groupId) = fileStoragePara.permission.group else {
+            throw "Group Id Invalid"
+        }
+        #expect(ownerId == 1001)
+        #expect(groupId == 1002)
+        #expect(fileStoragePara.permission.rwxPermissions == [.ownerReadWriteExecute, .groupRead])
+        
         #expect(project.dbServices.count == 0)
         #expect(project.managerUrl.absoluteString == "https://example.com")
     }
@@ -347,7 +391,7 @@ struct EnvironmentParsingTests {
         #expect(project.domain == nil)
         #expect(project.port == 7777)
         #expect(project.hostname == "localhost")
-        #expect(project.fileStorageDir == nil)
+        #expect(project.fileStorage == nil)
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
         
@@ -360,3 +404,5 @@ struct EnvironmentParsingTests {
         #expect(project.dbServices[1].dbs.count == 0)
     }
 }
+
+extension String: @retroactive Error {}

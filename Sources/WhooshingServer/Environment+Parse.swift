@@ -1,18 +1,20 @@
 import Vapor
+import FileStorage
 import FluentKit
 import ErrorHandle
 import DataConvertable
 import Collections
+import System
 
 extension Environment.Config: Environment.Template {
     @inlinable
     static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
         origin["name"] = .string
-        origin["port"] = .int
+        origin["port"] = .int()
         origin["hostname"] = .string
         origin["#domain"] = .string
-        origin["#file_storage_dir"] = .string
         origin["manager_url"] = .url
+        origin["#file_storage"] = .dataTemplate(Environment.FS.self)
         origin["db_services"] = .dataTemplates(Environment.DBService.self)
     }
     
@@ -24,7 +26,28 @@ extension Environment.Config: Environment.Template {
         self.dbServices = data["db_services"] as! [Environment.DBService]
         self.domain = data["domain"] as? String
         self.managerUrl = data["manager_url"] as! URL
-        self.fileStorageDir = data["file_storage_dir"] as? String
+        self.fileStorage = data["file_storage"] as? Environment.FS
+    }
+}
+
+extension Environment.FS: Environment.Template {
+    @inlinable
+    static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
+        origin["dir"] = .string
+        origin["unix_permission_owner_id"] = .int(CUnsignedLong.self)
+        origin["unix_permission_group_id"] = .int(CUnsignedLong.self)
+        origin["unix_permission_rwx"] = .int(CModeT.self)
+    }
+    
+    @usableFromInline
+    init(data: [String : Any], extra: [String : Any]) {
+        self.dir = data["dir"] as! String
+        self.fileExtension = FileStorage.DefaultCryptoFileExtension
+        self.permission = .init(
+            owner: .id(data["unix_permission_owner_id"] as! CUnsignedLong),
+            group: .id(data["unix_permission_group_id"] as! CUnsignedLong),
+            rwx: .init(rawValue: data["unix_permission_rwx"] as! CModeT)
+        )
     }
 }
 
@@ -32,7 +55,7 @@ extension Environment.DBService: Environment.Template {
     @inlinable
     static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
         origin["name"] = .string
-        origin["port"] = .int
+        origin["port"] = .int()
         origin["dbs"] = .dataTemplates(Environment.DB.self)
     }
     
@@ -77,9 +100,9 @@ extension Environment {
     @usableFromInline
     enum Types {
         case string
-        case int
         case stringArr
-        case intArr
+        case int(any FixedWidthInteger.Type = Int.self)
+        case intArr(any FixedWidthInteger.Type = Int.self)
         case base64String
         case base64Data
         case url
@@ -102,6 +125,7 @@ extension Environment {
         case parseFailed = "环境变量解析失败"
         case typeIncorrect = "环境变量配置类型不匹配"
         case missingKey = "环境变量配置字段缺失"
+        case internalFailed = "内部错误"
     }
 }
 
@@ -121,6 +145,19 @@ extension Environment.Template {
         getValue: @escaping ((String) -> String?) = { Environment.get($0) },
         extra: [String: Any] = [:]
     ) throws(Environment.Errcase.ErrType) -> Self {
+        guard let res = try nullableParse(prefix: prefix, getValue: getValue, extra: extra, nullable: false) else {
+            throw Environment.Errcase.internalFailed.d(prefix ?? "<<No prefix>>")
+        }
+        return res
+    }
+    
+    @inlinable
+    static func nullableParse(
+        prefix: String?,
+        getValue: @escaping ((String) -> String?) = { Environment.get($0) },
+        extra: [String: Any] = [:],
+        nullable: Bool
+    ) throws(Environment.Errcase.ErrType) -> Self? {
         var values: [String: Any] = [:]
         for (var key, v) in Self.envs {
             
@@ -136,14 +173,15 @@ extension Environment.Template {
                     if optional {
                         continue
                     } else {
-                        throw Environment.Errcase.missingKey.d(k)
+                        if nullable {
+                            return nil
+                        } else {
+                            throw Environment.Errcase.missingKey.d(k)
+                        }
                     }
                 }
                 value = vv
             default:
-                guard !optional else {
-                    fatalError("暂不支持 Template 类型为可选解包")
-                }
                 value = nil
             }
             
@@ -153,6 +191,18 @@ extension Environment.Template {
                 
             case .stringArr:
                 values[key] = value.split(separator: ",").map { String($0) }
+                
+            case .int(let type):
+                guard let v = type.init(value) else { throw Environment.Errcase.typeIncorrect.d(k) }
+                values[key] = v
+                
+            case .intArr(let type):
+                values[key] = try value.split(separator: ",").map { v throws(Environment.Errcase.ErrType) in
+                    guard let v = type.init(v) else {
+                        throw Environment.Errcase.typeIncorrect.d(k)
+                    }
+                    return v
+                }
                 
             case .base64String:
                 values[key] = Base64String(value)
@@ -165,10 +215,6 @@ extension Environment.Template {
             case .uri:
                 values[key] = URI(string: value)
                 
-            case .int:
-                guard let v = Int(value) else { throw Environment.Errcase.typeIncorrect.d(k) }
-                values[key] = v
-                
             case .url:
                 guard let v = URL(string: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
                 values[key] = v
@@ -177,20 +223,45 @@ extension Environment.Template {
                 guard let v = UUID(uuidString: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
                 values[key] = v
                 
-            case .intArr:
-                values[key] = try value.split(separator: ",").map { v throws(Environment.Errcase.ErrType) in
-                    guard let v = Int(v) else {
-                        throw Environment.Errcase.typeIncorrect.d(k)
+            case .dataTemplate(let template):
+                if optional {
+                    values[key] = try template.nullableParse(prefix: k, getValue: getValue, extra: values, nullable: true)
+                } else {
+                    if nullable {
+                        guard let res = try template.nullableParse(prefix: k, getValue: getValue, extra: values, nullable: true) else {
+                            return nil
+                        }
+                        values[key] = res
+                    } else {
+                        values[key] = try template.parse(prefix: k, getValue: getValue, extra: values)
                     }
-                    return v
                 }
                 
-            case .dataTemplate(let template):
-                values[key] = try template.parse(prefix: k, getValue: getValue, extra: values)
-                
             case .dataTemplates(let template):
-                guard let countStr = getValue(k + "_COUNT") else { throw Environment.Errcase.missingKey.d(k + "_COUNT") }
-                guard let count = Int(countStr) else { throw Environment.Errcase.typeIncorrect.d(k) }
+                guard let countStr = getValue(k + "_COUNT") else {
+                    if optional {
+                        continue
+                    } else {
+                        if nullable {
+                            return nil
+                        } else {
+                            throw Environment.Errcase.missingKey.d(k + "_COUNT")
+                        }
+                    }
+                }
+                
+                guard let count = Int(countStr) else {
+                    if optional {
+                        continue
+                    } else {
+                        if nullable {
+                            return nil
+                        } else {
+                            throw Environment.Errcase.typeIncorrect.d(k)
+                        }
+                    }
+                }
+                
                 var vs: [Environment.Template] = []
                 for i in 0..<count {
                     vs.append(try template.parse(prefix: "\(k)_\(i + 1)", getValue: getValue, extra: values))

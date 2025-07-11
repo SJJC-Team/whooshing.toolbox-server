@@ -173,27 +173,63 @@ extension Whooshing where Service == Api {
 }
 
 extension Whooshing {
+    @frozen
+    public enum DirCreateAction {
+        case noAction
+        case createIfNeed(withIntermediateDirectories: Bool = false)
+    }
+    
     public func makeFileStorage(
         for db: Environment.DB,
         storagePath: StoragePath,
         logger: Logger,
-        testing: Bool = false
+        dirCreateAction: DirCreateAction = .createIfNeed(withIntermediateDirectories: true),
+        debugging: Bool = false
     ) async -> Result<FileStorage, Failure> {
-        guard let fileStorageDir = config.fileStorageDir else {
-            return .failure(.fileStorageInitFailed, "主目录未设置，不支持文件加密系统")
+        guard let fileStorageParameter = config.fileStorage else {
+            return .failure(.fileStorageInitFailed, "基本配置未提供，不支持文件加密系统")
         }
         
         guard let key = db.parameter.fileStorageKey else {
             return .failure(.fileStorageInitFailed, "数据库 \(db.id) 未设置加密密钥，不支持文件加密系统")
         }
         
-        return await FileStorage.new(
-            eventLoop: app.eventLoopGroup.next(),
-            storagePath: FileSystemTools.resolvePath(basePath: fileStorageDir, append: storagePath.string),
-            dbConfigure: testing ? db.testingConfig : db.config,
-            masterKey: key,
-            logger: logger
-        ).mapError(as: Errcase.fileStorageInitFailed)
+        return await .async { () throws(Failure) in
+            
+            let mainDirPath = FileSystemTools.resolvePath(basePath: fileStorageParameter.dir, append: storagePath.string)
+            
+            switch dirCreateAction {
+            case .noAction: break
+            case .createIfNeed(withIntermediateDirectories: let c):
+                let permissionAttributes = try required(throws: Errcase.fileStorageInitFailed, "权限信息读取失败") {
+                    try fileStorageParameter.permission.attributes.get()
+                }
+                
+                var isDirectory: ObjCBool = false
+                if !FileManager.default.fileExists(atPath: mainDirPath, isDirectory: &isDirectory) || !isDirectory.boolValue {
+                    try required(throws: Errcase.fileStorageInitFailed, "主目录创建失败") {
+                        try FileManager.default.createDirectory(
+                            atPath: mainDirPath,
+                            withIntermediateDirectories: c,
+                            attributes: permissionAttributes
+                        )
+                    }
+                }
+            }
+            
+            return try await required(throws: Errcase.fileStorageInitFailed) {
+                try await FileStorage.new(
+                    eventLoop: app.eventLoopGroup.next(),
+                    storagePath: mainDirPath,
+                    dbConfigure: debugging ? db.testingConfig : db.config,
+                    masterKey: key,
+                    logger: logger,
+                    fileExtension: fileStorageParameter.fileExtension,
+                    filePermission: fileStorageParameter.permission,
+                    debuging: .init(tdeEncrypt: !debugging)
+                ).get()
+            }
+        }
     }
 }
 

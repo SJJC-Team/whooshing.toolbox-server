@@ -19,8 +19,8 @@ public extension Environment {
         public let managerUrl: URL
         /// 可选的域名信息
         public let domain: String?
-        /// 文件存储的主存储目录，为 nil 表示不支持文件加密系统
-        public let fileStorageDir: String?
+        /// 文件存储系统的基本配置参数，为 nil 表示不支持文件加密系统
+        public let fileStorage: FS?
         
         @inlinable
         public init() { self = Self(name: "Testing") }
@@ -34,7 +34,7 @@ public extension Environment {
         ///   - dbServices: 数据库服务列表
         ///   - managerUrl: 模块管理器的 URL 链接
         ///   - domain: 可选域名信息
-        ///   - fileStorageDir: 文件存储的主存储目录，为 nil 表示不支持文件加密系统
+        ///   - fileStorageParameter: 文件存储系统的基本配置参数，为 nil 表示不支持文件加密系统
         @inlinable
         public init(
             name: String,
@@ -43,19 +43,50 @@ public extension Environment {
             dbServices: [DBService] = [],
             managerUrl: URL = .init(string: "http://testing.com")!,
             domain: String? = nil,
-            fileStorageDir: String? = nil
+            fileStorageParameter: FS? = nil
         ) {
             self.name = name
-            self.fileStorageDir = fileStorageDir
             self.port = port
             self.hostname = hostname
             self.dbServices = dbServices
             self.managerUrl = managerUrl
             self.domain = domain
+            self.fileStorage = fileStorageParameter
         }
     }
     
-    /// 表示一个数据库连接的配置项，仅支持 PostgreSQL 数据库
+    /// FileStorage 文件加密系统的配置参数
+    @frozen
+    struct FS {
+        /// 文件存储的主存储目录
+        public let dir: String
+        /// 所有加密文件的后缀名，仅调试和测试环境下可自定
+        public let fileExtension: String
+        /// 文件存储系统的 Unix 文件系统权限
+        public let permission: FileStorage.UnixPermission
+        
+        @inlinable
+        public init() { self = Self(dir: "~/whooshing-server-testing") }
+        
+        /// 初始化环境配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
+        /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
+        /// - Parameters:
+        ///     - dir: 该文件存储系统的主目录
+        ///     - fileExtension: 所有加密文件的后缀名
+        ///     - permission: 该文件系统目录所有内容的 Unix 权限设置
+        @inlinable
+        public init(
+            dir: String,
+            fileExtension: String = FileStorage.DefaultCryptoFileExtension,
+            permission: FileStorage.UnixPermission = .init()
+        ) {
+            self.dir = dir
+            self.fileExtension = fileExtension
+            self.permission = permission
+        }
+    }
+    
+    /// 一个数据库服务连接的配置项，仅支持 PostgreSQL 数据库，一个数据库服务中可有多个数据库
     @frozen
     struct DBService: Sendable {
         /// 数据库名称
@@ -89,9 +120,18 @@ public extension Environment {
         }
     }
     
+    /// 一个数据库的配置项，仅支持 PostgreSQL 数据库
     @frozen
     struct DB: Sendable {
-
+        /// 该数据库所属数据库服务的 id
+        public let dbServiceId: DatabaseID
+        /// 用于 Fluent 识别的数据库标识符
+        public let id: DatabaseID
+        /// 数据库监听端口号
+        public let port: Int
+        /// 该数据库的参数配置
+        public let parameter: Parameter
+        
         @frozen
         public struct Parameter: Sendable {
             /// 该数据库的名称
@@ -121,7 +161,7 @@ public extension Environment {
                 user: String = "postgres",
                 password: String = "password",
                 unsafeTestOnlyHost: String? = nil,
-                fileStorageKey: Crypto.Symm.Key? = nil,
+                fileStorageKey: Crypto.Symm.Key? = Crypto.Symm.makeKey(),
             ) {
                 self.name = name
                 self.user = user
@@ -130,15 +170,6 @@ public extension Environment {
                 self.fileStorageKey = fileStorageKey
             }
         }
-        
-        /// 该数据库所属数据库服务的 id
-        public let dbServiceId: DatabaseID
-        /// 用于 Fluent 识别的数据库标识符
-        public let id: DatabaseID
-        /// 数据库监听端口号
-        public let port: Int
-        /// 该数据库的参数配置
-        public let parameter: Parameter
         
         @usableFromInline
         init() { self = Self(dbServiceId: .init(string: "postgres"), port: 5432, parameter: .init(name: "postgres")) }
