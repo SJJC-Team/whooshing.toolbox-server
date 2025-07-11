@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "inline-testing",
     platforms: [
-        .macOS(.v10_15),
+        .macOS(.v11),
         .iOS(.v13),
         .watchOS(.v6),
         .tvOS(.v13),
