@@ -86,7 +86,7 @@ extension Environment.DB: Environment.Template {
                 name: data["name"] as! String,
                 user: data["user"] as! String,
                 password: data["password"] as! String,
-                unsafeTestOnlyHost: nil,
+                testingHost: nil,
                 fileStorageKey: keyData == nil ? nil : .new(data: keyData as! Data)
             )
         )

@@ -179,11 +179,45 @@ extension Whooshing {
         case createIfNeed(withIntermediateDirectories: Bool = false)
     }
     
+    /// 初始化一个文件加密系统(同步，若初始化失败将直接导致程序崩溃)
+    ///
+    /// - Parameters:
+    ///     - db: 用于存储文件索引的数据库
+    ///     - storagePath: 加密文件在文件系统中存储的位置，相对沙盒文件夹中的位置
+    ///     - logger: 日志实例
+    ///     - dirCreateAction: 创建动作，可选择自动创建根文件夹或无任何动作
+    ///     - debugging: 调试状态，置为 true 则启动调试模式
+    public func syncMakeFileStorage(
+        for db: Environment.DB,
+        storagePath: StoragePath,
+        logger: Logger,
+        dirCreateAction: DirCreateAction = .noAction,
+        debugging: Bool = false
+    ) -> FileStorage {
+        asyncResultToSync {
+            await self.makeFileStorage(
+                for: db,
+                storagePath: storagePath,
+                logger: logger,
+                dirCreateAction: dirCreateAction,
+                debugging: debugging
+            )
+        }
+    }
+    
+    /// 初始化一个文件加密系统(异步)
+    ///
+    /// - Parameters:
+    ///     - db: 用于存储文件索引的数据库
+    ///     - storagePath: 加密文件在文件系统中存储的位置，相对沙盒文件夹中的位置
+    ///     - logger: 日志实例
+    ///     - dirCreateAction: 创建动作，可选择自动创建根文件夹或无任何动作
+    ///     - debugging: 调试状态，置为 true 则启动调试模式
     public func makeFileStorage(
         for db: Environment.DB,
         storagePath: StoragePath,
         logger: Logger,
-        dirCreateAction: DirCreateAction = .createIfNeed(withIntermediateDirectories: true),
+        dirCreateAction: DirCreateAction = .noAction,
         debugging: Bool = false
     ) async -> Result<FileStorage, Failure> {
         guard let fileStorageParameter = config.fileStorage else {
@@ -196,7 +230,8 @@ extension Whooshing {
         
         return await .async { () throws(Failure) in
             
-            let mainDirPath = FileSystemTools.resolvePath(basePath: fileStorageParameter.dir, append: storagePath.string)
+            let basePath = FileSystemTools.resolvePath(basePath: "/", append: fileStorageParameter.dir)
+            let mainDirPath = FileSystemTools.resolvePath(basePath: basePath, append: "./\(storagePath.string)")
             
             switch dirCreateAction {
             case .noAction: break

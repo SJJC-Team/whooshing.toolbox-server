@@ -43,7 +43,7 @@ public extension Environment {
             dbServices: [DBService] = [],
             managerUrl: URL = .init(string: "http://testing.com")!,
             domain: String? = nil,
-            fileStorageParameter: FS? = nil
+            fileStorageParameter: FS? = .init()
         ) {
             self.name = name
             self.port = port
@@ -140,7 +140,7 @@ public extension Environment {
             public let user: String
             /// 用于连接数据库的主机名，只有测试时会使用。
             /// PostgreSQL 生产环境仅允许运行在本地
-            public let unsafeTestOnlyHost: String?
+            public let testingHost: String?
             /// 数据库访问密码（内部使用）
             /// 内部存储，不允许外界访问
             internal let password: String
@@ -154,19 +154,19 @@ public extension Environment {
             ///   - name: 数据库服务的名称
             ///   - user: 连接用户名
             ///   - password: 连接密码
-            ///   - unsafeTestOnlyHost: 用于连接数据库的主机名，只有测试时会使用。
+            ///   - testingHost: 用于连接数据库的主机名，只有测试时会使用。
             ///   - fileStorageKey: 文件存储系统的加密密钥，为 nil 表示不支持文件加密系统
             public init(
                 name: String,
                 user: String = "postgres",
                 password: String = "password",
-                unsafeTestOnlyHost: String? = nil,
-                fileStorageKey: Crypto.Symm.Key? = Crypto.Symm.makeKey()
+                testingHost: String? = nil,
+                fileStorageKey: Crypto.Symm.Key? = nil
             ) {
                 self.name = name
                 self.user = user
                 self.password = password
-                self.unsafeTestOnlyHost = unsafeTestOnlyHost
+                self.testingHost = testingHost
                 self.fileStorageKey = fileStorageKey
             }
         }
@@ -189,8 +189,17 @@ public extension Environment {
         /// 返回当前数据库的实际连接配置对象
         /// 仅仅在测试时使用
         public var testingConfig: SQLPostgresConfiguration {
-            .init(
-                hostname: parameter.unsafeTestOnlyHost != nil ? parameter.unsafeTestOnlyHost! : "localhost",
+
+            let host: String
+            
+            if let h = parameter.testingHost, h != "localhost" {
+                host = h
+            } else {
+                host = ProcessInfo.processInfo.environment["GITHUB_PG_TESTING_HOST"] ?? "localhost"
+            }
+            
+            return .init(
+                hostname: host,
                 port: port,
                 username: parameter.user,
                 password: parameter.password,
