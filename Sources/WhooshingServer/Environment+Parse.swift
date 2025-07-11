@@ -4,7 +4,7 @@ import FluentKit
 import ErrorHandle
 import DataConvertable
 import Collections
-import System
+import SystemPackage
 
 extension Environment.Config: Environment.Template {
     @inlinable

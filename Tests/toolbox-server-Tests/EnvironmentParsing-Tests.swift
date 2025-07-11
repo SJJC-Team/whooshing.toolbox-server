@@ -3,7 +3,6 @@ import Testing
 import Vapor
 import Foundation
 import WhooshingClient
-import System
 
 @Suite("环境变量解析测试集")
 struct EnvironmentParsingTests {

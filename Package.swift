@@ -22,7 +22,8 @@ let package = Package(
         .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-websocket.git", .upToNextMajor(from: "1.1.2")),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.10.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
-        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-file-storage", .upToNextMajor(from: "1.0.1"))
+        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-file-storage", .upToNextMajor(from: "1.0.1")),
+        .package(url: "https://github.com/apple/swift-system", from: "1.4.0"),
     ],
     targets: [
         .target(
@@ -37,7 +38,8 @@ let package = Package(
                 .product(name: "WhooshingClient", package: "whooshing.toolbox-client"),
                 .product(name: "FileStorage", package: "whooshing.toolbox-file-storage"),
                 .product(name: "WhooshingWebSocket", package: "whooshing.toolbox-websocket"),
-                .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver")
+                .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
+                .product(name: "SystemPackage", package: "swift-system")
             ]
         ),
         .testTarget(
