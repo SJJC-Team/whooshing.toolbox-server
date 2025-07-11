@@ -326,6 +326,15 @@
       }
     },
     {
+      "identity" : "whooshing.toolbox-file-storage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SJJC-Team/whooshing.toolbox-file-storage",
+      "state" : {
+        "revision" : "ebbb88b00a933a96a3251a7843be12f9fe3fbe6e",
+        "version" : "1.0.1"
+      }
+    },
+    {
       "identity" : "whooshing.toolbox-pgsql",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SJJC-Team/whooshing.toolbox-pgsql.git",
