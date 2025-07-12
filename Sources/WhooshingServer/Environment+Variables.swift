@@ -6,7 +6,7 @@ import FileStorage
 public extension Environment {
     /// 代表服务模块当前环境的配置项，例如服务端口、数据库信息、域名等。
     @frozen
-    struct Config: Sendable {
+    struct Config: Hashable, Sendable {
         /// 在 configure.yaml 中设置的服务名称
         public let name: String
         /// 当前服务监听的端口号
@@ -57,7 +57,7 @@ public extension Environment {
     
     /// FileStorage 文件加密系统的配置参数
     @frozen
-    struct FS {
+    struct FS: Hashable {
         /// 文件存储的主存储目录
         public let dir: String
         /// 所有加密文件的后缀名，仅调试和测试环境下可自定
@@ -88,7 +88,7 @@ public extension Environment {
     
     /// 一个数据库服务连接的配置项，仅支持 PostgreSQL 数据库，一个数据库服务中可有多个数据库
     @frozen
-    struct DBService: Sendable {
+    struct DBService: Hashable, Sendable {
         /// 数据库名称
         public let id: DatabaseID
         /// 数据库监听端口号
@@ -122,7 +122,7 @@ public extension Environment {
     
     /// 一个数据库的配置项，仅支持 PostgreSQL 数据库
     @frozen
-    struct DB: Sendable {
+    struct DB: Hashable, Sendable {
         /// 该数据库所属数据库服务的 id
         public let dbServiceId: DatabaseID
         /// 用于 Fluent 识别的数据库标识符
@@ -133,7 +133,7 @@ public extension Environment {
         public let parameter: Parameter
         
         @frozen
-        public struct Parameter: Sendable {
+        public struct Parameter: Hashable, Sendable {
             /// 该数据库的名称
             public let name: String
             /// 用于连接数据库的用户名

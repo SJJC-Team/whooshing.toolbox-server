@@ -17,12 +17,35 @@ public protocol DebugConfig: Sendable {
     var config: Environment.Config { get }
 }
 
+/// 描述一个 Whooshing 系统子服务，提供基本的服务控制操作
+public protocol WhooshingService: Sendable {
+    associatedtype Failure: Err
+    associatedtype Service: ServiceType
+    
+    /// 底层 Vapor 应用实例
+    var app: Application { get }
+    /// 当前环境的配置项（端口、数据库等）
+    var config: Environment.Config { get }
+    /// 当前服务使用的日志记录器
+    var logger: Logger { get set }
+    /// 该服务所有连接的数据库
+    var databases: Set<Environment.DB> { get }
+    /// 调试参数
+    var debugingData: Service.Debuging? { get }
+    /// 异步启动应用并监听请求（会阻塞直到关闭）
+    func execute() async -> Result<Void, Failure>
+    /// 异步关闭 Vapor 应用
+    func asyncShutdown() async -> Result<Void, Failure>
+    /// 依次执行应用启动与关闭
+    func executeWithAsyncShutdown() async -> Result<Void, Failure>
+}
+
 /// 通用服务启动器，封装对 Vapor 应用的初始化、配置与生命周期控制
 /// 可根据不同服务类型（如 Api、Inline、Https）统一创建运行实例
 ///
 /// 该类用于启动不同的服务模块，使用 `Whooshing.make(_)` 创建一个 Whooshing 实例
 /// 并调用 `execute()` 或 `excuteWithAsyncShutdown()` 令其运行
-public final class Whooshing<Service>: @unchecked Sendable where Service: ServiceType {
+public final class Whooshing<Service>: WhooshingService, @unchecked Sendable where Service: ServiceType {
     
     public typealias Failure = Errcase.ErrType
     
@@ -97,10 +120,18 @@ public final class Whooshing<Service>: @unchecked Sendable where Service: Servic
     /// 当前环境的配置项（端口、数据库等）
     public let config: Environment.Config
     /// 当前服务使用的日志记录器
-    public var logger: Logger { self.app.logger }
+    public var logger: Logger {
+        get { self.app.logger }
+        set { self.app.logger = newValue }
+    }
     
-    @usableFromInline
-    let debugingData: Service.Debuging?
+    /// 该服务所有连接的数据库
+    public private(set) lazy var databases: Set<Environment.DB> = {
+        .init(self.config.dbServices.flatMap { $0.dbs })
+    }()
+    
+    /// 调试参数
+    public let debugingData: Service.Debuging?
     
     /// 异步启动应用并监听请求（会阻塞直到关闭）
     @inlinable
