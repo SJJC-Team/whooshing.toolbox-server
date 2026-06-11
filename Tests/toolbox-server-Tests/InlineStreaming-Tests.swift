@@ -5,10 +5,17 @@ import Foundation
 import WhooshingClient
 import AsyncAlgorithms
 
-@Suite("Inline 流网络通讯测试集", .enabled(if: TestingShared.inlineServiceListening))
+@Suite("Inline 流网络通讯测试集", .serialized)
 struct InlineStreamingTests {
     
     let client = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
+    
+    @Test("开始测试")
+    func start() async throws {
+        while await TestingShared.testStage != .inlineStreaming {
+            try await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
     
     @Test("Send stream 流请求测试", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func sendStreamingTest(method: HTTPMethod) async throws {
@@ -85,5 +92,12 @@ struct InlineStreamingTests {
         let randomBytes = (0..<size).map { _ in UInt8.random(in: 0...255, using: &rng) }
         buffer.writeBytes(randomBytes)
         return buffer
+    }
+    
+    @MainActor
+    @Test("测试结束")
+    func end() async throws {
+        try await client.shutdown()
+        TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
     }
 }

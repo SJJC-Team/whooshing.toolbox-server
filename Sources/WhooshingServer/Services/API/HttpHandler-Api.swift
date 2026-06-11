@@ -40,7 +40,7 @@ extension Api {
         func input(request: Data, context: ChannelHandlerContext, logger: Logger) -> EventLoopRes<Data, CryptoErrcase> {
             logger.debug("API.HTTP-客户端请求进入，进行解密", metadata: ["server_addr": .string(context.channel.serverAddrInfo)])
             guard request.count > 0 else {
-                logger.warning("请求数据为空，忽略")
+                logger.debug("请求数据为空，忽略")
                 return context.eventLoop.makeSucceededResult(request)
             }
             let id = ObjectIdentifier(context.channel)
@@ -68,7 +68,7 @@ extension Api {
             logger.debug("API.HTTP-客户端响应发出，进行加密", metadata: ["server_addr": .string(context.channel.serverAddrInfo)])
             let id = ObjectIdentifier(context.channel)
             guard response.count > 0 else {
-                logger.warning("响应数据为空，忽略")
+                logger.debug("响应数据为空，忽略")
                 app.apiServiceData.clientTokens[id] = nil
                 return context.eventLoop.makeSucceededResult(response)
             }

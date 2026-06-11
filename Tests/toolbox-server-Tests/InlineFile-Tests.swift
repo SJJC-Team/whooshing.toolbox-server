@@ -5,10 +5,17 @@ import Foundation
 import WhooshingClient
 import NIOFileSystem
 
-@Suite("Inline 文件传输测试集", .enabled(if: TestingShared.inlineServiceListening))
+@Suite("Inline 文件传输测试集", .serialized)
 struct InlineFileTests {
     
     let client = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
+    
+    @Test("开始测试")
+    func start() async throws {
+        while await TestingShared.testStage != .inlineFile {
+            try await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
     
     @Test("Send 文件流传输", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func fileSendTest(method: HTTPMethod) async throws {
@@ -61,5 +68,12 @@ struct InlineFileTests {
         #expect(size == info.size)
         print(info.size)
         try await channel.close()
+    }
+    
+    @MainActor
+    @Test("测试结束")
+    func end() async throws {
+        try await client.shutdown()
+        TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
     }
 }

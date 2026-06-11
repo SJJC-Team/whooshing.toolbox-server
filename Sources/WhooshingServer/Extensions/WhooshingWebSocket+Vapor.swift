@@ -14,7 +14,6 @@ public extension ApiWebSocket {
     convenience init(credential: String, token: String, request: Request) {
         self.init(credential: credential, token: token, eventLoop: request.eventLoop, logger: request.logger)
     }
-
 }
 
 public extension HttpsWebSocket {

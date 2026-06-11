@@ -1,16 +1,27 @@
 import Vapor
 import WhooshingServer
 import Cryptos
+import Foundation
 
-struct HttpsService {
-    static func runService() async throws {
-        let testPara = Https.Debuging(
-            config: .init(name: "Testing-Https-\(Shared.httpsListenPort)", port: Shared.httpsListenPort),
+struct InlineService {
+    static func makeService() async throws -> Whooshing<Inline> {
+        // initLoggingSystemIfNot()
+        let testPara = Inline.Debuging(
+            rootKey: TestingShared.rootKey,
+            config: .init(name: "Testing-Inline-\(TestingShared.inlineListenPort)", port: TestingShared.inlineListenPort),
+            serviceId: TestingShared.serviceIds[0],
+            moduleDatas: TestingShared.serviceIds.enumerated().map {
+                .init(name: "Testing-Inline-\(TestingShared.inlineListenPort + $0)", serviceId: $1, connection: nil)
+            }
         )
-        try await ServiceBootstrap.runHttpsService(with: testPara, routes: routes)
+        var logger = Logger(label: "client.inline")
+        logger.logLevel = TestingShared.logLevel
+        let woo = try await Whooshing<Inline>.make(.detect(testPara), logger: logger).get()
+        try routes(woo, app: woo.app)
+        return woo
     }
         
-    static func routes(_ woo: Whooshing<WhooshingServer.Https>, app: Application) throws {
+    static func routes(_ woo: Whooshing<WhooshingServer.Inline>, app: Application) throws {
 
         struct Query: Content {
             let value: String
@@ -62,8 +73,12 @@ struct HttpsService {
                 let response = Response(status: .ok)
                 response.body = .init(asyncStream: { writer in
                     do {
+                        var bytes = 0
+                        var i = 0
                         for try await chunk in req.body {
+                            bytes += chunk.readableBytes
                             try await writer.write(.buffer(chunk))
+                            i += 1
                         }
                         try await writer.write(.end)
                     } catch {

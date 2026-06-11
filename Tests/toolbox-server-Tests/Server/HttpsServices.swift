@@ -1,17 +1,32 @@
 import Vapor
+import NIOFileSystem
 import WhooshingServer
 import Cryptos
 
-struct ApiService {
-    static func runService(inline: Whooshing<Inline>) async throws {
-        let testPara = Api.Debuging(config: .init(name: "Tesing-Api-\(Shared.apiListenPort)", port: Shared.apiListenPort)) { authData in
-            guard authData.credential.base64EncodedString() == Shared.apiClientCredential else { throw Abort(.badRequest, reason: "用户凭据无效") }
-            return try Api.Debuging.testingTokenAuth(with: Shared.apiClientTokenStr, encrypted: authData.tokenEncrypted)
-        }
-        try await ServiceBootstrap.runApiService(with: testPara, inline: inline, routes: routes)
+struct FilePreparePaths: Content {
+    let small: String
+    let large: String
+    let smallSize: Int
+    let largeSize: Int
+    let smallChunk: Int
+    let largeChunk: Int
+}
+
+struct FilePrepareRes: Content {
+    let smallPath: String
+    let largetPath: String
+}
+
+struct HttpsService {
+    static func runService() async throws {
+        let testPara = Https.Debuging(
+            config: .init(name: "Testing-Https-\(TestingShared.httpsListenPort)", port: TestingShared.httpsListenPort),
+        )
+        try await ServiceBootstrap.runHttpsService(with: testPara, routes: routes)
     }
         
-    static func routes(_ woo: Whooshing<WhooshingServer.Api>, app: Application) throws {
+    static func routes(_ woo: Whooshing<WhooshingServer.Https>, app: Application) throws {
+
         struct Query: Content {
             let value: String
         }
@@ -19,6 +34,26 @@ struct ApiService {
         app.get("string-echo") { req in
             let str = try req.query.decode(Query.self).value
             return str
+        }
+        
+        app.post("file-prepare") { req in
+            let filePaths = try req.content.decode(FilePreparePaths.self)
+            
+            let sp = try await TestFileGenerator.generateDummyFile(
+                at: filePaths.small,
+                chunkSize: filePaths.smallChunk,
+                totalSize: filePaths.smallSize,
+                on: req.eventLoop
+            )
+            
+            let lp = try await TestFileGenerator.generateDummyFile(
+                at: filePaths.large,
+                chunkSize: filePaths.largeChunk,
+                totalSize: filePaths.largeSize,
+                on: req.eventLoop
+            )
+            
+            return FilePrepareRes(smallPath: sp, largetPath: lp)
         }
 
         for method in [HTTPMethod.POST, .PATCH, .PUT, .DELETE] {

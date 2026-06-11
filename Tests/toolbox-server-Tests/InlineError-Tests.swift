@@ -7,7 +7,7 @@ import NIOFileSystem
 import NIOPosix
 import ErrorHandle
 
-@Suite("Inline HTTP 当传输遇到错误的处理测试集", .enabled(if: TestingShared.inlineServiceListening))
+@Suite("Inline HTTP 当传输遇到错误的处理测试集", .serialized)
 struct InlineErrorTests {
     
     let testString = "ErrorTesting"
@@ -16,6 +16,13 @@ struct InlineErrorTests {
     let wrongRootKeyClient = makeInlineClient(rootKey: TestingShared.wrongRootKey, serviceId: TestingShared.serviceIds[1])
     let wrongServiceIdClient = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[0])
     let randomServiceIdClient = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: UUID())
+    
+    @Test("开始测试")
+    func start() async throws {
+        while await TestingShared.testStage != .inlineError {
+            try await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
     
     @Test("连线失败", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func connectionFailedTest(method: HTTPMethod) async throws {
@@ -63,5 +70,12 @@ struct InlineErrorTests {
         let randomBytes = (0..<size).map { _ in UInt8.random(in: 0...255, using: &rng) }
         buffer.writeBytes(randomBytes)
         return buffer
+    }
+    
+    @MainActor
+    @Test("测试结束")
+    func end() async throws {
+        try await client.shutdown()
+        TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
     }
 }

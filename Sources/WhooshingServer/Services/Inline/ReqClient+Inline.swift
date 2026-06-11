@@ -47,6 +47,31 @@ final class InlineClient: ReqClient<Inline.RequestIOCrypto>, WhooshingClient, @u
         super.removeHTTPHandlers(in: eventLoop).errCast(Errcase.tcpHandleRemoveFailed)
     }
     
+    /// 关闭所有正在进行的连线
+    @inlinable
+    public func shutdown() async throws {
+        logger?.info("Inline.Client-主动关闭连接", metadata: ["client_addr": .stringConvertible(channel?.clientAddrInfo ?? "released")])
+        await self.closeAll()
+    }
+    
+    @inlinable
+    public func syncShutdown() throws {
+        let semaphore = DispatchSemaphore(value: 0)
+        let errorBox = Box()
+        Task.detached {
+            do {
+                try await self.shutdown()
+            } catch {
+                errorBox.error = error
+            }
+            semaphore.signal()
+        }
+        
+        semaphore.wait()
+        
+        if let e = errorBox.error { throw e }
+    }
+    
     deinit {
         Task { [weak self] in
             self?.logger?.debug("Inline.Client-主动关闭连接")

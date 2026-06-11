@@ -5,10 +5,17 @@ import Foundation
 import WhooshingClient
 import NIOFileSystem
 
-@Suite("Api 文件传输测试集", .enabled(if: TestingShared.apiServiceListening))
+@Suite("Api 文件传输测试集", .serialized)
 struct ApiFileTests {
     
     let client = makeApiClient(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
+    
+    @Test("开始测试")
+    func start() async throws {
+        while await TestingShared.testStage != .apiFile {
+            try await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
     
     @Test("Send 多线程文件流传输", arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func fileSendTest(method: HTTPMethod) async throws {
@@ -66,5 +73,12 @@ struct ApiFileTests {
         #expect(size == info.size)
         print(info.size)
         try await channel.close()
+    }
+    
+    @MainActor
+    @Test("测试结束")
+    func end() async throws {
+        try await client.shutdown()
+        TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
     }
 }

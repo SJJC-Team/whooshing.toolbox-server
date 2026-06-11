@@ -4,12 +4,19 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("Inline 基本网络通讯测试集", .enabled(if: TestingShared.inlineServiceListening))
+@Suite("Inline 基本网络通讯测试集", .serialized)
 struct InlineNormalTests {
     
     let testString = "Hello World!"
     
     let client = makeInlineClient(rootKey: TestingShared.rootKey, serviceId: TestingShared.serviceIds[1])
+    
+    @Test("开始测试")
+    func start() async throws {
+        while await TestingShared.testStage != .inlineNormal {
+            try await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
     
     @Test("HTTP send zero body 请求测试", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func sendZeroBodyRequestTest(method: HTTPMethod) async throws {
@@ -31,4 +38,10 @@ struct InlineNormalTests {
         #expect(try res.body?.text().get() == testString)
     }
     
+    @MainActor
+    @Test("测试结束")
+    func end() async throws {
+        try await client.shutdown()
+        TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
+    }
 }

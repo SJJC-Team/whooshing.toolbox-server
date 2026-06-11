@@ -6,10 +6,17 @@ import WhooshingClient
 import WhooshingWebSocket
 import NIOPosix
 
-@Suite("Api WebSocket 测试集", .serialized, .enabled(if: TestingShared.apiServiceListening))
+@Suite("Api WebSocket 测试集", .serialized)
 struct ApiWebSocketTests {
     
     let ws = makeApiWebSocket(credential: TestingShared.apiClientCredential, token: TestingShared.apiClientTokenStr)
+    
+    @Test("开始测试")
+    func start() async throws {
+        while await TestingShared.testStage != .apiWebSocket {
+            try await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
     
     @Test("WebSocket 数据交互", arguments: [
         (10000, "normal", 10),
@@ -89,5 +96,12 @@ struct ApiWebSocketTests {
         let randomBytes = (0..<size).map { _ in UInt8.random(in: 0...255, using: &rng) }
         buffer.writeBytes(randomBytes)
         return buffer
+    }
+    
+    @MainActor
+    @Test("测试结束")
+    func end() async throws {
+        try await ws.shutdown()
+        TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
     }
 }

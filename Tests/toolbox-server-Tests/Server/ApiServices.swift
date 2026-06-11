@@ -1,25 +1,17 @@
 import Vapor
 import WhooshingServer
 import Cryptos
-import Foundation
 
-struct InlineService {
-    static func makeService() async throws -> Whooshing<Inline> {
-        let testPara = Inline.Debuging(
-            rootKey: Shared.rootKey,
-            config: .init(name: "Testing-Inline-\(Shared.inlineListenPort)", port: Shared.inlineListenPort),
-            serviceId: Shared.serviceIds[0],
-            moduleDatas: Shared.serviceIds.enumerated().map {
-                .init(name: "Testing-Inline-\(Shared.inlineListenPort + $0)", serviceId: $1, connection: nil)
-            }
-        )
-        let woo = try await Whooshing<Inline>.make(.detect(testPara)).get()
-        try routes(woo, app: woo.app)
-        return woo
+struct ApiService {
+    static func runService(inline: Whooshing<Inline>) async throws {
+        let testPara = Api.Debuging(config: .init(name: "Tesing-Api-\(TestingShared.apiListenPort)", port: TestingShared.apiListenPort)) { authData in
+            guard authData.credential.base64EncodedString() == TestingShared.apiClientCredential else { throw Abort(.badRequest, reason: "用户凭据无效") }
+            return try Api.Debuging.testingTokenAuth(with: TestingShared.apiClientTokenStr, encrypted: authData.tokenEncrypted)
+        }
+        try await ServiceBootstrap.runApiService(with: testPara, inline: inline, routes: routes)
     }
         
-    static func routes(_ woo: Whooshing<WhooshingServer.Inline>, app: Application) throws {
-
+    static func routes(_ woo: Whooshing<WhooshingServer.Api>, app: Application) throws {
         struct Query: Content {
             let value: String
         }
@@ -70,12 +62,8 @@ struct InlineService {
                 let response = Response(status: .ok)
                 response.body = .init(asyncStream: { writer in
                     do {
-                        var bytes = 0
-                        var i = 0
                         for try await chunk in req.body {
-                            bytes += chunk.readableBytes
                             try await writer.write(.buffer(chunk))
-                            i += 1
                         }
                         try await writer.write(.end)
                     } catch {

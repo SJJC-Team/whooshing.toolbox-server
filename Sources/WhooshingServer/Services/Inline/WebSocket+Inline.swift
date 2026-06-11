@@ -13,4 +13,12 @@ final class InlineWebSocket: WhooshingWebSocket, StorageKey, Sendable {
         self.logger = client.logger
         self.client = client
     }
+    
+    func shutdown() async throws {
+        try await client.shutdown()
+    }
+    
+    func syncShutdown() throws {
+        try client.syncShutdown()
+    }
 }

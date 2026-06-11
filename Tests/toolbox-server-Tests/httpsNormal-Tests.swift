@@ -4,13 +4,20 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("Https 基本网络通讯测试集", .enabled(if: TestingShared.httpsServiceListening))
+@Suite("Https 基本网络通讯测试集", .serialized)
 struct HttpsNormalTests {
     
     let testString = "Hello World!"
     
     let client = makeHttpsClient()
 
+    @Test("开始测试")
+    func start() async throws {
+        while await TestingShared.testStage != .httpsNormal {
+            try await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
+    
     @Test("HTTP send zero body 请求测试", arguments: [HTTPMethod.GET, .POST, .PATCH, .PUT, .DELETE])
     func sendZeroBodyRequestTest(method: HTTPMethod) async throws {
         let res = try await client.send(method, to: "http://localhost:\(TestingShared.httpsListenPort)/no-body")
@@ -31,4 +38,10 @@ struct HttpsNormalTests {
         #expect(try res.body?.text().get() == testString)
     }
     
+    @MainActor
+    @Test("测试结束")
+    func end() async throws {
+        try await client.shutdown()
+        TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
+    }
 }

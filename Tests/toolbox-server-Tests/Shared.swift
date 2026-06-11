@@ -9,6 +9,29 @@ import NIOConcurrencyHelpers
 @testable import WhooshingServer
 
 struct TestingShared {
+    enum TestStage: Int {
+        case serverPrepare
+        case enviromentParsing
+        case httpsError
+        case httpsFile
+        case httpsNormal
+        case httpsStreaming
+        case httpsWebSocket
+        case apiError
+        case apiFile
+        case apiNormal
+        case apiStreaming
+        case apiWebSocket
+        case inlineError
+        case inlineFile
+        case inlineNormal
+        case inlineStreaming
+        case inlineWebSocket
+        case done
+    }
+    
+    @MainActor static var testStage: TestStage = .serverPrepare
+    
     static let rootKey = Crypto.Symm.Key(data: Data(base64Encoded: rootKeyStr)!)
     static let rootKeyStr = "0apYyvRtLuo7l07zuqbEjFIxDFZ1sIWabKM9mMOOIzQ="
     
@@ -29,13 +52,18 @@ struct TestingShared {
     static let httpsListenPort = 6501
     static let apiListenPort = 6502
     
-    static let inlineServiceListening = isTCPPortOpen(inlineListenPort)
-    static let httpsServiceListening = isTCPPortOpen(httpsListenPort)
-    static let apiServiceListening = isTCPPortOpen(apiListenPort)
+    static let testingPaths = FilePreparePaths(
+        small: "./testing_files/test.png",
+        large: "./testing_files/large.zip",
+        smallSize: 3 * 1024 * 1024, // 3M
+        largeSize: 2 * 1024 * 1024 * 1024, // 2G
+        smallChunk: 1 * 1024 * 1024,
+        largeChunk: 1 * 1024 * 1024
+    )
     
-    static let normalFilePath = "/Users/clwang/Downloads/test.png"
+    nonisolated(unsafe) static var normalFilePath: String!
     static let normalFileName = "test.png"
-    static let largeFilePath = "/Users/clwang/Downloads/large.zip"
+    nonisolated(unsafe) static var largeFilePath: String!
     static let largeFileName = "large.zip"
     
     static let serviceIds = [
@@ -43,6 +71,8 @@ struct TestingShared {
         UUID(uuidString: "2AC424F7-F26A-4EA4-BE44-202ABC7CC514")!,
         UUID(uuidString: "74854475-1C1A-48E2-BAC9-E9C752942F88")!,
     ]
+    
+    static let logLevel = Logger.Level.notice
     
     static var initLoggingSystem: Bool {
         get { lock.withLock { __initLoggingSystem } }
@@ -70,16 +100,16 @@ func initLoggingSystemIfNot() {
 func makeHttpsClient() -> HttpsClient {
     initLoggingSystemIfNot()
     
-    let logger = Logger(label: "Testing-Https")
-//    logger.logLevel = .debug
+    var logger = Logger(label: "Testing-Https")
+    logger.logLevel = TestingShared.logLevel
     return HttpsClient(in: eventLoopGroup.next(), logger: logger)
 }
 
 func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineClient {
     initLoggingSystemIfNot()
     
-    let logger = Logger(label: "Testing-Inline")
-//    logger.logLevel = .debug
+    var logger = Logger(label: "Testing-Inline")
+    logger.logLevel = TestingShared.logLevel
     let client = InlineClient(eventLoop: eventLoopGroup.next(), logger: logger, byteBufferAllocator: .init())
     let ioHandler = Inline.RequestIOCrypto(client: client)
     client.ioHandler = ioHandler
@@ -90,8 +120,8 @@ func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineClient
 func makeApiClient(credential: String, token: String) -> ApiClient {
     initLoggingSystemIfNot()
     
-    let logger = Logger(label: "Testing-Api")
-//    logger.logLevel = .debug
+    var logger = Logger(label: "Testing-Api")
+    logger.logLevel = TestingShared.logLevel
     return ApiClient(credential: credential, token: token, eventLoop: eventLoopGroup.next(), logger: logger)
 }
 

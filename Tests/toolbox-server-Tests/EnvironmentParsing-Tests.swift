@@ -4,8 +4,15 @@ import Vapor
 import Foundation
 import WhooshingClient
 
-@Suite("环境变量解析测试集")
+@Suite("环境变量解析测试集", .serialized)
 struct EnvironmentParsingTests {
+    
+    @Test("开始测试")
+    func start() async throws {
+        while await TestingShared.testStage != .enviromentParsing {
+            try await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
     
     @Test("测试环境变量读取")
     func testEnvironmentDetect() async throws {
@@ -401,6 +408,12 @@ struct EnvironmentParsingTests {
         #expect(project.dbServices[1].id == .init(string: "service_2"))
         #expect(project.dbServices[1].port == 5433)
         #expect(project.dbServices[1].dbs.count == 0)
+    }
+    
+    @MainActor
+    @Test("测试结束")
+    func end() async throws {
+        TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
     }
 }
 
