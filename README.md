@@ -16,7 +16,7 @@ Whooshing 系统用于创建服务模块的依赖工具库，提供了统一的�
 
 - 可选
 - 可公开
-- 承担该模块的 Whooshing 公开接口后端，使用 Whooshing 自定加密机制，浏览器不受支持，仅 Whooshing 客户端可访问。关于 Whooshing 客户端，另见 [whooshing.toolbox-client](https://github.com/SJJC-Team/whooshing.toolbox-client)。
+- 承担该模块的 Whooshing 公开接口后端，使用 Whooshing 自定加密机制，浏览器不受支持，仅 Whooshing 客户端可访问。关于 Whooshing 客户端，另见 [whooshing.toolbox-client](https://github.com/whooshing-workshop/whooshing.toolbox-client)。
 - 提供对外的业务接口服务。
 - 支持客户端密钥交换与通信加密。
 - 依赖 INLINE 模块完成用户身份认证。
@@ -39,7 +39,7 @@ Whooshing 系统用于创建服务模块的依赖工具库，提供了统一的�
 - 所有服务模块应向 INLINE 模块注册自身信息，并使用其认证能力。
 - 提供加密通道、服务验证等机制。
 
-关于 Whooshing 加密，另见 [whooshing.system-manager](https://github.com/SJJC-Team/whooshing.system-manager)
+关于 Whooshing 加密，另见 [whooshing.system-manager](https://github.com/whooshing-workshop/whooshing.system-manager)
 
 ---------
 
@@ -48,7 +48,7 @@ Whooshing 系统用于创建服务模块的依赖工具库，提供了统一的�
 在你的 Package.swift 加入：
 
 ``` swift
-.package(url: "https://github.com/SJJC-Team/whooshing.toolbox-server.git", .upToNextMajor(from: "1.1.8"))
+.package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-server.git", .upToNextMajor(from: "1.1.8"))
 ```
 
 并在你所依赖的 target 中添加：
@@ -57,7 +57,7 @@ Whooshing 系统用于创建服务模块的依赖工具库，提供了统一的�
 .product(name: "WhooshingServer", package: "whooshing.toolbox-server")
 ```
 
-> 要创建服务模块，请优先考虑使用 Whooshing 服务模版，见 [whooshing.template-basic](https://github.com/SJJC-Team/whooshing.template-basic)
+> 要创建服务模块，请优先考虑使用 Whooshing 服务模版，见 [whooshing.template-basic](https://github.com/whooshing-workshop/whooshing.template-basic)
 
 -----------
 
@@ -95,6 +95,6 @@ Whooshing 系统用于创建服务模块的依赖工具库，提供了统一的�
 
 ### 联系与反馈
 
-如有使用问题或建议，请通过 [GitHub Issues](https://github.com/SJJC-Team/whooshing.toolbox-server/issues) 提交反馈。
+如有使用问题或建议，请通过 [GitHub Issues](https://github.com/whooshing-workshop/whooshing.toolbox-server/issues) 提交反馈。
 
 或发至邮箱 [contact@official.whooshings.space](mailto:contact@official.whooshings.space)

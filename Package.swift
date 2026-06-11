@@ -15,15 +15,16 @@ let package = Package(
         .library( name: "WhooshingServer", targets: ["WhooshingServer"] )
     ],
     dependencies: [
-        .package(url: "https://github.com/SJJC-Team/whooshing-vapor.git", .upToNextMajor(from: "1.0.7")),
-        .package(url: "https://github.com/SJJC-Team/whooshing-fluent.git", .upToNextMajor(from: "1.0.2")),
-        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-basic.git", .upToNextMajor(from: "1.4.4")),
-        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-client", .upToNextMajor(from: "1.2.2")),
-        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-websocket.git", .upToNextMajor(from: "1.1.2")),
+        .package(url: "https://github.com/whooshing-workshop/whooshing-vapor.git", from: "1.1.2"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing-fluent.git", from: "1.0.3"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git", from: "1.5.6"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-file-storage", from: "1.0.5"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.2.5"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-websocket.git", from: "1.1.4"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.10.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
-        .package(url: "https://github.com/SJJC-Team/whooshing.toolbox-file-storage", .upToNextMajor(from: "1.0.2")),
         .package(url: "https://github.com/apple/swift-system", from: "1.4.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.9.1")
     ],
     targets: [
         .target(
@@ -33,13 +34,15 @@ let package = Package(
                 .product(name: "Fluent", package: "whooshing-fluent"),
                 .product(name: "Cryptos", package: "whooshing.toolbox-basic"),
                 .product(name: "ErrorHandle", package: "whooshing.toolbox-basic"),
-                .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 .product(name: "DataConvertable", package: "whooshing.toolbox-basic"),
+                .product(name: "LoggingAdvanced", package: "whooshing.toolbox-basic"),
                 .product(name: "WhooshingClient", package: "whooshing.toolbox-client"),
                 .product(name: "FileStorage", package: "whooshing.toolbox-file-storage"),
                 .product(name: "WhooshingWebSocket", package: "whooshing.toolbox-websocket"),
+                .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
-                .product(name: "SystemPackage", package: "swift-system")
+                .product(name: "SystemPackage", package: "swift-system"),
+                .product(name: "Logging", package: "swift-log")
             ]
         ),
         .testTarget(

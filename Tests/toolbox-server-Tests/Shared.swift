@@ -2,8 +2,10 @@ import Cryptos
 import Foundation
 import NIO
 import Logging
+import LoggingAdvanced
 import WhooshingClient
 import WhooshingWebSocket
+import NIOConcurrencyHelpers
 @testable import WhooshingServer
 
 struct TestingShared {
@@ -41,29 +43,55 @@ struct TestingShared {
         UUID(uuidString: "2AC424F7-F26A-4EA4-BE44-202ABC7CC514")!,
         UUID(uuidString: "74854475-1C1A-48E2-BAC9-E9C752942F88")!,
     ]
+    
+    static var initLoggingSystem: Bool {
+        get { lock.withLock { __initLoggingSystem } }
+        set { lock.withLock { __initLoggingSystem = newValue } }
+    }
+    nonisolated(unsafe) private static var __initLoggingSystem = false
+    private static let lock = NIOLock()
+    
+    static let loggingSystem: Void = {
+        var factory = LoggingFactory()
+        factory.add("Console")
+        factory.bootstrap()
+    }()
 }
 
 let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 30)
 
+func initLoggingSystemIfNot() {
+    if !TestingShared.initLoggingSystem {
+        _ = TestingShared.loggingSystem
+        TestingShared.initLoggingSystem = true
+    }
+}
+
 func makeHttpsClient() -> HttpsClient {
+    initLoggingSystemIfNot()
+    
     let logger = Logger(label: "Testing-Https")
-//    logger.logLevel = .trace
+//    logger.logLevel = .debug
     return HttpsClient(in: eventLoopGroup.next(), logger: logger)
 }
 
 func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineClient {
+    initLoggingSystemIfNot()
+    
     let logger = Logger(label: "Testing-Inline")
-//    logger.logLevel = .trace
+//    logger.logLevel = .debug
     let client = InlineClient(eventLoop: eventLoopGroup.next(), logger: logger, byteBufferAllocator: .init())
-    let ioHandler = Inline.RequestIOCrypto(client: client, logger: logger)
+    let ioHandler = Inline.RequestIOCrypto(client: client)
     client.ioHandler = ioHandler
     client.storage[Inline.RequestIOData.self] = .init(rootKey: rootKey, serviceID: serviceId)
     return client
 }
 
 func makeApiClient(credential: String, token: String) -> ApiClient {
+    initLoggingSystemIfNot()
+    
     let logger = Logger(label: "Testing-Api")
-//    logger.logLevel = .trace
+//    logger.logLevel = .debug
     return ApiClient(credential: credential, token: token, eventLoop: eventLoopGroup.next(), logger: logger)
 }
 

@@ -2,11 +2,13 @@ import FluentPostgresDriver
 import Vapor
 import Cryptos
 import FileStorage
+import AnyCodable
+import LoggingAdvanced
 
 public extension Environment {
     /// 代表服务模块当前环境的配置项，例如服务端口、数据库信息、域名等。
     @frozen
-    struct Config: Hashable, Sendable {
+    struct Config: Hashable, Sendable, CustomStringConvertible, Loggerable {
         /// 在 configure.yaml 中设置的服务名称
         public let name: String
         /// 当前服务监听的端口号
@@ -53,11 +55,27 @@ public extension Environment {
             self.domain = domain
             self.fileStorage = fileStorageParameter
         }
+        
+        @inlinable
+        public var json: [String: AnyCodable] {[
+            "name": AnyCodable(name),
+            "port": AnyCodable(port),
+            "hostname": AnyCodable(hostname),
+            "db_services": AnyCodable(dbServices.map { $0.json }),
+            "manager_url": AnyCodable(managerUrl),
+            "domain": AnyCodable(domain),
+            "file_storage": AnyCodable(fileStorage?.json)
+        ]}
+        
+        @inlinable
+        public var description: String {
+            formatJson(json)
+        }
     }
     
     /// FileStorage 文件加密系统的配置参数
     @frozen
-    struct FS: Hashable {
+    struct FS: Hashable, CustomStringConvertible, Loggerable {
         /// 文件存储的主存储目录
         public let dir: String
         /// 所有加密文件的后缀名，仅调试和测试环境下可自定
@@ -84,11 +102,23 @@ public extension Environment {
             self.fileExtension = fileExtension
             self.permission = permission
         }
+        
+        @inlinable
+        public var json: [String: AnyCodable] {[
+            "dir": AnyCodable(dir),
+            "file_extension": AnyCodable(fileExtension),
+            "permission": AnyCodable(permission.json)
+        ]}
+        
+        @inlinable
+        public var description: String {
+            formatJson(json)
+        }
     }
     
     /// 一个数据库服务连接的配置项，仅支持 PostgreSQL 数据库，一个数据库服务中可有多个数据库
     @frozen
-    struct DBService: Hashable, Sendable {
+    struct DBService: Hashable, Sendable, CustomStringConvertible, Loggerable {
         /// 数据库名称
         public let id: DatabaseID
         /// 数据库监听端口号
@@ -118,11 +148,23 @@ public extension Environment {
                 DB(dbServiceId: id, port: port, parameter: parameter)
             }
         }
+        
+        @inlinable
+        public var json: [String: AnyCodable] {[
+            "id": AnyCodable(id),
+            "port": AnyCodable(port),
+            "dbs": AnyCodable(dbs.map { $0.json })
+        ]}
+        
+        @inlinable
+        public var description: String {
+            formatJson(json)
+        }
     }
     
     /// 一个数据库的配置项，仅支持 PostgreSQL 数据库
     @frozen
-    struct DB: Hashable, Sendable {
+    struct DB: Hashable, Sendable, CustomStringConvertible, Loggerable {
         /// 该数据库所属数据库服务的 id
         public let dbServiceId: DatabaseID
         /// 用于 Fluent 识别的数据库标识符
@@ -133,7 +175,7 @@ public extension Environment {
         public let parameter: Parameter
         
         @frozen
-        public struct Parameter: Hashable, Sendable {
+        public struct Parameter: Hashable, Sendable, CustomStringConvertible, Loggerable {
             /// 该数据库的名称
             public let name: String
             /// 用于连接数据库的用户名
@@ -168,6 +210,18 @@ public extension Environment {
                 self.password = password
                 self.testingHost = testingHost
                 self.fileStorageKey = fileStorageKey
+            }
+            
+            @inlinable
+            public var json: [String: AnyCodable] {[
+                "name": AnyCodable(name),
+                "user": AnyCodable(user),
+                "testing_host": AnyCodable(testingHost)
+            ]}
+            
+            @inlinable
+            public var description: String {
+                formatJson(json)
             }
         }
         
@@ -218,6 +272,19 @@ public extension Environment {
                 database: parameter.name,
                 tls: .disable
             )
+        }
+        
+        @inlinable
+        public var json: [String: AnyCodable] {[
+            "db_service_id": AnyCodable(dbServiceId.string),
+            "db_fluent_id": AnyCodable(id.string),
+            "port": AnyCodable(port),
+            "parameter": AnyCodable(parameter.json)
+        ]}
+        
+        @inlinable
+        public var description: String {
+            formatJson(json)
         }
     }
 }

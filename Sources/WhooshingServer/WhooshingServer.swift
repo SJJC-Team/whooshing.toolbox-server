@@ -5,8 +5,12 @@ import ErrorHandle
 import WhooshingClient
 import Cryptos
 import FileStorage
+import AnyCodable
+import Logging
+import LoggingAdvanced
+import NIOConcurrencyHelpers
 
-public protocol ServiceType {
+public protocol ServiceType: Sendable {
     associatedtype Debuging: DebugConfig
     associatedtype Errcase: ErrList
     typealias Failure = Errcase.ErrType
@@ -65,7 +69,7 @@ public final class Whooshing<Service>: WhooshingService, @unchecked Sendable whe
     ///
     /// - Warning: independentDebug 模式应当永远仅仅用作测试，请勿在生产环境使用
     @frozen
-    public struct Mode: Sendable {
+    public struct Mode: Sendable, CustomStringConvertible, Loggerable {
         
         /// 生产环境，使用正式配置
         @inlinable public static var production: Mode { Mode(envrionment: .production) }
@@ -113,6 +117,20 @@ public final class Whooshing<Service>: WhooshingService, @unchecked Sendable whe
             self.envrionment = envrionment
             self.debuging = debuging
         }
+        
+        public var json: [String: AnyCodable] {[
+            "env": AnyCodable(envrionment.name),
+            "is_release": AnyCodable(envrionment.isRelease),
+            "arguments": AnyCodable(envrionment.arguments)
+        ]}
+        
+        public var description: String {
+            formatJson(json)
+        }
+        
+        public var summaryDescription: String {
+            "env-\(envrionment.name)\(envrionment.isRelease ? "-release" : "")"
+        }
     }
     
     /// 底层 Vapor 应用实例
@@ -121,9 +139,12 @@ public final class Whooshing<Service>: WhooshingService, @unchecked Sendable whe
     public let config: Environment.Config
     /// 当前服务使用的日志记录器
     public var logger: Logger {
-        get { self.app.logger }
-        set { self.app.logger = newValue }
+        get { lock.withLock { _logger } }
+        set { lock.withLock { _logger = newValue } }
     }
+    
+    private var _logger: Logger
+    private let lock = NIOLock()
     
     /// 该服务所有连接的数据库
     public private(set) lazy var databases: Set<Environment.DB> = {
@@ -156,11 +177,12 @@ public final class Whooshing<Service>: WhooshingService, @unchecked Sendable whe
         }
     }
     
-    @inlinable
-    init(app: Application, config: Environment.Config, debugingData: Service.Debuging?) {
+    @usableFromInline
+    init(app: Application, config: Environment.Config, debugingData: Service.Debuging?, logger: Logger) {
         self.app = app
         self.config = config
         self.debugingData = debugingData
+        _logger = logger
     }
 }
 
@@ -168,8 +190,8 @@ extension Whooshing where Service == Inline {
     /// 工厂方法：构建 Inline 服务的运行实例
     /// - Parameter env: 启动环境
     @inlinable
-    public static func make(_ env: Mode) async -> Result<Whooshing<Service>, Failure> {
-        await makeService(mode: env) { woo throws(Inline.Failure) in
+    public static func make(_ env: Mode, logger: Logger) async -> Result<Whooshing<Service>, Failure> {
+        await makeService(mode: env, logger: logger) { woo throws(Inline.Failure) in
             try await Service.config(woo)
         }
     }
@@ -179,8 +201,8 @@ extension Whooshing where Service == Https {
     /// 构建 Https 服务的运行实例
     /// - Parameter env: 启动环境
     @inlinable
-    public static func make(_ env: Mode) async -> Result<Whooshing<Service>, Failure> {
-        await makeService(mode: env) { woo throws(Https.Failure) in
+    public static func make(_ env: Mode, logger: Logger) async -> Result<Whooshing<Service>, Failure> {
+        await makeService(mode: env, logger: logger) { woo throws(Https.Failure) in
             try await Service.config(woo)
         }
     }
@@ -196,8 +218,8 @@ extension Whooshing where Service == Api {
     ///   - env: 启动环境
     ///   - inline: 预先构建的 Inline 服务
     @inlinable
-    public static func make(_ env: Mode, with inline: Whooshing<Inline>) async -> Result<Whooshing<Service>, Failure> {
-        await makeService(mode: env) { woo throws(Api.Failure) in
+    public static func make(_ env: Mode, with inline: Whooshing<Inline>, logger: Logger) async -> Result<Whooshing<Service>, Failure> {
+        await makeService(mode: env, logger: logger) { woo throws(Api.Failure) in
             try await Service.config(woo, inlineClient: inline.inlineClient)
         }
     }
@@ -205,9 +227,16 @@ extension Whooshing where Service == Api {
 
 extension Whooshing {
     @frozen
-    public enum DirCreateAction {
+    public enum DirCreateAction: CustomStringConvertible, Loggerable {
         case noAction
         case createIfNeed(withIntermediateDirectories: Bool = false)
+        
+        public var description: String {
+            switch self {
+            case .noAction: "noAction"
+            case .createIfNeed(let withIntermediateDirectories): "createIfNeed(withIntermediates: \(withIntermediateDirectories))"
+            }
+        }
     }
     
     /// 初始化一个文件加密系统(同步，若初始化失败将直接导致程序崩溃)
@@ -251,12 +280,21 @@ extension Whooshing {
         dirCreateAction: DirCreateAction = .noAction,
         debugging: Bool = false
     ) async -> Result<FileStorage, Failure> {
+        let preLogger = logger.derive(subId: "preinit")
+        
+        preLogger.info("进行接入文件加密系统前置任务", metadata: [
+            "storage_path": .data(storagePath),
+            "dir_create_action": .data(dirCreateAction)
+        ])
+        
         guard let fileStorageParameter = config.fileStorage else {
             return .failure(.fileStorageInitFailed, "基本配置未提供，不支持文件加密系统")
         }
         
+        preLogger.debug("任务参数", metadata: ["file_storage_parameter": .data(fileStorageParameter)])
+        
         guard let key = db.parameter.fileStorageKey else {
-            return .failure(.fileStorageInitFailed, "数据库 \(db.id) 未设置加密密钥，不支持文件加密系统")
+            return .failure(.fileStorageInitFailed, "数据库未设置加密密钥，不支持文件加密系统", metadata: ["db_id": .string(db.id.string)])
         }
         
         return await .async { () throws(Failure) in
@@ -265,14 +303,17 @@ extension Whooshing {
             let mainDirPath = FileSystemTools.resolvePath(basePath: basePath, append: "./\(storagePath.string)")
             
             switch dirCreateAction {
-            case .noAction: break
+            case .noAction:
+                preLogger.info("不创建目录，默认目录已存在", metadata: ["path": .string(mainDirPath)])
+                break
             case .createIfNeed(withIntermediateDirectories: let c):
-                let permissionAttributes = try required(throws: Errcase.fileStorageInitFailed, "权限信息读取失败") {
+                let permissionAttributes = try required(throws: Errcase.fileStorageInitFailed, "权限信息读取失败", metadata: ["path": .string(mainDirPath)]) {
                     try fileStorageParameter.permission.attributes.get()
                 }
                 
                 var isDirectory: ObjCBool = false
                 if !FileManager.default.fileExists(atPath: mainDirPath, isDirectory: &isDirectory) || !isDirectory.boolValue {
+                    preLogger.info("目录不存在，正在创建", metadata: ["path": .string(mainDirPath)])
                     try required(throws: Errcase.fileStorageInitFailed, "主目录创建失败") {
                         try FileManager.default.createDirectory(
                             atPath: mainDirPath,
@@ -280,8 +321,12 @@ extension Whooshing {
                             attributes: permissionAttributes
                         )
                     }
+                } else {
+                    preLogger.info("目录已存在，无需创建", metadata: ["path": .string(mainDirPath)])
                 }
             }
+            
+            preLogger.info("接入文件加密系统前置任务完成")
             
             return try await required(throws: Errcase.fileStorageInitFailed) {
                 try await FileStorage.new(
@@ -303,9 +348,15 @@ extension Whooshing {
     @inlinable
     static func makeService(
         mode: Mode,
+        logger: Logger,
         config conf: (Whooshing<Service>) async throws(Service.Failure) -> ()
     ) async -> Result<Whooshing<Service>, Failure> {
         await .async { () throws(Failure) in
+            let initLogger = logger.derive(subId: "sysinit")
+            
+            initLogger.info("正在初始化 Whooshing 服务", metadata: ["mode": .summaryData(mode)])
+            initLogger.debug("详细参数", metadata: ["mode": .data(mode)])
+            
             let config: Environment.Config
             
             let env = mode.envrionment
@@ -317,6 +368,7 @@ extension Whooshing {
             var debugPara: Service.Debuging? = nil
             if let dp = mode.debuging {
                 if [Environment.development, .testing].contains(env) {
+                    initLogger.info("启动无依赖独立运行模式")
                     debugPara = dp
                     config = dp.config
                 } else {
@@ -334,11 +386,17 @@ extension Whooshing {
                 }
             }
             
+            initLogger.debug("准备 Vapor 实例")
+
             let app = try await required(throws: Self.Errcase.vaporAppCreateFailed) {
                 try await Application.make(env)
             }
+            app.logger = logger.derive(subId: "vapor")
             app.http.server.configuration.hostname = config.hostname
             app.http.server.configuration.port = config.port
+            
+            initLogger.debug("准备数据库实例")
+            
             if env == .testing {
                 for dbService in config.dbServices {
                     for db in dbService.dbs {
@@ -368,7 +426,7 @@ extension Whooshing {
                     }
                 }
             }
-            let service = Self(app: app, config: config, debugingData: debugPara)
+            let service = Self(app: app, config: config, debugingData: debugPara, logger: logger)
             do {
                 try await conf(service)
             } catch {

@@ -1,6 +1,7 @@
 import Foundation
 import Vapor
 import Collections
+import OrderedCollections
 
 /// API 模块初始化时将会从环境变量中读取认证模块的请求 URL
 /// 因为它的加密机制依赖于该参数

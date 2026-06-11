@@ -1,5 +1,7 @@
 import WhooshingClient
 import Vapor
+import NIOAdvanced
+import AsyncAlgorithms
 
 extension HTTPResponse: @retroactive AsyncResponseEncodable {
     @inlinable
@@ -11,7 +13,7 @@ extension HTTPResponse: @retroactive AsyncResponseEncodable {
 extension HTTPResponse: @retroactive ResponseEncodable {
     @inlinable
     public func encodeResponse(for request: Request) -> EventLoopFuture<Response> {
-        request.eventLoop.makeFutureWithTask {
+        request.eventLoop.bridge {
             let b: Response.Body
             if let body = self.body?.type {
                 switch body {

@@ -39,18 +39,24 @@ extension Inline {
     /// 实现 HTTP IO 加解密处理
     struct HttpIOCrypto: HTTPIOHandler, Sendable {
         weak var app: Whooshing<Inline>!
+        
         /// 有客户端请求进入
-        func input(request: Data, context: ChannelHandlerContext) -> EventLoopRes<Data, CryptoErrcase> {
-            guard request.count > 0 else { return context.eventLoop.makeSucceededResult(request) }
+        func input(request: Data, context: ChannelHandlerContext, logger: Logger) -> EventLoopRes<Data, CryptoErrcase> {
+            logger.debug("Inline.HTTP-客户端请求进入，进行解密", metadata: ["server_addr": .string(context.channel.serverAddrInfo)])
+            guard request.count > 0 else {
+                logger.warning("请求数据为空，忽略")
+                return context.eventLoop.makeSucceededResult(request)
+            }
             let id = ObjectIdentifier(context.channel)
             let req: Data
-            app.logger.trace("Inline.HTTP-客户端请求进入，进行解密(key: \(app.inlineServiceData.connectionKeys[id] != nil)) in \(context.channel.serverAddrInfo)")
             do {
                 if let key = app.inlineServiceData.connectionKeys[id] {
+                    logger.debug("使用已有密钥解密通讯")
                     req = try required(throws: CryptoErrcase.requestDecryptFailed) {
                         try Crypto.Symm.decrypt(request, key: key).get()
                     }
                 } else {
+                    logger.debug("首次请求，使用根密钥解密")
                     req = try required(throws: CryptoErrcase.requestDecryptFailed) {
                         try Crypto.Symm.decrypt(request, key: app.inlineServiceData.rootKey).get()
                     }
@@ -63,18 +69,22 @@ extension Inline {
         }
         
         /// 有服务器响应请求发出
-        func output(response: Data, context: ChannelHandlerContext) -> EventLoopRes<Data, CryptoErrcase> {
-            guard response.count > 0 else { return context.eventLoop.makeSucceededResult(response) }
+        func output(response: Data, context: ChannelHandlerContext, logger: Logger) -> EventLoopRes<Data, CryptoErrcase> {
+            logger.debug("Inline.HTTP-客户端响应发出，进行加密", metadata: ["server_addr": .string(context.channel.serverAddrInfo)])
+            guard response.count > 0 else {
+                logger.warning("响应数据为空，忽略")
+                return context.eventLoop.makeSucceededResult(response) }
             let id = ObjectIdentifier(context.channel)
             let res: Data
-            app.logger.trace("Inline.HTTP-客户端响应发出，进行加密(key: \(app.inlineServiceData.connectionKeys[id] != nil), validated: \(app.inlineServiceData.connectionValidate[id] != nil)) in \(context.channel.serverAddrInfo)")
             do {
                 // 若 key 存在，但 validate 不存在，则仍然使用 rootKey 加密
                 if let key = app.inlineServiceData.connectionKeys[id], let _ = app.inlineServiceData.connectionValidate[id] {
+                    logger.debug("使用已有密钥进行加密")
                     res = try required(throws: CryptoErrcase.responseEncryptFailed) {
                         try Crypto.Symm.encrypt(response, key: key).get()
                     }
                 } else {
+                    logger.debug("首次发送响应，使用根密钥加密响应")
                     res = try required(throws: CryptoErrcase.responseEncryptFailed) {
                         try Crypto.Symm.encrypt(response, key: app.inlineServiceData.rootKey).get()
                     }
@@ -86,16 +96,16 @@ extension Inline {
         }
         
         /// 连线建立
-        func connectionStart(context: ChannelHandlerContext) -> EventLoopRes<Void, CryptoErrcase> {
-            app.logger.debug("Inline.Server-连线建立: \(context.channel.serverAddrInfo)")
+        func connectionStart(context: ChannelHandlerContext, logger: Logger) -> EventLoopRes<Void, CryptoErrcase> {
+            logger.debug("Inline.Server-连线建立", metadata: ["server_addr": .string(context.channel.serverAddrInfo)])
             return context.eventLoop.makeSucceededVoidResult()
         }
         
         /// 连线结束
-        func connectionEnd(context: ChannelHandlerContext) -> EventLoopRes<Void, CryptoErrcase> {
+        func connectionEnd(context: ChannelHandlerContext, logger: Logger) -> EventLoopRes<Void, CryptoErrcase> {
             let id = ObjectIdentifier(context.channel)
             if let app = self.app {
-                app.logger.debug("Inline.Server-连线结束: \(context.channel.serverAddrInfo)")
+                logger.debug("Inline.Server-连线结束", metadata: ["server_addr": .string(context.channel.serverAddrInfo)])
                 app.inlineServiceData.connectionKeys[id] = nil
                 app.inlineServiceData.connectionValidate[id] = nil
             }

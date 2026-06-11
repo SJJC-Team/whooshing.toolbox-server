@@ -152,8 +152,8 @@ extension Inline {
         woo.app.logger.debug("与模块管理器交互，取得可信服务列表并交换密钥")
         let rootKey = try await self.keyExchangeFromManager(woo)
         woo.app.logger.debug("创建 API Request Client")
-        let client = InlineClient(eventLoop: woo.app.eventLoopGroup.next(), logger: woo.app.logger, byteBufferAllocator:.init() )
-        let ioHandler = RequestIOCrypto(client: client, logger: woo.app.logger)
+        let client = InlineClient(eventLoop: woo.app.eventLoopGroup.next(), logger: woo.logger.derive(subId: "client.inline"), byteBufferAllocator:.init() )
+        let ioHandler = RequestIOCrypto(client: client)
         client.ioHandler = ioHandler
         client.storage[Inline.RequestIOData.self] = .init(rootKey: rootKey, serviceID: serviceId)
         woo.app.storage[AnyWhooshingClient<InlineClientErrcase>.self] = .init(client)
@@ -180,9 +180,9 @@ extension Inline {
                 moduleDatas: debug.moduleDatas
             )
         } else {
-            woo.app.logger.trace("与模块管理器交互: 创建非对称公私钥")
+            woo.app.logger.debug("与模块管理器交互: 创建非对称公私钥")
             let keyPair = Crypto.Asym.makeCryptoKeyPair()
-            woo.app.logger.trace("与模块管理器交互: 向模块管理器请求取得服务模块信息，首先将自己的公钥发出")
+            woo.app.logger.debug("与模块管理器交互: 向模块管理器请求取得服务模块信息，首先将自己的公钥发出")
             let res = try await required(throws: Errcase.initFailed, "向模块管理器请求失败") {
                 try await woo.app.client.post(woo.config.managerUrl.toUri(with: "/params/init").uri) { postRequest in
                     try postRequest.content.encode(keyPair.public, as: .json)
@@ -192,12 +192,12 @@ extension Inline {
                 throw Errcase.initFailed.d("请求模块管理器的结果为: \(res.status)")
             }
             
-            woo.app.logger.trace("与模块管理器交互: 解包服务器回复")
+            woo.app.logger.debug("与模块管理器交互: 解包服务器回复")
             let paras = try required(throws: Errcase.initFailed, "从模块管理器解包服务参数失败") {
                 try res.content.decode(InitParaRes.self)
             }
             
-            woo.app.logger.trace("与模块管理器交互: 生成共享密钥")
+            woo.app.logger.debug("与模块管理器交互: 生成共享密钥")
             let sharedKey = try required(throws: Errcase.initFailed, "密钥交换失败") {
                 try Crypto.Asym.keyEncapsulate(
                     key: keyPair.private,
@@ -207,12 +207,12 @@ extension Inline {
                 ).get()
             }
             
-            woo.app.logger.trace("与模块管理器交互: 解密得到服务根密钥")
+            woo.app.logger.debug("与模块管理器交互: 解密得到服务根密钥")
             rootKey = try required(throws: Errcase.initFailed, "根密钥数据解密失败") {
                 try Crypto.Symm.decrypt(paras.root, key: sharedKey).get()
             }
             
-            woo.app.logger.trace("与模块管理器交互: 保存到上下文")
+            woo.app.logger.debug("与模块管理器交互: 保存到上下文")
             let moduleDatas: [ModuleData] = try required(throws: Errcase.initFailed, "解码模块数据失败") {
                 try paras.modules.map { try Crypto.Symm.decrypt($0, key: sharedKey).get() }
             }
