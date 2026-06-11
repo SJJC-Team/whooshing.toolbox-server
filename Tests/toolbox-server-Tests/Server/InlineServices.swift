@@ -5,7 +5,6 @@ import Foundation
 
 struct InlineService {
     static func makeService() async throws -> Whooshing<Inline> {
-        // initLoggingSystemIfNot()
         let testPara = Inline.Debuging(
             rootKey: TestingShared.rootKey,
             config: .init(name: "Testing-Inline-\(TestingShared.inlineListenPort)", port: TestingShared.inlineListenPort),
@@ -16,7 +15,7 @@ struct InlineService {
         )
         var logger = Logger(label: "client.inline")
         logger.logLevel = TestingShared.logLevel
-        let woo = try await Whooshing<Inline>.make(.detect(testPara), logger: logger).get()
+        let woo = try await Whooshing<Inline>.make(.independentDebug(testPara), logger: logger).get()
         try routes(woo, app: woo.app)
         return woo
     }

@@ -17,8 +17,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/whooshing-workshop/whooshing-vapor.git", from: "1.1.2"),
         .package(url: "https://github.com/whooshing-workshop/whooshing-fluent.git", from: "1.0.3"),
-        // .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git", from: "1.5.6"),
-        .package(path: "/root/projects/whooshing.toolbox-basic"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git", from: "1.5.6"),
         .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-file-storage", from: "1.0.5"),
         .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.2.7"),
         .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-websocket.git", from: "1.1.5"),

@@ -359,10 +359,16 @@ extension Whooshing {
             
             let config: Environment.Config
             
-            let env = mode.envrionment
+            var env = mode.envrionment
+            
+            // 修复 Vapor 在 swift test 下会错误解析 SPM 注入的参数（如 --test-bundle-path 等）
+            // 如果是在 testing 环境，或是检测到有 xctest 相关的参数，直接清理参数
+            if env == .testing || env.arguments.contains(where: { $0.contains("xctest") || $0.hasPrefix("--test") }) {
+                env.arguments = ["vapor"]
+            }
             
             if ![Environment.production, .development, .testing].contains(env) {
-                fatalError("环境变量 \(mode.envrionment.name) 无法识别")
+                fatalError("环境变量 \(env.name) 无法识别")
             }
             
             var debugPara: Service.Debuging? = nil

@@ -14,7 +14,7 @@ enum Entrypoint {
 
     static func runServices(
         shouldStop: @escaping @Sendable () async -> Bool,
-        onReady: @escaping @Sendable () async -> Void // 💡 新增：启动完成的回调函数
+        onReady: @escaping @Sendable () async -> Void
     ) async throws {
         initLoggingSystemIfNot()
         
