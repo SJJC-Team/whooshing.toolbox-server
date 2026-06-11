@@ -25,12 +25,12 @@ extension Inline {
     
     final class ServiceData: StorageKey, Sendable {
         typealias Value = ServiceData
-        let rootKey: Crypto.Symm.Key
+        let rootKey: SendableSymmKey
         let moduleDatas: [ModuleData]
         let connectionValidate: SendableDictionary<ObjectIdentifier, Bool> = .init()
-        let connectionKeys: SendableDictionary<ObjectIdentifier, Crypto.Symm.Key> = .init()
+        let connectionKeys: SendableDictionary<ObjectIdentifier, SendableSymmKey> = .init()
         
-        init(rootKey: Crypto.Symm.Key, moduleDatas: [ModuleData]) {
+        init(rootKey: SendableSymmKey, moduleDatas: [ModuleData]) {
             self.rootKey = rootKey
             self.moduleDatas = moduleDatas
         }
@@ -53,12 +53,12 @@ extension Inline {
                 if let key = app.inlineServiceData.connectionKeys[id] {
                     logger.debug("使用已有密钥解密通讯")
                     req = try required(throws: CryptoErrcase.requestDecryptFailed) {
-                        try Crypto.Symm.decrypt(request, key: key).get()
+                        try Crypto.Symm.decrypt(request, key: key.key).get()
                     }
                 } else {
                     logger.debug("首次请求，使用根密钥解密")
                     req = try required(throws: CryptoErrcase.requestDecryptFailed) {
-                        try Crypto.Symm.decrypt(request, key: app.inlineServiceData.rootKey).get()
+                        try Crypto.Symm.decrypt(request, key: app.inlineServiceData.rootKey.key).get()
                     }
                 }
                 
@@ -81,12 +81,12 @@ extension Inline {
                 if let key = app.inlineServiceData.connectionKeys[id], let _ = app.inlineServiceData.connectionValidate[id] {
                     logger.debug("使用已有密钥进行加密")
                     res = try required(throws: CryptoErrcase.responseEncryptFailed) {
-                        try Crypto.Symm.encrypt(response, key: key).get()
+                        try Crypto.Symm.encrypt(response, key: key.key).get()
                     }
                 } else {
                     logger.debug("首次发送响应，使用根密钥加密响应")
                     res = try required(throws: CryptoErrcase.responseEncryptFailed) {
-                        try Crypto.Symm.encrypt(response, key: app.inlineServiceData.rootKey).get()
+                        try Crypto.Symm.encrypt(response, key: app.inlineServiceData.rootKey.key).get()
                     }
                 }
                 return context.eventLoop.makeSucceededResult(res)

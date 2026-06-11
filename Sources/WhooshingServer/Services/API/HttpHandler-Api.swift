@@ -25,8 +25,8 @@ extension Api {
     final class ServiceData: StorageKey, Sendable {
         typealias Value = ServiceData
         unowned let inlineClient: AnyWhooshingClient<InlineClientErrcase>
-        let clientKeys: SendableDictionary<ObjectIdentifier, Crypto.Symm.Key> = .init()
-        let clientTokens: SendableDictionary<ObjectIdentifier, Crypto.Symm.Key> = .init()
+        let clientKeys: SendableDictionary<ObjectIdentifier, SendableSymmKey> = .init()
+        let clientTokens: SendableDictionary<ObjectIdentifier, SendableSymmKey> = .init()
 
         init(inlineClient: AnyWhooshingClient<InlineClientErrcase>) {
             self.inlineClient = inlineClient
@@ -49,7 +49,7 @@ extension Api {
                 if let key = app.apiServiceData.clientKeys[id] {
                     logger.debug("使用已有密钥解密通讯")
                     req = try required(throws: CryptoErrcase.requestDecryptFailed) {
-                        try Crypto.Symm.decrypt(request, key: key).get()
+                        try Crypto.Symm.decrypt(request, key: key.key).get()
                     }
                 } else {
                     logger.debug("首次请求，直接读取明文凭据")
@@ -78,12 +78,12 @@ extension Api {
                 if let key = app.apiServiceData.clientTokens[id] {
                     logger.debug("首次发送响应，使用该 client 的默认密钥加密响应")
                     res = try required(throws: CryptoErrcase.responseEncryptFailed) {
-                        try Crypto.Symm.encrypt(response, key: key).get()
+                        try Crypto.Symm.encrypt(response, key: key.key).get()
                     }
                 } else if let key = app.apiServiceData.clientKeys[id] {
                     logger.debug("使用已有密钥进行加密")
                     res = try required(throws: CryptoErrcase.responseEncryptFailed) {
-                        try Crypto.Symm.encrypt(response, key: key).get()
+                        try Crypto.Symm.encrypt(response, key: key.key).get()
                     }
                 } else {
                     res = response

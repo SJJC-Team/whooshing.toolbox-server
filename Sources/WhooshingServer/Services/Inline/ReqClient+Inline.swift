@@ -134,9 +134,9 @@ extension InlineClient {
             self.logger?.debug("Inline.Client-密钥交换中: 将公钥发送于目标")
             return (
                 HTTPRequest(method: .POST, url: req.url, body: body),
-                keyPair
+                (public: SendableAsymCPublicKey(key: keyPair.public), private: SendableAsymCPrivateKey(key: keyPair.private))
             )
-        }.flatMap { (req, keyPair: Crypto.Asym.CKeyPair) in
+        }.flatMap { (req, keyPair: (public: SendableAsymCPublicKey, private: SendableAsymCPrivateKey)) in
             self.send(req, channel: channel, handler: handler).errCast(Errcase.tcpSendFailed).map { ($0, keyPair) }
         }.flatMapThrowing { res, keyPair throws(Failure) in
             // 检查对方的响应，对方应当发来自己的公钥
@@ -162,7 +162,7 @@ extension InlineClient {
             self.logger?.debug("Inline.Client-密钥交换中: 计算共享密钥")
             let sharedKey: SendableSymmKey = try required(throws: Errcase.keyEncapsulateFailed) {
                 try .init(key: Crypto.Asym.keyEncapsulate(
-                    key: keyPair.private,
+                    key: keyPair.private.key,
                     partyPublic: targetPub,
                     salt: Crypto.hash("inline.shared.key").get(),
                     info: ""

@@ -33,6 +33,10 @@ enum Entrypoint {
                 return nil
             }
             group.addTask {
+                while !isTCPPortOpen(TestingShared.inlineListenPort) {
+                    try await Task.sleep(nanoseconds: 250_000_000)
+                }
+
                 try await ApiService.runService(inline: inline)
                 return nil
             }
@@ -40,10 +44,6 @@ enum Entrypoint {
             // 2. 💡 核心魔法：启动一个“就绪监测任务”
             // 假设你的这些服务类里可以拿到对应的 Vapor Application 实例
             group.addTask {
-                while !isTCPPortOpen(TestingShared.inlineListenPort) {
-                    try await Task.sleep(nanoseconds: 250_000_000)
-                }
-                
                 while !isTCPPortOpen(TestingShared.httpsListenPort) {
                     try await Task.sleep(nanoseconds: 250_000_000)
                 }

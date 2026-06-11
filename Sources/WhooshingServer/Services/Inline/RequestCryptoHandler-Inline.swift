@@ -24,13 +24,13 @@ extension Inline {
     
     final class RequestIOData: SendableStorage.Key, Sendable {
         typealias Value = RequestIOData
-        let rootKey: Crypto.Symm.Key
+        let rootKey: SendableSymmKey
         let serviceID: UUID
         let connectionValidate: SendableDictionary<ObjectIdentifier, Bool> = .init()
         let connectionKeys: SendableDictionary<ObjectIdentifier, SendableSymmKey> = .init()
         let readingBufferDatas: SendableDictionary<ObjectIdentifier, ByteBuffer> = .init()
         
-        init(rootKey: Crypto.Symm.Key, serviceID: UUID) {
+        init(rootKey: SendableSymmKey, serviceID: UUID) {
             self.rootKey = rootKey
             self.serviceID = serviceID
         }
@@ -55,7 +55,7 @@ extension Inline {
                     }
                 } else {
                     cipher = try required(throws: RequestCryptoErrcase.requestEncryptFailed) {
-                        try Crypto.Symm.encrypt(data, key: client.requestIoData.rootKey).get()
+                        try Crypto.Symm.encrypt(data, key: client.requestIoData.rootKey.key).get()
                     }
                 }
                 let buffer = ByteBuffer(data: cipher)
@@ -78,7 +78,7 @@ extension Inline {
                     }
                 } else {
                     plain = try required(throws: RequestCryptoErrcase.responseDecryptFailed) {
-                        try Crypto.Symm.decrypt(.init(buffer: data), key: client.requestIoData.rootKey).get()
+                        try Crypto.Symm.decrypt(.init(buffer: data), key: client.requestIoData.rootKey.key).get()
                     }
                 }
                 return context.eventLoop.makeSucceededResult(plain)

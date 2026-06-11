@@ -188,7 +188,7 @@ public extension Environment {
             internal let password: String
             /// 文件存储系统的加密密钥，为 nil 表示不支持文件加密系统
             /// 内部存储，不允许外界访问
-            internal let fileStorageKey: Crypto.Symm.Key?
+            internal let fileStorageKey: SendableSymmKey?
             
             /// 初始化数据库配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
             /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
@@ -203,7 +203,7 @@ public extension Environment {
                 user: String = "postgres",
                 password: String = "password",
                 testingHost: String? = nil,
-                fileStorageKey: Crypto.Symm.Key? = nil
+                fileStorageKey: SendableSymmKey? = nil
             ) {
                 self.name = name
                 self.user = user

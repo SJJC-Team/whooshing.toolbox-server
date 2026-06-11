@@ -11,37 +11,37 @@ extension Data: @retroactive RequestDecodable {}
 extension Data: @retroactive Content {}
 
 
-extension Crypto.Symm.Key: @retroactive AsyncResponseEncodable {}
-extension Crypto.Symm.Key: @retroactive AsyncRequestDecodable {}
-extension Crypto.Symm.Key: @retroactive ResponseEncodable {}
-extension Crypto.Symm.Key: @retroactive RequestDecodable {}
-extension Crypto.Symm.Key: @retroactive Content {}
+extension SendableSymmKey: @retroactive AsyncRequestDecodable {}
+extension SendableSymmKey: @retroactive AsyncResponseEncodable {}
+extension SendableSymmKey: @retroactive ResponseEncodable {}
+extension SendableSymmKey: @retroactive RequestDecodable {}
+extension SendableSymmKey: @retroactive Content {}
 
 
-extension Crypto.Asym.CPrivateKey: @retroactive AsyncResponseEncodable {}
-extension Crypto.Asym.CPrivateKey: @retroactive AsyncRequestDecodable {}
-extension Crypto.Asym.CPrivateKey: @retroactive ResponseEncodable {}
-extension Crypto.Asym.CPrivateKey: @retroactive RequestDecodable {}
-extension Crypto.Asym.CPrivateKey: @retroactive Content {}
+extension SendableAsymCPrivateKey: @retroactive AsyncResponseEncodable {}
+extension SendableAsymCPrivateKey: @retroactive AsyncRequestDecodable {}
+extension SendableAsymCPrivateKey: @retroactive ResponseEncodable {}
+extension SendableAsymCPrivateKey: @retroactive RequestDecodable {}
+extension SendableAsymCPrivateKey: @retroactive Content {}
 
 
-extension Crypto.Asym.CPublicKey: @retroactive AsyncResponseEncodable {}
-extension Crypto.Asym.CPublicKey: @retroactive AsyncRequestDecodable {}
-extension Crypto.Asym.CPublicKey: @retroactive ResponseEncodable {}
-extension Crypto.Asym.CPublicKey: @retroactive RequestDecodable {}
-extension Crypto.Asym.CPublicKey: @retroactive Content {}
+extension SendableAsymCPublicKey: @retroactive AsyncResponseEncodable {}
+extension SendableAsymCPublicKey: @retroactive AsyncRequestDecodable {}
+extension SendableAsymCPublicKey: @retroactive ResponseEncodable {}
+extension SendableAsymCPublicKey: @retroactive RequestDecodable {}
+extension SendableAsymCPublicKey: @retroactive Content {}
 
 
-extension Crypto.Asym.SPrivateKey: @retroactive AsyncResponseEncodable {}
-extension Crypto.Asym.SPrivateKey: @retroactive AsyncRequestDecodable {}
-extension Crypto.Asym.SPrivateKey: @retroactive ResponseEncodable {}
-extension Crypto.Asym.SPrivateKey: @retroactive RequestDecodable {}
-extension Crypto.Asym.SPrivateKey: @retroactive Content {}
+extension SendableAsymSPrivateKey: @retroactive AsyncResponseEncodable {}
+extension SendableAsymSPrivateKey: @retroactive AsyncRequestDecodable {}
+extension SendableAsymSPrivateKey: @retroactive ResponseEncodable {}
+extension SendableAsymSPrivateKey: @retroactive RequestDecodable {}
+extension SendableAsymSPrivateKey: @retroactive Content {}
 
 
-extension Crypto.Asym.SPublicKey: @retroactive AsyncResponseEncodable {}
-extension Crypto.Asym.SPublicKey: @retroactive AsyncRequestDecodable {}
-extension Crypto.Asym.SPublicKey: @retroactive ResponseEncodable {}
-extension Crypto.Asym.SPublicKey: @retroactive RequestDecodable {}
-extension Crypto.Asym.SPublicKey: @retroactive Content {}
+extension SendableAsymSPublicKey: @retroactive AsyncResponseEncodable {}
+extension SendableAsymSPublicKey: @retroactive AsyncRequestDecodable {}
+extension SendableAsymSPublicKey: @retroactive ResponseEncodable {}
+extension SendableAsymSPublicKey: @retroactive RequestDecodable {}
+extension SendableAsymSPublicKey: @retroactive Content {}
 

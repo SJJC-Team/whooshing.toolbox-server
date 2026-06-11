@@ -30,7 +30,7 @@ public enum Api: ServiceType {
     @frozen
     public struct Debuging: DebugConfig, Sendable {
         
-        public typealias UserToken = Crypto.Symm.Key
+        public typealias UserToken = SendableSymmKey
         public typealias Auth = @Sendable (AuthExchangeData) throws -> UserToken
         /// 用户身份认证的机制回调函数
         ///
@@ -99,10 +99,10 @@ public enum Api: ServiceType {
         /// - Throws
         ///   若 encrypted 并非为 origin 加密得到的，则抛出错误 "用户口令不正确"
         @inlinable
-        public static func testingTokenAuth(with origin: String, encrypted: Data) throws -> Crypto.Symm.Key {
+        public static func testingTokenAuth(with origin: String, encrypted: Data) throws -> SendableSymmKey {
             let keyData = try Base64String(origin).dataRes.get()
-            let key = Crypto.Symm.Key(data: keyData)
-            let authData: Data = try Crypto.Symm.decrypt(encrypted, key: key).get()
+            let key = SendableSymmKey(key: .init(data: keyData))
+            let authData: Data = try Crypto.Symm.decrypt(encrypted, key: key.key).get()
             guard keyData == authData else { throw Abort(.badRequest, reason: "用户口令不正确") }
             return key
         }

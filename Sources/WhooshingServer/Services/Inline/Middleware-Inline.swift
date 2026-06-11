@@ -69,7 +69,7 @@ extension Inline {
                 }
                 
                 req.logger.debug("Inline.Server-与客户端密钥交换: 将 sharedKey 记录在 connectionKeys 中，却把 validate 设置为 nil，表示下次请求时需要进行 Validate，而无需再交换密钥")
-                req.application.inlineServiceData.connectionKeys[id] = sharedKey
+                req.application.inlineServiceData.connectionKeys[id] = .init(key: sharedKey)
                 req.application.inlineServiceData.connectionValidate[id] = nil
                 
                 req.logger.debug("Inline.Server-与客户端密钥交换: 发送自己的公钥")

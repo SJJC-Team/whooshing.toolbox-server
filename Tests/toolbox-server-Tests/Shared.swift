@@ -32,20 +32,20 @@ struct TestingShared {
     
     @MainActor static var testStage: TestStage = .serverPrepare
     
-    static let rootKey = Crypto.Symm.Key(data: Data(base64Encoded: rootKeyStr)!)
+    static let rootKey = SendableSymmKey(key: .init(data: Data(base64Encoded: rootKeyStr)!))
     static let rootKeyStr = "0apYyvRtLuo7l07zuqbEjFIxDFZ1sIWabKM9mMOOIzQ="
     
-    static let wrongRootKey = Crypto.Symm.Key(data: Data(base64Encoded: wrongRootKeyStr)!)
+    static let wrongRootKey = SendableSymmKey(key: .init(data: Data(base64Encoded: wrongRootKeyStr)!))
     static let wrongRootKeyStr = "Mzn/h5zDnIdi4C3yHaRMG62DhC9qYt8q4SfOCV338hY="
     
     static let apiClientCredential = "bRRPIiYbt0t4RzfqeeHSkg=="
     
     static let wrongApiClientCredential = "PXt3S3oMWfHIE7wb1S1nMg=="
     
-    static let apiClientToken = Crypto.Symm.Key(data: Data(base64Encoded: apiClientTokenStr)!)
+    static let apiClientToken = SendableSymmKey(key: .init(data: Data(base64Encoded: apiClientTokenStr)!))
     static let apiClientTokenStr = "jXTz4vTQk0O/XFIjWQIHLC7z9/E0/4VtEb+LkF8IcA4="
     
-    static let wrongApiClientToken = Crypto.Symm.Key(data: Data(base64Encoded: wrongApiClientTokenStr)!)
+    static let wrongApiClientToken = SendableSymmKey(key: .init(data: Data(base64Encoded: wrongApiClientTokenStr)!))
     static let wrongApiClientTokenStr = "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI="
     
     static let inlineListenPort = 6500
@@ -105,7 +105,7 @@ func makeHttpsClient() -> HttpsClient {
     return HttpsClient(in: eventLoopGroup.next(), logger: logger)
 }
 
-func makeInlineClient(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineClient {
+func makeInlineClient(rootKey: SendableSymmKey, serviceId: UUID) -> InlineClient {
     initLoggingSystemIfNot()
     
     var logger = Logger(label: "Testing-Inline")
@@ -130,7 +130,7 @@ func makeHttpsWebSocket() -> HttpsWebSocket {
     return HttpsWebSocket(in: eventLoopGroup.next(), logger: logger)
 }
 
-func makeInlineWebSocket(rootKey: Crypto.Symm.Key, serviceId: UUID) -> InlineWebSocket {
+func makeInlineWebSocket(rootKey: SendableSymmKey, serviceId: UUID) -> InlineWebSocket {
     let client = makeInlineClient(rootKey: rootKey, serviceId: serviceId)
     return .init(client: client)
 }

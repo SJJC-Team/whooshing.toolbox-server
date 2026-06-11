@@ -333,7 +333,7 @@ extension Whooshing {
                     eventLoop: app.eventLoopGroup.next(),
                     storagePath: mainDirPath,
                     dbConfigure: debugging ? db.testingConfig : db.config,
-                    masterKey: key,
+                    masterKey: key.key,
                     logger: logger,
                     fileExtension: fileStorageParameter.fileExtension,
                     filePermission: fileStorageParameter.permission,

@@ -82,7 +82,7 @@ extension Api {
                         }
                         
                         let token = try required(throws: Errcase.internalFailure, "认证模块响应异常，响应体解析用户口令失败") {
-                            try resBody.json(as: Crypto.Symm.Key.self).get()
+                            try resBody.json(as: SendableSymmKey.self).get()
                         }
                         
                         return token
@@ -94,12 +94,12 @@ extension Api {
                 let newKey = Crypto.Symm.makeKey()
                 req.logger.debug("API.Server-与客户端密钥交换: 将新密钥使用用户口令加密，作为响应直接返回给客户端")
                 let newKeyEncrypted = try required(throws: Errcase.jsonDecodeFailed) {
-                    try Crypto.Symm.encrypt(newKey, key: token).get()
+                    try Crypto.Symm.encrypt(newKey, key: token.key).get()
                 }
                 req.logger.debug("API.Server-与客户端密钥交换: 临时使用用户口令加密新密钥，确保客户端可以解开")
-                req.application.apiServiceData.clientTokens[id] = token
+                req.application.apiServiceData.clientTokens[id] = .init(key: token.key)
                 req.logger.debug("API.Server-与客户端密钥交换: 将新密钥注册，用于将来该客户端所有的通讯加密")
-                req.application.apiServiceData.clientKeys[id] = newKey
+                req.application.apiServiceData.clientKeys[id] = .init(key: newKey)
                 let body = try required(throws: Errcase.jsonEncodeFailed) {
                     try JSONEncoder().encode(JSONData(data: newKeyEncrypted))
                 }

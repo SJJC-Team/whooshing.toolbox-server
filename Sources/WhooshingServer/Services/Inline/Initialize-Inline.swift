@@ -28,7 +28,7 @@ public enum Inline: ServiceType {
     @frozen
     public struct Debuging: DebugConfig, Sendable {
         /// 服务根密钥，用于初始化 Inline 服务
-        public let rootKey: Crypto.Symm.Key
+        public let rootKey: SendableSymmKey
         /// 该服务模块的服务 ID，用于初始化 Inline 服务，并作为与客户端通讯的首次加密密钥
         public let serviceId: UUID
         /// 其他服务模块的信息，用于验证服务来源是否可信，
@@ -51,7 +51,7 @@ public enum Inline: ServiceType {
         ///   初始化的 Inline 依赖参数
         @inlinable
         public init(
-            rootKey: Crypto.Symm.Key,
+            rootKey: SendableSymmKey,
             config: Environment.Config = .init(),
             serviceId: UUID = .init(),
             moduleDatas: [ModuleData] = []
@@ -163,14 +163,14 @@ extension Inline {
     }
     
     struct InitParaRes: Content {
-        let pub: Crypto.Asym.CPublicKey
+        let pub: SendableAsymCPublicKey
         let root: Data
         let modules: [Data]
     }
     
     /// 与模块管理器交互，取得可信服务列表并交换密钥
-    static func keyExchangeFromManager(_ woo: Whooshing<Inline>) async throws(Failure) -> Crypto.Symm.Key {
-        let rootKey: Crypto.Symm.Key
+    static func keyExchangeFromManager(_ woo: Whooshing<Inline>) async throws(Failure) -> SendableSymmKey {
+        let rootKey: SendableSymmKey
         
         if let debug = woo.debugingData {
             woo.app.logger.notice("获取服务根密钥以及服务模块参数列表 (Debuging, 不实际与模块管理器交互)")
@@ -201,7 +201,7 @@ extension Inline {
             let sharedKey = try required(throws: Errcase.initFailed, "密钥交换失败") {
                 try Crypto.Asym.keyEncapsulate(
                     key: keyPair.private,
-                    partyPublic: paras.pub,
+                    partyPublic: paras.pub.key,
                     salt: Crypto.hash("manager.shared.key").get(),
                     info: ""
                 ).get()
