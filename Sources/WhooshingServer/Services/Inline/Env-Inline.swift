@@ -26,7 +26,7 @@ extension Inline.ServicePara: Environment.Template {
     }
     
     @inlinable
-    init(data: [String : Any], extra: [String: Any]) {
+    init(data: [String : Any], driverKeys: [any Environment.DriverKey.Type], extra: [String: Any]) {
         self.serviceId = data["service_id"] as! UUID
     }
 }

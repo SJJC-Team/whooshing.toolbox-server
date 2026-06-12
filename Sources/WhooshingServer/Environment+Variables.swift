@@ -1,14 +1,15 @@
 import FluentPostgresDriver
 import Vapor
 import Cryptos
-import FileStorage
 import AnyCodable
 import LoggingAdvanced
+import OrderedCollections
+import NIOConcurrencyHelpers
 
 public extension Environment {
     /// 代表服务模块当前环境的配置项，例如服务端口、数据库信息、域名等。
     @frozen
-    struct Config: Hashable, Sendable, CustomStringConvertible, Loggerable {
+    struct Config: @unchecked Sendable, CustomStringConvertible, Loggerable {
         /// 在 configure.yaml 中设置的服务名称
         public let name: String
         /// 当前服务监听的端口号
@@ -21,11 +22,21 @@ public extension Environment {
         public let managerUrl: URL
         /// 可选的域名信息
         public let domain: String?
-        /// 文件存储系统的基本配置参数，为 nil 表示不支持文件加密系统
-        public let fileStorage: FS?
         
+        /// 存储所有的 storage key，可用于遍历 storage 的内容
+        public let driverKeys: [any DriverKey.Type]
+        /// 提供额外的 storage，用于存储扩展参数
+        public var storage: Storage {
+            get { lock.withLock { __storage } }
+            set { lock.withLock { __storage = newValue } }
+        }
+        
+        private let lock = NIOLock()
+        private var __storage = Storage()
+        
+        /// 永远不应直接调用该初始化函数
         @inlinable
-        public init() { self = Self(name: "Testing") }
+        public init() { self.init(name: "Testing") }
         
         /// 初始化环境配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
         /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
@@ -37,7 +48,6 @@ public extension Environment {
         ///   - managerUrl: 模块管理器的 URL 链接
         ///   - domain: 可选域名信息
         ///   - fileStorageParameter: 文件存储系统的基本配置参数，为 nil 表示不支持文件加密系统
-        @inlinable
         public init(
             name: String,
             port: Int = 6500,
@@ -45,7 +55,7 @@ public extension Environment {
             dbServices: [DBService] = [],
             managerUrl: URL = .init(string: "http://testing.com")!,
             domain: String? = nil,
-            fileStorageParameter: FS? = .init()
+            driverKeys: [any DriverKey.Type] = []
         ) {
             self.name = name
             self.port = port
@@ -53,62 +63,26 @@ public extension Environment {
             self.dbServices = dbServices
             self.managerUrl = managerUrl
             self.domain = domain
-            self.fileStorage = fileStorageParameter
+            self.driverKeys = driverKeys
         }
         
         @inlinable
-        public var json: [String: AnyCodable] {[
-            "name": AnyCodable(name),
-            "port": AnyCodable(port),
-            "hostname": AnyCodable(hostname),
-            "db_services": AnyCodable(dbServices.map { $0.json }),
-            "manager_url": AnyCodable(managerUrl),
-            "domain": AnyCodable(domain),
-            "file_storage": AnyCodable(fileStorage?.json)
-        ]}
-        
-        @inlinable
-        public var description: String {
-            formatJson(json)
+        public var json: [String: AnyCodable] {
+            var paras: [String: AnyCodable] = [:]
+            for key in driverKeys {
+                paras[key.label] = AnyCodable(storage[key])
+            }
+            
+            return [
+                "name": AnyCodable(name),
+                "port": AnyCodable(port),
+                "hostname": AnyCodable(hostname),
+                "db_services": AnyCodable(dbServices.map { $0.json }),
+                "manager_url": AnyCodable(managerUrl),
+                "domain": AnyCodable(domain),
+                "storage": AnyCodable(paras)
+            ]
         }
-    }
-    
-    /// FileStorage 文件加密系统的配置参数
-    @frozen
-    struct FS: Hashable, CustomStringConvertible, Loggerable {
-        /// 文件存储的主存储目录
-        public let dir: String
-        /// 所有加密文件的后缀名，仅调试和测试环境下可自定
-        public let fileExtension: String
-        /// 文件存储系统的 Unix 文件系统权限
-        public let permission: FileStorage.UnixPermission
-        
-        @inlinable
-        public init() { self = Self(dir: "~/whooshing-server-testing") }
-        
-        /// 初始化环境配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
-        /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
-        /// - Parameters:
-        ///     - dir: 该文件存储系统的主目录
-        ///     - fileExtension: 所有加密文件的后缀名
-        ///     - permission: 该文件系统目录所有内容的 Unix 权限设置
-        @inlinable
-        public init(
-            dir: String,
-            fileExtension: String = FileStorage.DefaultCryptoFileExtension,
-            permission: FileStorage.UnixPermission = .init()
-        ) {
-            self.dir = dir
-            self.fileExtension = fileExtension
-            self.permission = permission
-        }
-        
-        @inlinable
-        public var json: [String: AnyCodable] {[
-            "dir": AnyCodable(dir),
-            "file_extension": AnyCodable(fileExtension),
-            "permission": AnyCodable(permission.json)
-        ]}
         
         @inlinable
         public var description: String {
@@ -126,6 +100,7 @@ public extension Environment {
         /// 该数据库服务中的所有数据库名称
         public let dbs: [DB]
         
+        /// 永远不应直接调用该初始化函数
         @inlinable
         public init() { self = Self(name: "postgres") }
         
@@ -136,6 +111,7 @@ public extension Environment {
         ///   - databases: 该数据库服务中的所有数据库列表
         ///   - port: 监听端口
         ///   - dbParameters: 该数据库服务中的数据库的配置列表
+        @inlinable
         public init(
             name: String,
             port: Int = 5432,
@@ -183,12 +159,11 @@ public extension Environment {
             /// 用于连接数据库的主机名，只有测试时会使用。
             /// PostgreSQL 生产环境仅允许运行在本地
             public let testingHost: String?
+            /// 文件存储系统的加密密钥，为 nil 表示不支持文件加密系统
+            public let fileStorageKey: SendableSymmKey?
             /// 数据库访问密码（内部使用）
             /// 内部存储，不允许外界访问
             internal let password: String
-            /// 文件存储系统的加密密钥，为 nil 表示不支持文件加密系统
-            /// 内部存储，不允许外界访问
-            internal let fileStorageKey: SendableSymmKey?
             
             /// 初始化数据库配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
             /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
@@ -225,8 +200,9 @@ public extension Environment {
             }
         }
         
-        @usableFromInline
-        init() { self = Self(dbServiceId: .init(string: "postgres"), port: 5432, parameter: .init(name: "postgres")) }
+        /// 永远不应直接调用该初始化函数
+        @inlinable
+        public init() { self = Self(dbServiceId: .init(string: "postgres"), port: 5432, parameter: .init(name: "postgres")) }
         
         @usableFromInline
         internal init(
@@ -262,8 +238,8 @@ public extension Environment {
             )
         }
         
-        @usableFromInline
-        var config: SQLPostgresConfiguration {
+        /// 永远不应直接调用
+        public var config: SQLPostgresConfiguration {
             .init(
                 hostname: "localhost",
                 port: port,
@@ -286,5 +262,29 @@ public extension Environment {
         public var description: String {
             formatJson(json)
         }
+    }
+}
+
+public extension Environment {
+    protocol DriverKey: StorageKey {
+        static var label: String { get }
+        static var isOptional: Bool { get }
+        static var valueType: Environment.Types { get }
+        static func apply(on storage: Storage, value: Any) -> Storage
+    }
+}
+
+extension Environment.DriverKey {
+    @inlinable
+    static var envName: String {
+        (self.isOptional ? "#" : "") + self.label
+    }
+    
+    @inlinable
+    public static func apply(on storage: Storage, value: Any) -> Storage {
+        var new = storage
+        let v = value as! Value
+        new[self] = v
+        return new
     }
 }

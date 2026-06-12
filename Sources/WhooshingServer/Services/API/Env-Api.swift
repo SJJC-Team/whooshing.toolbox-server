@@ -26,7 +26,7 @@ extension Api.ServicePara: Environment.Template {
     }
     
     @inlinable
-    init(data: [String: Any], extra: [String: Any]) {
+    init(data: [String : Any], driverKeys: [any Environment.DriverKey.Type], extra: [String : Any]) {
         self.authenticationURL = data["authentication_url"] as! URL
     }
 }

@@ -131,7 +131,10 @@ public enum Inline: ServiceType {
 extension Inline {
     /// 配置 Inline 服务模块
     @usableFromInline
-    static func config(_ woo: Whooshing<Inline>) async throws(Failure) {
+    static func config(
+        _ woo: Whooshing<Inline>,
+        driverKeys: [any Environment.DriverKey.Type]
+    ) async throws(Failure) {
         woo.app.http.server.configuration.serviceName = "INLINE"
         
         let serviceId: UUID
@@ -141,7 +144,7 @@ extension Inline {
         } else {
             woo.app.logger.debug("从环境变量中取得该服务模块的参数")
             serviceId = try required(throws: Errcase.initFailed, "环境变量解析失败") {
-                try ServicePara.parse(prefix: "WHOOSHING_INLINE_SERVICE_PRIVATE").serviceId
+                try ServicePara.parse(prefix: "WHOOSHING_INLINE_SERVICE_PRIVATE", driverKeys: driverKeys).serviceId
             }
         }
         

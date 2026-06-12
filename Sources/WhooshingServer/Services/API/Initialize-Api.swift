@@ -110,7 +110,11 @@ public enum Api: ServiceType {
     
     /// 配置 API 服务模块
     @usableFromInline
-    internal static func config(_ woo: Whooshing<Api>, inlineClient: AnyWhooshingClient<InlineClientErrcase>) async throws(Failure) {
+    internal static func config(
+        _ woo: Whooshing<Api>,
+        inlineClient: AnyWhooshingClient<InlineClientErrcase>,
+        driverKeys: [any Environment.DriverKey.Type]
+    ) async throws(Failure) {
         woo.app.http.server.configuration.serviceName = "API"
         woo.app.logger.debug("从环境变量中取得该服务模块的参数")
         
@@ -121,7 +125,7 @@ public enum Api: ServiceType {
             debugAuth = debug.auth
         } else {
             authenticationURL = try required(throws: Errcase.initFailed, "环境变量解析失败") {
-                try ServicePara.parse(prefix: "WHOOSHING_API_SERVICE_PRIVATE").authenticationURL
+                try ServicePara.parse(prefix: "WHOOSHING_API_SERVICE_PRIVATE", driverKeys: driverKeys).authenticationURL
             }
             debugAuth = nil
         }

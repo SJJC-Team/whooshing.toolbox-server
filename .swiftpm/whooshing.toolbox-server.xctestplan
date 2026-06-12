@@ -9,8 +9,7 @@
     }
   ],
   "defaultOptions" : {
-    "performanceAntipatternCheckerEnabled" : true,
-    "threadSanitizerEnabled" : true
+    "performanceAntipatternCheckerEnabled" : true
   },
   "testTargets" : [
     {

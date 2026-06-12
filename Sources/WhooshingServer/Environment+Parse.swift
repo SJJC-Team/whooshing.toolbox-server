@@ -1,67 +1,56 @@
 import Vapor
-import FileStorage
 import FluentKit
 import ErrorHandle
 import DataConvertable
 import Collections
 import OrderedCollections
 import SystemPackage
+import AnyCodable
+import Cryptos
 
 extension Environment.Config: Environment.Template {
     @inlinable
-    static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
+    public static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
         origin["name"] = .string
         origin["port"] = .int()
         origin["hostname"] = .string
         origin["#domain"] = .string
         origin["manager_url"] = .url
-        origin["#file_storage"] = .dataTemplate(Environment.FS.self)
         origin["db_services"] = .dataTemplates(Environment.DBService.self)
     }
     
-    @usableFromInline
-    init(data: [String: Any], extra: [String: Any]) {
+    @inlinable
+    public static func with(driverKeys: [any Environment.DriverKey.Type], dic origin: inout OrderedDictionary<String, Environment.Types>) {
+        for key in driverKeys {
+            origin[key.envName] = key.valueType
+        }
+    }
+    
+    @inlinable
+    public init(data: [String: Any], driverKeys: [any Environment.DriverKey.Type], extra: [String: Any]) {
         self.name = data["name"] as! String
         self.port = data["port"] as! Int
         self.hostname = data["hostname"] as! String
         self.dbServices = data["db_services"] as! [Environment.DBService]
         self.domain = data["domain"] as? String
         self.managerUrl = data["manager_url"] as! URL
-        self.fileStorage = data["file_storage"] as? Environment.FS
-    }
-}
-
-extension Environment.FS: Environment.Template {
-    @inlinable
-    static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
-        origin["dir"] = .string
-        origin["unix_permission_owner_id"] = .int(CUnsignedLong.self)
-        origin["unix_permission_group_id"] = .int(CUnsignedLong.self)
-        origin["unix_permission_rwx"] = .int(CModeT.self)
-    }
-    
-    @usableFromInline
-    init(data: [String : Any], extra: [String : Any]) {
-        self.dir = data["dir"] as! String
-        self.fileExtension = FileStorage.DefaultCryptoFileExtension
-        self.permission = .init(
-            owner: .id(data["unix_permission_owner_id"] as! CUnsignedLong),
-            group: .id(data["unix_permission_group_id"] as! CUnsignedLong),
-            rwx: .init(rawValue: data["unix_permission_rwx"] as! CModeT)
-        )
+        self.driverKeys = driverKeys
+        for key in driverKeys {
+            self.storage = key.apply(on: storage, value: data[key.label]!)
+        }
     }
 }
 
 extension Environment.DBService: Environment.Template {
     @inlinable
-    static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
+    public static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
         origin["name"] = .string
         origin["port"] = .int()
         origin["dbs"] = .dataTemplates(Environment.DB.self)
     }
     
-    @usableFromInline
-    init(data: [String : Any], extra: [String: Any]) {
+    @inlinable
+    public init(data: [String : Any], driverKeys: [any Environment.DriverKey.Type], extra: [String: Any]) {
         self.id = .init(string: data["name"] as! String)
         self.port = data["port"] as! Int
         self.dbs = data["dbs"] as! [Environment.DB]
@@ -70,15 +59,15 @@ extension Environment.DBService: Environment.Template {
 
 extension Environment.DB: Environment.Template {
     @inlinable
-    static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
+    public static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
         origin["name"] = .string
         origin["user"] = .string
         origin["password"] = .string
         origin["#file_storage_key"] = .base64Data
     }
     
-    @usableFromInline
-    init(data: [String : Any], extra: [String : Any]) {
+    @inlinable
+    public init(data: [String : Any], driverKeys: [any Environment.DriverKey.Type], extra: [String : Any]) {
         let keyData = data["file_storage_key"]
         self = Self.init(
             dbServiceId: .init(string: extra["name"] as! String),
@@ -96,10 +85,9 @@ extension Environment.DB: Environment.Template {
 
 extension Environment {
     @inlinable
-    static func get(with prefix: String) throws(Errcase.ErrType) -> Config { try .parse(prefix: prefix) }
+    static func get(with prefix: String, driverKeys: [any DriverKey.Type] = []) throws(Errcase.ErrType) -> Config { try .parse(prefix: prefix, driverKeys: driverKeys) }
     
-    @usableFromInline
-    enum Types {
+    public enum Types {
         case string
         case stringArr
         case int(any FixedWidthInteger.Type = Int.self)
@@ -113,11 +101,11 @@ extension Environment {
         case dataTemplates(Template.Type)
     }
 
-    @usableFromInline
-    protocol Template {
-        static var envs: OrderedDictionary<String, Environment.Types> { get }
+    public protocol Template {
+        static func envs(driverKeys: [any Environment.DriverKey.Type]) -> OrderedDictionary<String, Environment.Types>
         static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>)
-        init(data: [String: Any], extra: [String: Any])
+        static func with(driverKeys: [any DriverKey.Type], dic origin: inout OrderedDictionary<String, Environment.Types>)
+        init(data: [String: Any], driverKeys: [any DriverKey.Type], extra: [String: Any])
         init()
     }
 
@@ -130,23 +118,34 @@ extension Environment {
     }
 }
 
-extension Environment.Template {
+public extension Environment.Template {
     @inlinable
-    static var envs: OrderedDictionary<String, Environment.Types> {
+    static func envs(driverKeys: [any Environment.DriverKey.Type]) -> OrderedDictionary<String, Environment.Types> {
         var res = OrderedDictionary<String, Environment.Types>()
         withEnv(dic: &res)
+        with(driverKeys: driverKeys, dic: &res)
         return res
     }
+    
+    @inlinable
+    static func with(driverKeys: [any Environment.DriverKey.Type], dic origin: inout OrderedDictionary<String, Environment.Types>) {}
 }
 
 extension Environment.Template {
     @inlinable
     static func parse(
         prefix: String?,
+        driverKeys: [any Environment.DriverKey.Type] = [],
         getValue: @escaping ((String) -> String?) = { Environment.get($0) },
         extra: [String: Any] = [:]
     ) throws(Environment.Errcase.ErrType) -> Self {
-        guard let res = try nullableParse(prefix: prefix, getValue: getValue, extra: extra, nullable: false) else {
+        guard let res = try nullableParse(
+            prefix: prefix,
+            driverKeys: driverKeys,
+            getValue: getValue,
+            extra: extra,
+            nullable: false
+        ) else {
             throw Environment.Errcase.internalFailed.d(prefix ?? "<<No prefix>>")
         }
         return res
@@ -155,12 +154,13 @@ extension Environment.Template {
     @inlinable
     static func nullableParse(
         prefix: String?,
+        driverKeys: [any Environment.DriverKey.Type],
         getValue: @escaping ((String) -> String?) = { Environment.get($0) },
         extra: [String: Any] = [:],
         nullable: Bool
     ) throws(Environment.Errcase.ErrType) -> Self? {
         var values: [String: Any] = [:]
-        for (var key, v) in Self.envs {
+        for (var key, v) in Self.envs(driverKeys: driverKeys) {
             
             let optional = key.hasPrefix("#")
             
@@ -226,15 +226,15 @@ extension Environment.Template {
                 
             case .dataTemplate(let template):
                 if optional {
-                    values[key] = try template.nullableParse(prefix: k, getValue: getValue, extra: values, nullable: true)
+                    values[key] = try template.nullableParse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: values, nullable: true)
                 } else {
                     if nullable {
-                        guard let res = try template.nullableParse(prefix: k, getValue: getValue, extra: values, nullable: true) else {
+                        guard let res = try template.nullableParse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: values, nullable: true) else {
                             return nil
                         }
                         values[key] = res
                     } else {
-                        values[key] = try template.parse(prefix: k, getValue: getValue, extra: values)
+                        values[key] = try template.parse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: values)
                     }
                 }
                 
@@ -265,11 +265,11 @@ extension Environment.Template {
                 
                 var vs: [Environment.Template] = []
                 for i in 0..<count {
-                    vs.append(try template.parse(prefix: "\(k)_\(i + 1)", getValue: getValue, extra: values))
+                    vs.append(try template.parse(prefix: "\(k)_\(i + 1)", driverKeys: driverKeys, getValue: getValue, extra: values))
                 }
                 values[key] = vs
             }
         }
-        return Self(data: values, extra: extra)
+        return Self(data: values, driverKeys: driverKeys, extra: extra)
     }
 }
