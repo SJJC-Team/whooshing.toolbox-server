@@ -270,7 +270,7 @@ public extension Environment {
         static var label: String { get }
         static var isOptional: Bool { get }
         static var valueType: Environment.Types { get }
-        static func apply(on storage: Storage, value: Any) -> Storage
+        static func apply(on storage: Storage, value: Any?) -> Storage
     }
 }
 
@@ -281,9 +281,11 @@ extension Environment.DriverKey {
     }
     
     @inlinable
-    public static func apply(on storage: Storage, value: Any) -> Storage {
+    public static func apply(on storage: Storage, value: Any?) -> Storage {
         var new = storage
-        let v = value as! Value
+        guard let v = value as? Value else {
+            fatalError("\(self.envName) 环境变量值解析失败")
+        }
         new[self] = v
         return new
     }

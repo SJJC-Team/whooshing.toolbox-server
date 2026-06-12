@@ -36,7 +36,7 @@ extension Environment.Config: Environment.Template {
         self.managerUrl = data["manager_url"] as! URL
         self.driverKeys = driverKeys
         for key in driverKeys {
-            self.storage = key.apply(on: storage, value: data[key.label]!)
+            self.storage = key.apply(on: storage, value: data[key.label])
         }
     }
 }
