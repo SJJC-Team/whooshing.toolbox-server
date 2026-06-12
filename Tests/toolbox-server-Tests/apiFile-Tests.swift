@@ -27,7 +27,7 @@ struct ApiFileTests {
                 group.addTask {
                     var size = 0
                     let res = try await client.send(method, to: "http://localhost:\(TestingShared.apiListenPort)/file-echo", body: .file(from: url, progress: .init { ctx in
-                        print("写入中: \(ctx.summaryDescription)")
+                        print("W-\(ctx.index)", terminator: " ")
                     }))
                     #expect(res.status == .ok)
                     
@@ -35,7 +35,7 @@ struct ApiFileTests {
                     let bodyStream = try body.stream().get()
                     
                     for try await (progress, chunk) in bodyStream.withProgress() {
-                        print("读取中: \(progress.summaryDescription)")
+                        print("R-\(progress.index)", terminator: " ")
                         size += chunk.readableBytes
                     }
                     
@@ -55,7 +55,7 @@ struct ApiFileTests {
         let progress = AsyncProgress()
         Task {
             for try await ctx in progress {
-                print("写入中: \(ctx.summaryDescription)")
+                print("W-\(ctx.index)", terminator: " ")
             }
         }
         let res = try await client.post("http://localhost:\(TestingShared.apiListenPort)/file-echo", body: .file(from: url, progress: progress))
@@ -65,7 +65,7 @@ struct ApiFileTests {
         let bodyStream = try body.stream().get()
         
         for try await (progress, chunk) in bodyStream.withProgress() {
-            print("读取中: \(progress.summaryDescription)")
+            print("R-\(progress.index)", terminator: " ")
             size += chunk.readableBytes
         }
         

@@ -1,5 +1,5 @@
 {
-  "originHash" : "6c313e1cd945545613184a52fd970833a3a11a7b54875730e562b2fb9ea66766",
+  "originHash" : "818d3b28a497b5f9a5dda428a4b71b1c29cefff591d07c511363c0e1566a01fd",
   "pins" : [
     {
       "identity" : "anycodable",
@@ -348,8 +348,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/whooshing-workshop/whooshing.toolbox-client",
       "state" : {
-        "revision" : "906529aaf5a29e06c2d37af98246fd934afb821d",
-        "version" : "1.2.7"
+        "revision" : "453e3aa9ae6d5a8ba03cbdf6f4ddc7196adffbbc",
+        "version" : "1.2.8"
       }
     },
     {

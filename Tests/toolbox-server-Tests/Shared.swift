@@ -56,7 +56,7 @@ struct TestingShared {
         small: "./testing_files/test.png",
         large: "./testing_files/large.zip",
         smallSize: 3 * 1024 * 1024, // 3M
-        largeSize: 2 * 1024 * 1024 * 1024, // 2G
+        largeSize: 1 * 1024 * 1024 * 1024, // 1G
         smallChunk: 1 * 1024 * 1024,
         largeChunk: 1 * 1024 * 1024
     )

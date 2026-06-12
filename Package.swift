@@ -3,6 +3,8 @@
 
 import PackageDescription
 
+#warning("swift-system 最新版本尚不稳定，采用 exact: 1.6.5，稳定后应当回调")
+
 let package = Package(
     name: "whooshing.toolbox-server",
     platforms: [
@@ -19,11 +21,11 @@ let package = Package(
         .package(url: "https://github.com/whooshing-workshop/whooshing-fluent.git", from: "1.0.3"),
         .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git", from: "1.5.6"),
         .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-file-storage", from: "1.0.5"),
-        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.2.7"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.2.8"),
         .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-websocket.git", from: "1.1.5"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.10.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-system", from: "1.4.0"),
+        .package(url: "https://github.com/apple/swift-system", exact: "1.6.5"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.9.1")
     ],
     targets: [
