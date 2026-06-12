@@ -78,7 +78,11 @@ struct ApiErrorTests {
     @MainActor
     @Test("测试结束")
     func end() async throws {
+        print("Suite \(TestingShared.testStage) 测试结束，正在关闭 Client")
         try await client.shutdown()
+        try await wrongCredentialClient.shutdown()
+        try await randomCredentialClient.shutdown()
+        try await wrongTokenClient.shutdown()
         TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
     }
 }

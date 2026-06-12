@@ -24,7 +24,7 @@ struct InlineFileTests {
             let url = FilePath(TestingShared.normalFilePath)
             let info = try #require(await FileSystem.shared.info(forFileAt: url))
             let res = try await client.send(method, to: "http://localhost:\(TestingShared.inlineListenPort)/file-echo", body: .file(from: url, progress: .init { ctx in
-                print("写入中: \(ctx)")
+                print("写入中: \(ctx.summaryDescription)")
             }))
             #expect(res.status == .ok)
             
@@ -32,7 +32,7 @@ struct InlineFileTests {
             let bodyStream = try body.stream().get()
             
             for try await (progress, chunk) in bodyStream.withProgress() {
-                print(progress)
+                print("读取中: \(progress.summaryDescription)")
                 size += chunk.readableBytes
             }
             
@@ -50,7 +50,7 @@ struct InlineFileTests {
         let progress = AsyncProgress()
         Task {
             for try await ctx in progress {
-                print("写入中: \(ctx)")
+                print("写入中: \(ctx.summaryDescription)")
             }
         }
         let res = try await client.post("http://localhost:\(TestingShared.inlineListenPort)/file-echo", body: .file(from: url, progress: progress))
@@ -60,7 +60,7 @@ struct InlineFileTests {
         let bodyStream = try body.stream().get()
         
         for try await (progress, chunk) in bodyStream.withProgress() {
-            print(progress)
+            print("读取中: \(progress.summaryDescription)")
             size += chunk.readableBytes
         }
         
@@ -73,6 +73,7 @@ struct InlineFileTests {
     @MainActor
     @Test("测试结束")
     func end() async throws {
+        print("Suite \(TestingShared.testStage) 测试结束，正在关闭 Client")
         try await client.shutdown()
         TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
     }

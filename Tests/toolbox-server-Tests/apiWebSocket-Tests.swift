@@ -101,6 +101,7 @@ struct ApiWebSocketTests {
     @MainActor
     @Test("测试结束")
     func end() async throws {
+        print("Suite \(TestingShared.testStage) 测试结束，正在关闭 Client")
         try await ws.shutdown()
         TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
     }

@@ -75,7 +75,11 @@ struct InlineErrorTests {
     @MainActor
     @Test("测试结束")
     func end() async throws {
+        print("Suite \(TestingShared.testStage) 测试结束，正在关闭 Client")
         try await client.shutdown()
+        try await wrongRootKeyClient.shutdown()
+        try await wrongServiceIdClient.shutdown()
+        try await randomServiceIdClient.shutdown()
         TestingShared.testStage = .init(rawValue: TestingShared.testStage.rawValue + 1)!
     }
 }
