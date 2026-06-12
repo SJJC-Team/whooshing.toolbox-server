@@ -12,6 +12,7 @@ struct TestingShared {
     enum TestStage: Int {
         case serverPrepare
         case enviromentParsing
+        case driverEnvParsing
         case httpsError
         case httpsFile
         case httpsNormal

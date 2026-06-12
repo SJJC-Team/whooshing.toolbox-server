@@ -17,7 +17,7 @@ extension Inline {
 extension Inline.ServicePara: Environment.Template {
     @inlinable
     static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
-        origin["service_id"] = .uuid
+        origin["service_id"] = .uuid()
     }
     
     @inlinable

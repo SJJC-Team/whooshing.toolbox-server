@@ -11,12 +11,13 @@ import Cryptos
 extension Environment.Config: Environment.Template {
     @inlinable
     public static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
-        origin["name"] = .string
+        origin["name"] = .string()
         origin["port"] = .int()
-        origin["hostname"] = .string
-        origin["#domain"] = .string
-        origin["manager_url"] = .url
-        origin["db_services"] = .dataTemplates(Environment.DBService.self)
+        origin["hostname"] = .string()
+        origin["domain"] = .string(optional: true)
+        origin["manager_url"] = .url()
+        origin["db_services"] = .array(.dataTemplate(Environment.DBService.self))
+        origin["log_file_urls"] = .array(.url())
     }
     
     @inlinable
@@ -34,6 +35,7 @@ extension Environment.Config: Environment.Template {
         self.dbServices = data["db_services"] as! [Environment.DBService]
         self.domain = data["domain"] as? String
         self.managerUrl = data["manager_url"] as! URL
+        self.logFileUrls = data["log_file_urls"] as! [URL]
         self.driverKeys = driverKeys
         for key in driverKeys {
             self.storage = key.apply(on: storage, value: data[key.label])
@@ -44,9 +46,9 @@ extension Environment.Config: Environment.Template {
 extension Environment.DBService: Environment.Template {
     @inlinable
     public static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
-        origin["name"] = .string
+        origin["name"] = .string()
         origin["port"] = .int()
-        origin["dbs"] = .dataTemplates(Environment.DB.self)
+        origin["dbs"] = .array(.dataTemplate(Environment.DB.self))
     }
     
     @inlinable
@@ -60,10 +62,10 @@ extension Environment.DBService: Environment.Template {
 extension Environment.DB: Environment.Template {
     @inlinable
     public static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
-        origin["name"] = .string
-        origin["user"] = .string
-        origin["password"] = .string
-        origin["#file_storage_key"] = .base64Data
+        origin["name"] = .string()
+        origin["user"] = .string()
+        origin["password"] = .string()
+        origin["file_storage_key"] = .base64Data(optional: true)
     }
     
     @inlinable
@@ -87,18 +89,30 @@ extension Environment {
     @inlinable
     static func get(with prefix: String, driverKeys: [any DriverKey.Type] = []) throws(Errcase.ErrType) -> Config { try .parse(prefix: prefix, driverKeys: driverKeys) }
     
-    public enum Types: Sendable {
-        case string
-        case stringArr
-        case int(any (FixedWidthInteger & Sendable).Type = Int.self)
-        case intArr(any (FixedWidthInteger & Sendable).Type = Int.self)
-        case base64String
-        case base64Data
-        case url
-        case uri
-        case uuid
-        case dataTemplate(Template.Type)
-        case dataTemplates(Template.Type)
+    public indirect enum Types: Sendable {
+        case string(optional: Bool = false)
+        case int(any (FixedWidthInteger & Sendable).Type = Int.self, optional: Bool = false)
+        case base64String(optional: Bool = false)
+        case base64Data(optional: Bool = false)
+        case url(optional: Bool = false)
+        case uri(optional: Bool = false)
+        case uuid(optional: Bool = false)
+        case dataTemplate(Template.Type, optional: Bool = false)
+        case array(Self, optional: Bool = false)
+        
+        public var isOptional: Bool {
+            switch self {
+            case .string(let optional): optional
+            case .int(_, let optional): optional
+            case .base64String(let optional): optional
+            case .base64Data(let optional): optional
+            case .url(let optional): optional
+            case .uri(let optional): optional
+            case .uuid(let optional): optional
+            case .dataTemplate(_, let optional): optional
+            case .array(_, let optional): optional
+            }
+        }
     }
 
     public protocol Template: Sendable {
@@ -160,116 +174,143 @@ extension Environment.Template {
         nullable: Bool
     ) throws(Environment.Errcase.ErrType) -> Self? {
         var values: [String: Any] = [:]
-        for (var key, v) in Self.envs(driverKeys: driverKeys) {
-            
-            let optional = key.hasPrefix("#")
-            
-            if optional { key = String(key.dropFirst()) }
+        for (key, v) in Self.envs(driverKeys: driverKeys) {
             let k = prefix == nil ? key : "\(prefix!)_\(key.uppercased())"
-            let value: String!
             
-            switch v {
-            case .string, .int, .intArr, .url, .uri, .uuid, .stringArr, .base64Data, .base64String:
-                guard let vv = getValue(k) else {
-                    if optional {
-                        continue
-                    } else {
-                        if nullable {
-                            return nil
-                        } else {
-                            throw Environment.Errcase.missingKey.d(k)
-                        }
-                    }
-                }
-                value = vv
-            default:
-                value = nil
-            }
-            
-            switch v {
-            case .string:
-                values[key] = value
-                
-            case .stringArr:
-                values[key] = value.split(separator: ",").map { String($0) }
-                
-            case .int(let type):
-                guard let v = type.init(value) else { throw Environment.Errcase.typeIncorrect.d(k) }
-                values[key] = v
-                
-            case .intArr(let type):
-                values[key] = try value.split(separator: ",").map { v throws(Environment.Errcase.ErrType) in
-                    guard let v = type.init(v) else {
-                        throw Environment.Errcase.typeIncorrect.d(k)
-                    }
-                    return v
-                }
-                
-            case .base64String:
-                values[key] = Base64String(value)
-                
-            case .base64Data:
-                values[key] = try required(throws: Environment.Errcase.parseFailed, k) {
-                    try Base64String(value).dataRes.get()
-                }
-                
-            case .uri:
-                values[key] = URI(string: value)
-                
-            case .url:
-                guard let v = URL(string: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
-                values[key] = v
-                
-            case .uuid:
-                guard let v = UUID(uuidString: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
-                values[key] = v
-                
-            case .dataTemplate(let template):
-                if optional {
-                    values[key] = try template.nullableParse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: values, nullable: true)
-                } else {
-                    if nullable {
-                        guard let res = try template.nullableParse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: values, nullable: true) else {
-                            return nil
-                        }
-                        values[key] = res
-                    } else {
-                        values[key] = try template.parse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: values)
-                    }
-                }
-                
-            case .dataTemplates(let template):
-                guard let countStr = getValue(k + "_COUNT") else {
-                    if optional {
-                        continue
-                    } else {
-                        if nullable {
-                            return nil
-                        } else {
-                            throw Environment.Errcase.missingKey.d(k + "_COUNT")
-                        }
-                    }
-                }
-                
-                guard let count = Int(countStr) else {
-                    if optional {
-                        continue
-                    } else {
-                        if nullable {
-                            return nil
-                        } else {
-                            throw Environment.Errcase.typeIncorrect.d(k)
-                        }
-                    }
-                }
-                
-                var vs: [Environment.Template] = []
-                for i in 0..<count {
-                    vs.append(try template.parse(prefix: "\(k)_\(i + 1)", driverKeys: driverKeys, getValue: getValue, extra: values))
-                }
-                values[key] = vs
-            }
+            values[key] = try castValue(
+                prefix: prefix,
+                key: k,
+                value: v,
+                driverKeys: driverKeys,
+                getValue: getValue,
+                extra: values,
+                nullable: nullable
+            )
         }
         return Self(data: values, driverKeys: driverKeys, extra: extra)
+    }
+    
+    @inlinable
+    static func castValue(
+        prefix: String?,
+        key k: String,
+        value v: Environment.Types,
+        driverKeys: [any Environment.DriverKey.Type],
+        getValue: @escaping ((String) -> String?),
+        extra: [String: Any] = [:],
+        nullable: Bool
+    ) throws(Environment.Errcase.ErrType) -> Any? {
+        let value: String!
+        let optional = v.isOptional
+        switch v {
+        case .string, .int, .url, .uri, .uuid, .base64Data, .base64String:
+            guard let vv = getValue(k) else {
+                if optional {
+                    return nil
+                } else {
+                    if nullable {
+                        return nil
+                    } else {
+                        throw Environment.Errcase.missingKey.d(k)
+                    }
+                }
+            }
+            value = vv
+        default:
+            value = nil
+        }
+        
+        switch v {
+        case .string:
+            return value
+            
+        case .int(let type, _):
+            guard let v = type.init(value) else { throw Environment.Errcase.typeIncorrect.d(k) }
+            return v
+            
+        case .base64String:
+            return Base64String(value)
+            
+        case .base64Data:
+            return try required(throws: Environment.Errcase.parseFailed, k) {
+                try Base64String(value).dataRes.get()
+            }
+            
+        case .uri:
+            return URI(string: value)
+            
+        case .url:
+            guard let v = URL(string: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
+            return v
+            
+        case .uuid:
+            guard let v = UUID(uuidString: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
+            return v
+            
+        case .dataTemplate(let template, _):
+            if optional {
+                return try template.nullableParse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: extra, nullable: true)
+            } else {
+                if nullable {
+                    guard let res = try template.nullableParse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: extra, nullable: true) else {
+                        return nil
+                    }
+                    return res
+                } else {
+                    return try template.parse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: extra)
+                }
+            }
+            
+        case .array(let value, _):
+            guard let countStr = getValue(k + "_COUNT") else {
+                if optional {
+                    return nil
+                } else {
+                    if nullable {
+                        return nil
+                    } else {
+                        throw Environment.Errcase.missingKey.d(k + "_COUNT")
+                    }
+                }
+            }
+            
+            guard let count = Int(countStr) else {
+                if optional {
+                    return nil
+                } else {
+                    if nullable {
+                        return nil
+                    } else {
+                        throw Environment.Errcase.typeIncorrect.d(k)
+                    }
+                }
+            }
+            
+            var vs: [Any?] = []
+            for i in 0..<count {
+                if let item = try castValue(
+                    prefix: prefix,
+                    key: "\(k)_\(i + 1)",
+                    value: value,
+                    driverKeys: driverKeys,
+                    getValue: getValue,
+                    extra: extra,
+                    nullable: false
+                ) {
+                    vs.append(item)
+                } else {
+                    if value.isOptional {
+                        vs.append(nil)
+                    } else {
+                        if nullable {
+                            return nil
+                        } else {
+                            throw Environment.Errcase.missingKey.d("\(k)_\(i + 1)")
+                        }
+                    }
+                }
+            }
+            return vs
+        }
     }
 }

@@ -1,6 +1,7 @@
 import Testing
 import Vapor
 import Foundation
+import OrderedCollections
 @testable import WhooshingServer
 
 @Suite("环境变量解析测试集", .serialized)
@@ -21,6 +22,10 @@ struct EnvironmentParsingTests {
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+            
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "2",
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_1": "/User/tester/logfile1.log",
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_2": "/User/tester2/logfile1.log",
             
             "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
             "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_OWNER_ID": "1001",
@@ -57,6 +62,10 @@ struct EnvironmentParsingTests {
         #expect(project.port == 7777)
         #expect(project.hostname == "localhost")
         
+        #expect(project.logFileUrls.count == 2)
+        #expect(project.logFileUrls[0].absoluteString == "/User/tester/logfile1.log")
+        #expect(project.logFileUrls[1].absoluteString == "/User/tester2/logfile1.log")
+        
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
         
@@ -89,6 +98,13 @@ struct EnvironmentParsingTests {
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+            
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "4",
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_1": "/User/tester/logfile1.log",
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_2": "/User/tester2/logfile1.log",
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_3": "/User/tester3/logfile1.log",
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_4": "/User/tester4/logfile1.log",
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_5": "/User/tester5/logfile1.log",
             
             "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
             "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_OWNER_ID": "1001",
@@ -124,6 +140,12 @@ struct EnvironmentParsingTests {
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
         
+        #expect(project.logFileUrls.count == 4)
+        #expect(project.logFileUrls[0].absoluteString == "/User/tester/logfile1.log")
+        #expect(project.logFileUrls[1].absoluteString == "/User/tester2/logfile1.log")
+        #expect(project.logFileUrls[2].absoluteString == "/User/tester3/logfile1.log")
+        #expect(project.logFileUrls[3].absoluteString == "/User/tester4/logfile1.log")
+        
         #expect(project.dbServices[0].id == .init(string: "service_1"))
         #expect(project.dbServices[0].port == 5432)
         #expect(project.dbServices[0].dbs.count == 1)
@@ -154,6 +176,9 @@ struct EnvironmentParsingTests {
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
             
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "1",
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_1": "/User/tester/logfile1.log",
+            
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
@@ -180,6 +205,9 @@ struct EnvironmentParsingTests {
         #expect(project.hostname == "localhost")
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
+        
+        #expect(project.logFileUrls.count == 1)
+        #expect(project.logFileUrls[0].absoluteString == "/User/tester/logfile1.log")
         
         #expect(project.dbServices[0].id == .init(string: "service_1"))
         #expect(project.dbServices[0].port == 5432)
@@ -211,6 +239,9 @@ struct EnvironmentParsingTests {
                 "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
                 "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+                
+                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "1",
+                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_1": "/User/tester/logfile1.log",
                 
                     "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                     "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
@@ -244,6 +275,9 @@ struct EnvironmentParsingTests {
                 "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
                 
+                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "1",
+                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_1": "/User/tester/logfile1.log",
+                
                     "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                     "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                     "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
@@ -276,6 +310,9 @@ struct EnvironmentParsingTests {
                 "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
                 
+                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "1",
+                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_1": "/User/tester/logfile1.log",
+                
                     "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                     "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                     "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
@@ -304,6 +341,9 @@ struct EnvironmentParsingTests {
                 "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
                 "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+                
+                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "1",
+                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_1": "/User/tester/logfile1.log",
                     
                     "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
                     "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
@@ -329,6 +369,9 @@ struct EnvironmentParsingTests {
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
             
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "1",
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_1": "/User/tester/logfile1.log",
+            
             "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
             "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_OWNER_ID": "1001",
             "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_GROUP_ID": "1002",
@@ -342,6 +385,8 @@ struct EnvironmentParsingTests {
         #expect(project.hostname == "localhost")
         #expect(project.dbServices.count == 0)
         #expect(project.managerUrl.absoluteString == "https://example.com")
+        #expect(project.logFileUrls.count == 1)
+        #expect(project.logFileUrls[0].absoluteString == "/User/tester/logfile1.log")
     }
     
     @Test("测试环境变量读取9")
@@ -352,6 +397,8 @@ struct EnvironmentParsingTests {
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+            
+            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "0",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
@@ -368,6 +415,8 @@ struct EnvironmentParsingTests {
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
         
+        #expect(project.logFileUrls.count == 0)
+        
         #expect(project.dbServices[0].id == .init(string: "service_1"))
         #expect(project.dbServices[0].port == 5432)
         #expect(project.dbServices[0].dbs.count == 0)
@@ -375,6 +424,27 @@ struct EnvironmentParsingTests {
         #expect(project.dbServices[1].id == .init(string: "service_2"))
         #expect(project.dbServices[1].port == 5433)
         #expect(project.dbServices[1].dbs.count == 0)
+    }
+    
+    @Test("测试环境变量读取10")
+    func testEnvironmentDetect10() async throws {
+        #expect(throws: Environment.Errcase.ErrType.self, performing: {
+            let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+                "WHOOSHING_API_SERVICE_NAME": "Testing Project",
+                "WHOOSHING_API_SERVICE_PORT": "7777",
+                "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
+                "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+                
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "0",
+                
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
+            ][key] }
+        })
     }
     
     @MainActor

@@ -17,7 +17,7 @@ extension Api {
 extension Api.ServicePara: Environment.Template {
     @inlinable
     static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
-        origin["authentication_url"] = .url
+        origin["authentication_url"] = .url()
     }
     
     @inlinable

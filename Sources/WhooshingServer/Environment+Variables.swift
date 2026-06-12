@@ -22,6 +22,9 @@ public extension Environment {
         public let managerUrl: URL
         /// 可选的域名信息
         public let domain: String?
+        /// 日志文件保存的路径，多个路径将会同时输出多个日志文件
+        /// 日志文件提供 Rotating 功能，单个文件过大将输出至新文件中且备份旧日志
+        public let logFileUrls: [URL]
         
         /// 存储所有的 storage key，可用于遍历 storage 的内容
         public let driverKeys: [any DriverKey.Type]
@@ -55,7 +58,8 @@ public extension Environment {
             dbServices: [DBService] = [],
             managerUrl: URL = .init(string: "http://testing.com")!,
             domain: String? = nil,
-            driverKeys: [any DriverKey.Type] = []
+            driverKeys: [any DriverKey.Type] = [],
+            logFileUrls: [URL] = []
         ) {
             self.name = name
             self.port = port
@@ -64,6 +68,7 @@ public extension Environment {
             self.managerUrl = managerUrl
             self.domain = domain
             self.driverKeys = driverKeys
+            self.logFileUrls = logFileUrls
         }
         
         @inlinable
