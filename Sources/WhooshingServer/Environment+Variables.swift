@@ -266,7 +266,7 @@ public extension Environment {
 }
 
 public extension Environment {
-    protocol DriverKey: StorageKey {
+    protocol DriverKey: StorageKey, Sendable {
         static var label: String { get }
         static var isOptional: Bool { get }
         static var valueType: Environment.Types { get }

@@ -87,11 +87,11 @@ extension Environment {
     @inlinable
     static func get(with prefix: String, driverKeys: [any DriverKey.Type] = []) throws(Errcase.ErrType) -> Config { try .parse(prefix: prefix, driverKeys: driverKeys) }
     
-    public enum Types {
+    public enum Types: Sendable {
         case string
         case stringArr
-        case int(any FixedWidthInteger.Type = Int.self)
-        case intArr(any FixedWidthInteger.Type = Int.self)
+        case int(any (FixedWidthInteger & Sendable).Type = Int.self)
+        case intArr(any (FixedWidthInteger & Sendable).Type = Int.self)
         case base64String
         case base64Data
         case url
@@ -101,7 +101,7 @@ extension Environment {
         case dataTemplates(Template.Type)
     }
 
-    public protocol Template {
+    public protocol Template: Sendable {
         static func envs(driverKeys: [any Environment.DriverKey.Type]) -> OrderedDictionary<String, Environment.Types>
         static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>)
         static func with(driverKeys: [any DriverKey.Type], dic origin: inout OrderedDictionary<String, Environment.Types>)
