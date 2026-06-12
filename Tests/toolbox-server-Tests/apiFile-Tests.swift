@@ -17,7 +17,7 @@ struct ApiFileTests {
         }
     }
     
-    @Test("Send 多线程文件流传输", arguments: [HTTPMethod.POST, .PATCH, .PUT])
+    @Test("Send 多线程文件流传输", .serialized, arguments: [HTTPMethod.POST, .PATCH, .PUT])
     func fileSendTest(method: HTTPMethod) async throws {
         let url = FilePath(TestingShared.normalFilePath)
         let info = try #require(await FileSystem.shared.info(forFileAt: url))
@@ -26,16 +26,16 @@ struct ApiFileTests {
             for _ in 0..<20 {
                 group.addTask {
                     var size = 0
-                    let res = try await client.send(method, to: "http://localhost:\(TestingShared.apiListenPort)/file-echo", body: .file(from: url, progress: .init { ctx in
-                        print("W-\(ctx.index)", terminator: " ")
+                    let res = try await client.send(method, to: "http://localhost:\(TestingShared.apiListenPort)/file-echo", body: .file(from: url, progress: .init { _ in
+                        // print("W-\(ctx.index)", terminator: " ")
                     }))
                     #expect(res.status == .ok)
                     
                     let body = try #require(res.body)
                     let bodyStream = try body.stream().get()
                     
-                    for try await (progress, chunk) in bodyStream.withProgress() {
-                        print("R-\(progress.index)", terminator: " ")
+                    for try await (_, chunk) in bodyStream.withProgress() {
+                        // print("R-\(progress.index)", terminator: " ")
                         size += chunk.readableBytes
                     }
                     
@@ -54,8 +54,8 @@ struct ApiFileTests {
         let info = try #require(await FileSystem.shared.info(forFileAt: url))
         let progress = AsyncProgress()
         Task {
-            for try await ctx in progress {
-                print("W-\(ctx.index)", terminator: " ")
+            for try await _ in progress {
+                // print("W-\(ctx.index)", terminator: " ")
             }
         }
         let res = try await client.post("http://localhost:\(TestingShared.apiListenPort)/file-echo", body: .file(from: url, progress: progress))
@@ -64,8 +64,8 @@ struct ApiFileTests {
         let body = try #require(res.body)
         let bodyStream = try body.stream().get()
         
-        for try await (progress, chunk) in bodyStream.withProgress() {
-            print("R-\(progress.index)", terminator: " ")
+        for try await (_, chunk) in bodyStream.withProgress() {
+            // print("R-\(progress.index)", terminator: " ")
             size += chunk.readableBytes
         }
         

@@ -45,6 +45,9 @@ let package = Package(
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
                 .product(name: "SystemPackage", package: "swift-system"),
                 .product(name: "Logging", package: "swift-log")
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
         .testTarget(
@@ -53,6 +56,9 @@ let package = Package(
                 .product(name: "WhooshingClient", package: "whooshing.toolbox-client"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 .target(name: "WhooshingServer")
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
     ]

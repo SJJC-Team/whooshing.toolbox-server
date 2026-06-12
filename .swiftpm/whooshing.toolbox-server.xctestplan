@@ -1,0 +1,25 @@
+{
+  "configurations" : [
+    {
+      "id" : "6F3C7204-0C65-4359-B1CD-72FCAC4A228B",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "threadSanitizerEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "toolbox-server-Tests",
+        "name" : "toolbox-server-Tests"
+      }
+    }
+  ],
+  "version" : 1
+}

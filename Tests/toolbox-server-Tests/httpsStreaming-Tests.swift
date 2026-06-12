@@ -23,7 +23,7 @@ struct HttpsStreamingTests {
         let stream = AsyncThrowingChannel<ByteBuffer, Error>()
         Task {
             for ctx in Progress(pieces: 10, chunk: 1024) {
-                print("W-\(ctx.index)", terminator: " ")
+                // print("W-\(ctx.index)", terminator: " ")
                 let data = Self.randomData(size: ctx.bytes)
                 await stream.send(data)
             }
@@ -35,8 +35,8 @@ struct HttpsStreamingTests {
         let body = try #require(res.body)
         let bodyStream = try body.stream().get()
         
-        for try await (progress, chunk) in bodyStream.withProgress() {
-            print("R-\(progress.index)", terminator: " ")
+        for try await (_, chunk) in bodyStream.withProgress() {
+            // print("R-\(progress.index)", terminator: " ")
             size += chunk.readableBytes
         }
         
@@ -59,7 +59,7 @@ struct HttpsStreamingTests {
         let stream = AsyncThrowingChannel<ByteBuffer, Error>()
         Task {
             for ctx in Progress(pieces: 100, chunk: 65535) {
-                print("W-\(ctx.index)", terminator: " ")
+                // print("W-\(ctx.index)", terminator: " ")
                 let data = Self.randomData(size: ctx.bytes)
                 await stream.send(data)
             }
@@ -70,8 +70,8 @@ struct HttpsStreamingTests {
         let body = try #require(res.body)
         let bodyStream = try body.stream().get()
         
-        for try await (progress, chunk) in bodyStream.withProgress() {
-            print("R-\(progress.index)", terminator: " ")
+        for try await (_, chunk) in bodyStream.withProgress() {
+            // print("R-\(progress.index)", terminator: " ")
             size += chunk.readableBytes
         }
         
