@@ -5,15 +5,34 @@ import Vapor
 
 public enum Https: ServiceType {
     
-    public static var envPrefix: String { "WHOOSHING_HTTPS_SERVICE" }
+    public static var name: String { "https" }
     
     @frozen
     public struct Debuging: DebugConfig, Sendable {
+        /// 服务配置，原来通过 Whooshing 系统环境变量自动获取
+        ///
+        /// 指定诸如监听地址，PostgreSQL 数据库的连线参数，等等
+        /// 见 ``Environment.Config``
         public let config: Environment.Config
         
+        /// 控制台日志等级，该等级为策略层等级(目标侧闸门)
+        /// 具体被打印的日志等级仍然取决于 logger 本身的应用层闸门等级
+        public let consoleLogLevel: Logger.Level
+        
+        /// 提供参数初始化 Https 依赖参数
+        ///
+        /// - Parameters:
+        ///   - config: 服务配置
+        ///   - consoleLogLevel: 控制台日志等级，默认为 trace, 该等级为策略层等级(目标侧闸门), 具体被打印的日志等级仍然取决于 logger 本身的应用层闸门等级
+        /// - Returns:
+        ///   初始化的 Https 依赖参数
         @inlinable
-        public init(config: Environment.Config = .init()) {
+        public init(
+            config: Environment.Config,
+            consoleLogLevel: Logger.Level = .trace
+        ) {
             self.config = config
+            self.consoleLogLevel = consoleLogLevel
         }
     }
     

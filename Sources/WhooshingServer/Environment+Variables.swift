@@ -5,12 +5,13 @@ import AnyCodable
 import LoggingAdvanced
 import OrderedCollections
 import NIOConcurrencyHelpers
+import Foundation
 
 public extension Environment {
     /// 代表服务模块当前环境的配置项，例如服务端口、数据库信息、域名等。
     @frozen
     struct Config: @unchecked Sendable, CustomStringConvertible, Loggerable {
-        /// 在 configure.yaml 中设置的服务名称
+        /// 模块名称，所有三个子模块(https, inline, api)的模块名称必须相同
         public let name: String
         /// 当前服务监听的端口号
         public let port: Int
@@ -22,9 +23,9 @@ public extension Environment {
         public let managerUrl: URL
         /// 可选的域名信息
         public let domain: String?
-        /// 日志文件保存的路径，多个路径将会同时输出多个日志文件
-        /// 日志文件提供 Rotating 功能，单个文件过大将输出至新文件中且备份旧日志
-        public let logFileUrls: [URL]
+        /// 日志输出配置
+        /// 提供 Rotating 功能，单个文件过大将输出至新文件中且备份旧日志
+        public let log: Log
         
         /// 存储所有的 storage key，可用于遍历 storage 的内容
         public let driverKeys: [any DriverKey.Type]
@@ -37,20 +38,17 @@ public extension Environment {
         private let lock = NIOLock()
         private var __storage = Storage()
         
-        /// 永远不应直接调用该初始化函数
-        @inlinable
-        public init() { self.init(name: "Testing") }
-        
         /// 初始化环境配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
         /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
         /// - Parameters:
-        ///   - name: 环境名称
+        ///   - name: 模块名称，所有三个子模块(https, inline, api)的模块名称必须相同
         ///   - hostname: 服务监听地址
         ///   - port: 服务监听端口
         ///   - dbServices: 数据库服务列表
         ///   - managerUrl: 模块管理器的 URL 链接
         ///   - domain: 可选域名信息
-        ///   - fileStorageParameter: 文件存储系统的基本配置参数，为 nil 表示不支持文件加密系统
+        ///   - log: 日志输出配置，若指定为 nil(仅测试及独立开发环境)，则在用户目录下创建 ~/whooshing_logs/项目名_logs 文件夹
+        ///   - driverKeys: 要注入的驱动列表
         public init(
             name: String,
             port: Int = 6500,
@@ -58,8 +56,8 @@ public extension Environment {
             dbServices: [DBService] = [],
             managerUrl: URL = .init(string: "http://testing.com")!,
             domain: String? = nil,
+            log: Log? = nil,
             driverKeys: [any DriverKey.Type] = [],
-            logFileUrls: [URL] = []
         ) {
             self.name = name
             self.port = port
@@ -67,8 +65,12 @@ public extension Environment {
             self.dbServices = dbServices
             self.managerUrl = managerUrl
             self.domain = domain
+            self.log = log ?? .init(
+                directory: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("whooshing_logs").appendingPathComponent(
+                    (name.split(separator: " ").joined(separator: "_") + "_logs").snakeCase
+                )
+            )
             self.driverKeys = driverKeys
-            self.logFileUrls = logFileUrls
         }
         
         @inlinable
@@ -85,9 +87,38 @@ public extension Environment {
                 "db_services": AnyCodable(dbServices.map { $0.json }),
                 "manager_url": AnyCodable(managerUrl),
                 "domain": AnyCodable(domain),
+                "log": AnyCodable(log.json),
                 "storage": AnyCodable(paras)
             ]
         }
+        
+        @inlinable
+        public var description: String {
+            formatJson(json)
+        }
+    }
+    
+    /// 日志系统的配置项
+    /// 日志文件提供 Rotating 功能，单个文件过大将输出至新文件中且备份旧日志
+    @frozen
+    struct Log: Hashable, Sendable, CustomStringConvertible, Loggerable {
+        /// 日志文件要存的目录，提供 Rotating 功能，单个文件过大将输出至新文件中且备份旧日志
+        /// 日志在该目录中如何分流取决于依赖的模块
+        public let directory: URL
+        
+        /// 初始化日志配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
+        /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
+        @inlinable
+        public init(
+            directory: URL
+        ) {
+            self.directory = directory
+        }
+        
+        @inlinable
+        public var json: [String: AnyCodable] {[
+            "directory": AnyCodable(directory)
+        ]}
         
         @inlinable
         public var description: String {
@@ -205,10 +236,6 @@ public extension Environment {
             }
         }
         
-        /// 永远不应直接调用该初始化函数
-        @inlinable
-        public init() { self = Self(dbServiceId: .init(string: "postgres"), port: 5432, parameter: .init(name: "postgres")) }
-        
         @usableFromInline
         internal init(
             dbServiceId: DatabaseID,
@@ -273,25 +300,57 @@ public extension Environment {
 public extension Environment {
     protocol DriverKey: StorageKey, Sendable {
         static var label: String { get }
-        static var isOptional: Bool { get }
         static var valueType: Environment.Types { get }
+        static func loggerStrategies(for directory: URL) -> [LoggerStrategy]
         static func apply(on storage: Storage, value: Any?) -> Storage
     }
 }
 
 extension Environment.DriverKey {
     @inlinable
-    static var envName: String {
-        (self.isOptional ? "#" : "") + self.label
-    }
-    
-    @inlinable
     public static func apply(on storage: Storage, value: Any?) -> Storage {
         var new = storage
         guard let v = value as? Value else {
-            fatalError("\(self.envName) 环境变量值解析失败")
+            fatalError("\(self.label) 环境变量值解析失败")
         }
         new[self] = v
         return new
+    }
+}
+
+public extension String {
+    /// 将任意字符串转换为规范的小写蛇形命名法（snake_case）
+    /// - Parameter string: 待转换的不规范字符串
+    /// - Returns: 规整后的标准 snake_case 字符串
+    @inlinable
+    var snakeCase: String {
+        guard !self.isEmpty else { return "" }
+        
+        var result = ""
+        result.reserveCapacity(self.utf8.count) // 🚀 性能优化：提前分配内存，避免数组频繁扩容
+        
+        var lastWasUnderscore = false
+        
+        for char in self {
+            // 如果是字母或数字，保留并转为小写
+            if char.isLetter || char.isNumber {
+                result.append(char.lowercased())
+                lastWasUnderscore = false
+            } else {
+                // 如果是特殊字符、空格或标点符号，统一准备替换为下划线
+                // 如果前一个字符已经是下划线了，这里就跳过，防止出现连续的多个 "___"
+                if !result.isEmpty && !lastWasUnderscore {
+                    result.append("_")
+                    lastWasUnderscore = true
+                }
+            }
+        }
+        
+        // 如果字符串末尾正好是一个因特殊字符转换而来的下划线，直接把它切掉
+        if result.hasSuffix("_") {
+            result.removeLast()
+        }
+        
+        return result
     }
 }

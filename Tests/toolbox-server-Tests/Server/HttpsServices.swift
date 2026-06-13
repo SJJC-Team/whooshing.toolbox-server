@@ -18,11 +18,24 @@ struct FilePrepareRes: Content {
 }
 
 struct HttpsService {
-    static func runService() async throws {
+    static func bootstrap() async throws -> Whooshing<Https>.BootstrapParas {
         let testPara = Https.Debuging(
-            config: .init(name: "Testing-Https-\(TestingShared.httpsListenPort)", port: TestingShared.httpsListenPort),
+            config: .init(
+                name: "testing-module",
+                port: TestingShared.httpsListenPort
+            ),
+            consoleLogLevel: .trace    // 为控制台目标的日志等级闸门，自动过滤 trace 等级以下的 log (trace 已经是最低)
         )
-        try await ServiceBootstrap.runHttpsService(with: testPara, routes: routes)
+        
+        var logger = Logger(label: "server.https")
+        logger.logLevel = TestingShared.logLevel
+        return try await Whooshing.bootstrap(.independentDebug(testPara), logger: logger).get()
+    }
+    
+    static func makeService(paras: Whooshing<Https>.BootstrapParas) async throws -> Whooshing<Https> {
+        let woo = try await Whooshing.make(paras).get()
+        try routes(woo, app: woo.app)
+        return woo
     }
         
     static func routes(_ woo: Whooshing<WhooshingServer.Https>, app: Application) throws {

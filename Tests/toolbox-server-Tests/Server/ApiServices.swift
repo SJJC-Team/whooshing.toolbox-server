@@ -3,12 +3,27 @@ import WhooshingServer
 import Cryptos
 
 struct ApiService {
-    static func runService(inline: Whooshing<Inline>) async throws {
-        let testPara = Api.Debuging(config: .init(name: "Tesing-Api-\(TestingShared.apiListenPort)", port: TestingShared.apiListenPort)) { authData in
+    static func bootstrap() async throws -> Whooshing<Api>.BootstrapParas {
+        let testPara = Api.Debuging(
+            config: .init(
+                name: "testing-module",
+                port: TestingShared.apiListenPort
+            ),
+            consoleLogLevel: .trace    // 为控制台目标的日志等级闸门，自动过滤 trace 等级以下的 log (trace 已经是最低)
+        ) { authData in
             guard authData.credential.base64EncodedString() == TestingShared.apiClientCredential else { throw Abort(.badRequest, reason: "用户凭据无效") }
             return try Api.Debuging.testingTokenAuth(with: TestingShared.apiClientTokenStr, encrypted: authData.tokenEncrypted)
         }
-        try await ServiceBootstrap.runApiService(with: testPara, inline: inline, routes: routes)
+        
+        var logger = Logger(label: "server.api")
+        logger.logLevel = TestingShared.logLevel
+        return try await Whooshing<Api>.bootstrap(.independentDebug(testPara), logger: logger).get()
+    }
+    
+    static func makeService(paras: Whooshing<Api>.BootstrapParas, inline: Whooshing<Inline>) async throws -> Whooshing<Api> {
+        let woo = try await Whooshing<Api>.make(paras, with: inline).get()
+        try routes(woo, app: woo.app)
+        return woo
     }
         
     static func routes(_ woo: Whooshing<WhooshingServer.Api>, app: Application) throws {

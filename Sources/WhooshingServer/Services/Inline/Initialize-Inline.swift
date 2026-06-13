@@ -16,7 +16,7 @@ public extension Whooshing where Service == Inline {
 public enum Inline: ServiceType {
     
     @inlinable
-    public static var envPrefix: String { "WHOOSHING_INLINE_SERVICE" }
+    public static var name: String { "inline" }
     
     /// 用于在无依赖 debug (Whooshing.Env.independentDebug) 模式下运行的依赖参数
     ///
@@ -39,6 +39,9 @@ public enum Inline: ServiceType {
         /// 指定诸如监听地址，PostgreSQL 数据库的连线参数，等等
         /// 见 ``Environment.Config``
         public let config: Environment.Config
+        /// 控制台日志等级，该等级为策略层等级(目标侧闸门)
+        /// 具体被打印的日志等级仍然取决于 logger 本身的应用层闸门等级
+        public let consoleLogLevel: Logger.Level
         
         /// 提供参数初始化 Inline 依赖参数
         ///
@@ -47,19 +50,22 @@ public enum Inline: ServiceType {
         ///   - config: 服务配置
         ///   - serviceId: 该服务模块的服务 ID
         ///   - moduleDatas: 其他服务模块的信息，用于验证服务来源是否可信
+        ///   - consoleLogLevel: 控制台日志等级，默认为 trace, 该等级为策略层等级(目标侧闸门), 具体被打印的日志等级仍然取决于 logger 本身的应用层闸门等级
         /// - Returns:
         ///   初始化的 Inline 依赖参数
         @inlinable
         public init(
             rootKey: SendableSymmKey,
-            config: Environment.Config = .init(),
+            config: Environment.Config,
             serviceId: UUID = .init(),
-            moduleDatas: [ModuleData] = []
+            moduleDatas: [ModuleData] = [],
+            consoleLogLevel: Logger.Level = .trace
         ) {
             self.rootKey = rootKey
             self.serviceId = serviceId
             self.moduleDatas = moduleDatas
             self.config = config
+            self.consoleLogLevel = consoleLogLevel
         }
     }
     

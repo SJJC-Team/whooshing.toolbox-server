@@ -13,11 +13,17 @@ public protocol ServiceType: Sendable {
     associatedtype Debuging: DebugConfig
     associatedtype Errcase: ErrList
     typealias Failure = Errcase.ErrType
+    static var name: String { get }
     static var envPrefix: String { get }
+}
+
+public extension ServiceType {
+    static var envPrefix: String { "WHOOSHING_\(name.uppercased())_SERVICE" }
 }
 
 public protocol DebugConfig: Sendable {
     var config: Environment.Config { get }
+    var consoleLogLevel: Logger.Level { get }
 }
 
 /// 描述一个 Whooshing 系统子服务，提供基本的服务控制操作
@@ -138,11 +144,11 @@ public final class Whooshing<Service>: WhooshingService, @unchecked Sendable whe
     public let config: Environment.Config
     /// 当前服务使用的日志记录器
     public var logger: Logger {
-        get { lock.withLock { _logger } }
-        set { lock.withLock { _logger = newValue } }
+        get { lock.withLock { __logger } }
+        set { lock.withLock { __logger = newValue } }
     }
     
-    private var _logger: Logger
+    private var __logger: Logger
     private let lock = NIOLock()
     
     /// 该服务所有连接的数据库
@@ -177,74 +183,71 @@ public final class Whooshing<Service>: WhooshingService, @unchecked Sendable whe
     }
     
     @usableFromInline
-    init(app: Application, config: Environment.Config, debugingData: Service.Debuging?, logger: Logger) {
+    init(
+        app: Application,
+        config: Environment.Config,
+        debugingData: Service.Debuging?,
+        logger: Logger
+    ) {
         self.app = app
         self.config = config
         self.debugingData = debugingData
-        _logger = logger
+        __logger = logger
     }
 }
 
-extension Whooshing where Service == Inline {
-    /// 工厂方法：构建 Inline 服务的运行实例
-    /// - Parameter env: 启动环境
-    @inlinable
-    public static func make(
-        _ env: Mode,
-        driverKeys: [any Environment.DriverKey.Type] = [],
-        logger: Logger
-    ) async -> Result<Whooshing<Service>, Failure> {
-        await makeService(mode: env, driverKeys: driverKeys, logger: logger) { woo throws(Inline.Failure) in
-            try await Service.config(woo, driverKeys: driverKeys)
+public extension Whooshing {
+    @frozen
+    struct BootstrapParas {
+        @usableFromInline
+        let debuging: Service.Debuging?
+        
+        @usableFromInline
+        let logger: Logger
+        
+        @usableFromInline
+        let environment: Environment
+        
+        @usableFromInline
+        let config: Environment.Config
+        
+        @usableFromInline
+        let driverKeys: [any Environment.DriverKey.Type]
+        
+        public let loggingFactory: LoggingFactory
+        
+        @usableFromInline
+        init(
+            debuging: Service.Debuging?,
+            logger: Logger,
+            environment: Environment,
+            config: Environment.Config,
+            driverKeys: [any Environment.DriverKey.Type],
+            loggingFactory: LoggingFactory
+        ) {
+            self.debuging = debuging
+            self.logger = logger
+            self.environment = environment
+            self.config = config
+            self.driverKeys = driverKeys
+            self.loggingFactory = loggingFactory
         }
     }
 }
 
-extension Whooshing where Service == Https {
-    /// 构建 Https 服务的运行实例
-    /// - Parameter env: 启动环境
-    @inlinable
-    public static func make(
-        _ env: Mode,
-        driverKeys: [any Environment.DriverKey.Type] = [],
-        logger: Logger
-    ) async -> Result<Whooshing<Service>, Failure> {
-        await makeService(mode: env, driverKeys: driverKeys, logger: logger) { woo throws(Https.Failure) in
-            try await Service.config(woo)
-        }
-    }
-}
-
-extension Whooshing where Service == Api {
-    /// 构建 API 服务运行实例，并注入 Inline 客户端作为依赖
-    ///
-    /// API 服务依赖于 Inline 服务，因此请保证先创建 Inline 模块
-    /// 后创建 API 模块，并将 Inline 模块作为参数传入
-    ///
+public extension Whooshing {
     /// - Parameters:
-    ///   - env: 启动环境
-    ///   - inline: 预先构建的 Inline 服务
+    ///   - mode: 启动环境
+    ///   - driverKeys: 要注入的驱动列表
+    ///   - logger: 该服务要使用的日志记录器
+    ///   - loggingFactory: 该服务将配置的日志工厂，whooshing 实例不主动启动其 bootstrap 函数，仅配置日志策略，但不启动，由外部调用者自行决定合适启用
     @inlinable
-    public static func make(
-        _ env: Mode,
-        with inline: Whooshing<Inline>,
-        driverKeys: [any Environment.DriverKey.Type] = [],
-        logger: Logger
-    ) async -> Result<Whooshing<Service>, Failure> {
-        await makeService(mode: env, driverKeys: driverKeys, logger: logger) { woo throws(Api.Failure) in
-            try await Service.config(woo, inlineClient: inline.inlineClient, driverKeys: driverKeys)
-        }
-    }
-}
-
-extension Whooshing {
-    @inlinable
-    static func makeService(
-        mode: Mode,
+    static func bootstrap(
+        _ mode: Mode,
         driverKeys: [any Environment.DriverKey.Type] = [],
         logger: Logger,
-        config conf: (Whooshing<Service>) async throws(Service.Failure) -> ()
-    ) async -> Result<Whooshing<Service>, Failure> {
+        loggingFactory: LoggingFactory? = nil
+    ) async -> Result<BootstrapParas, Failure> {
         await .async { () throws(Failure) in
             let initLogger = logger.derive(subId: "sysinit")
             
@@ -265,8 +268,13 @@ extension Whooshing {
                 fatalError("环境变量 \(env.name) 无法识别")
             }
             
+            var strategies: [LoggerStrategy] = []
+            
             var debugPara: Service.Debuging? = nil
             if let dp = mode.debuging {
+                // 仅在测试及独立开发模式下向控制台输出日志
+                strategies.append(.init(label: "console", level: dp.consoleLogLevel))
+                
                 if [Environment.development, .testing].contains(env) {
                     initLogger.info("启动无依赖独立运行模式")
                     debugPara = dp
@@ -285,6 +293,127 @@ extension Whooshing {
                     }
                 }
             }
+            
+            let logDir = config.log.directory.appendingPathComponent(Service.name.lowercased())
+            initLogger.debug("准备日志轮换系统", metadata: ["directory": .stringConvertible(logDir)])
+            
+            let errorLogDir = logDir.appendingPathComponent("error_logs")
+            try required(throws: Errcase.loggingSystemFailed, metadata: ["directory": .stringConvertible(errorLogDir)]) {
+                try strategies.append(
+                    .init(
+                        label: "error",
+                        level: .error,
+                        config: .file(logPrefix: "", directory: errorLogDir, name: "error.log")
+                    )
+                )
+            }
+            
+            let businessLogDir = logDir.appendingPathComponent("business_logs")
+            try required(throws: Errcase.loggingSystemFailed, metadata: ["directory": .stringConvertible(businessLogDir)]) {
+                try strategies.append(
+                    .init(
+                        label: "business",
+                        level: .trace,
+                        config: .file(
+                            match: {
+                                $0.contains("vapor") ||
+                                $0.hasPrefix(logger.label + "." + "woo")
+                            },
+                            directory: businessLogDir,
+                            name: "business.log"
+                        )
+                    )
+                )
+            }
+            
+            for driverKey in driverKeys {
+                strategies += driverKey.loggerStrategies(for: logDir)
+            }
+            
+            let factory = switch loggingFactory {
+            case .none: LoggingFactory(strategies: strategies)
+            case .some(let f): f.append(strategies: strategies)
+            }
+            
+            return BootstrapParas(
+                debuging: debugPara,
+                logger: logger,
+                environment: env,
+                config: config,
+                driverKeys: driverKeys,
+                loggingFactory: factory
+            )
+        }
+    }
+}
+
+extension Whooshing where Service == Inline {
+    /// 工厂方法：构建 Inline 服务的运行实例
+    /// - Parameters:
+    ///   - env: 启动环境
+    ///   - driverKeys: 要注入的驱动列表
+    ///   - logger: 该服务要使用的日志记录器
+    ///   - loggingFactory: 该服务将配置的日志工厂，whooshing 实例不主动启动其 bootstrap 函数，仅配置日志策略，但不启动，由外部调用者自行决定合适启用
+    @inlinable
+    public static func make(
+        _ paras: BootstrapParas
+    ) async -> Result<Whooshing<Service>, Failure> {
+        await makeService(paras: paras) { woo throws(Inline.Failure) in
+            try await Service.config(woo, driverKeys: paras.driverKeys)
+        }
+    }
+}
+
+extension Whooshing where Service == Https {
+    /// 构建 Https 服务的运行实例
+    /// - Parameters:
+    ///   - env: 启动环境
+    ///   - driverKeys: 要注入的驱动列表
+    ///   - logger: 该服务要使用的日志记录器
+    ///   - loggingFactory: 该服务将配置的日志工厂，whooshing 实例不主动启动其 bootstrap 函数，仅配置日志策略，但不启动，由外部调用者自行决定合适启用
+    @inlinable
+    public static func make(
+        _ paras: BootstrapParas
+    ) async -> Result<Whooshing<Service>, Failure> {
+        await makeService(paras: paras) { woo throws(Https.Failure) in
+            try await Service.config(woo)
+        }
+    }
+}
+
+extension Whooshing where Service == Api {
+    /// 构建 API 服务运行实例，并注入 Inline 客户端作为依赖
+    ///
+    /// API 服务依赖于 Inline 服务，因此请保证先创建 Inline 模块
+    /// 后创建 API 模块，并将 Inline 模块作为参数传入
+    ///
+    /// - Parameters:
+    ///   - paras: 启动参数，由 bootstrap() 函数取得
+    ///   - inline: 预先构建的 Inline 服务
+    @inlinable
+    public static func make(
+        _ paras: BootstrapParas,
+        with inline: Whooshing<Inline>
+    ) async -> Result<Whooshing<Service>, Failure> {
+        await makeService(paras: paras) { woo throws(Api.Failure) in
+            try await Service.config(woo, inlineClient: inline.inlineClient, driverKeys: paras.driverKeys)
+        }
+    }
+}
+ 
+extension Whooshing {
+    @inlinable
+    static func makeService(
+        paras: BootstrapParas,
+        config conf: (Whooshing<Service>) async throws(Service.Failure) -> ()
+    ) async -> Result<Whooshing<Service>, Failure> {
+        await .async() { () throws(Failure) in
+            let debugPara = paras.debuging
+            let logger = paras.logger
+            let env = paras.environment
+            let config = paras.config
+            
+            let initLogger = logger.derive(subId: "sysinit")
             
             initLogger.debug("准备 Vapor 实例")
 
@@ -326,7 +455,7 @@ extension Whooshing {
                     }
                 }
             }
-            let service = Self(app: app, config: config, debugingData: debugPara, logger: logger)
+            let service = Self(app: app, config: config, debugingData: debugPara, logger: logger.derive(subId: "woo"))
             do {
                 try await conf(service)
             } catch {

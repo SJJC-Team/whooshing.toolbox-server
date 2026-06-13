@@ -81,35 +81,18 @@ struct TestingShared {
     }
     nonisolated(unsafe) private static var __initLoggingSystem = false
     private static let lock = NIOLock()
-    
-    static let loggingSystem: Void = {
-        var factory = LoggingFactory()
-        factory.add("Console")
-        factory.bootstrap()
-    }()
 }
 
 let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 30)
 
-func initLoggingSystemIfNot() {
-    if !TestingShared.initLoggingSystem {
-        _ = TestingShared.loggingSystem
-        TestingShared.initLoggingSystem = true
-    }
-}
-
 func makeHttpsClient() -> HttpsClient {
-    initLoggingSystemIfNot()
-    
-    var logger = Logger(label: "Testing-Https")
+    var logger = Logger(label: "client-https")
     logger.logLevel = TestingShared.logLevel
     return HttpsClient(in: eventLoopGroup.next(), logger: logger)
 }
 
 func makeInlineClient(rootKey: SendableSymmKey, serviceId: UUID) -> InlineClient {
-    initLoggingSystemIfNot()
-    
-    var logger = Logger(label: "Testing-Inline")
+    var logger = Logger(label: "client-inline")
     logger.logLevel = TestingShared.logLevel
     let client = InlineClient(eventLoop: eventLoopGroup.next(), logger: logger, byteBufferAllocator: .init())
     let ioHandler = Inline.RequestIOCrypto(client: client)
@@ -119,15 +102,13 @@ func makeInlineClient(rootKey: SendableSymmKey, serviceId: UUID) -> InlineClient
 }
 
 func makeApiClient(credential: String, token: String) -> ApiClient {
-    initLoggingSystemIfNot()
-    
-    var logger = Logger(label: "Testing-Api")
+    var logger = Logger(label: "client-api")
     logger.logLevel = TestingShared.logLevel
     return ApiClient(credential: credential, token: token, eventLoop: eventLoopGroup.next(), logger: logger)
 }
 
 func makeHttpsWebSocket() -> HttpsWebSocket {
-    let logger = Logger(label: "Testing-HTTPS")
+    let logger = Logger(label: "websocket-client-https")
     return HttpsWebSocket(in: eventLoopGroup.next(), logger: logger)
 }
 

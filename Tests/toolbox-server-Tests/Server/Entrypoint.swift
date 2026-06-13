@@ -2,11 +2,12 @@ import Vapor
 import WhooshingServer
 import Cryptos
 import Testing
+import LoggingAdvanced
 
 enum Entrypoint {
-    nonisolated(unsafe) static var httpsApp: Whooshing<Https>?
-    nonisolated(unsafe) static var apiApp: Whooshing<Api>?
-    nonisolated(unsafe) static var inlineApp: Whooshing<Inline>?
+    nonisolated(unsafe) static var httpsApp: Whooshing<Https>!
+    nonisolated(unsafe) static var apiApp: Whooshing<Api>!
+    nonisolated(unsafe) static var inlineApp: Whooshing<Inline>!
     
     private enum WatchdogResult: Sendable {
         case shouldStop
@@ -16,20 +17,29 @@ enum Entrypoint {
         shouldStop: @escaping @Sendable () async -> Bool,
         onReady: @escaping @Sendable () async -> Void
     ) async throws {
-        initLoggingSystemIfNot()
+        let inlineBootstrapPara = try await InlineService.bootstrap()
+        let httpsBootstrapPara = try await HttpsService.bootstrap()
+        let apiBootstrapPara = try await ApiService.bootstrap()
         
-        let inline = try await InlineService.makeService()
+        LoggingFactory(factories: [
+            inlineBootstrapPara.loggingFactory,
+            httpsBootstrapPara.loggingFactory,
+            apiBootstrapPara.loggingFactory
+        ]).bootstrap()
+        
+        inlineApp = try await InlineService.makeService(paras: inlineBootstrapPara)
+        httpsApp = try await HttpsService.makeService(paras: httpsBootstrapPara)
+        apiApp = try await ApiService.makeService(paras: apiBootstrapPara, inline: inlineApp)
         
         try await withThrowingTaskGroup(of: WatchdogResult?.self) { group in
             
             // 1. 启动三大核心服务
             group.addTask {
-                Self.inlineApp = inline
-                try await ServiceBootstrap.run(woo: inline)
+                try await ServiceBootstrap.run(woo: inlineApp)
                 return nil
             }
             group.addTask {
-                try await HttpsService.runService()
+                try await ServiceBootstrap.run(woo: httpsApp)
                 return nil
             }
             group.addTask {
@@ -37,7 +47,7 @@ enum Entrypoint {
                     try await Task.sleep(nanoseconds: 250_000_000)
                 }
 
-                try await ApiService.runService(inline: inline)
+                try await ServiceBootstrap.run(woo: apiApp)
                 return nil
             }
             
@@ -73,9 +83,9 @@ enum Entrypoint {
                 if case .shouldStop = result {
                     print("外层控制中心收到信号，正在安全取消所有服务...")
                     group.cancelAll()
-                    try! await httpsApp!.asyncShutdown().get()
-                    try! await apiApp!.asyncShutdown().get()
-                    try! await inlineApp!.asyncShutdown().get()
+                    try! await httpsApp.asyncShutdown().get()
+                    try! await apiApp.asyncShutdown().get()
+                    try! await inlineApp.asyncShutdown().get()
                     break
                 }
             }

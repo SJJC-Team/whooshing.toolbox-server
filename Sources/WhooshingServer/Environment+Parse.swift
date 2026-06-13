@@ -16,14 +16,14 @@ extension Environment.Config: Environment.Template {
         origin["hostname"] = .string()
         origin["domain"] = .string(optional: true)
         origin["manager_url"] = .url()
-        origin["db_services"] = .array(.dataTemplate(Environment.DBService.self))
-        origin["log_file_urls"] = .array(.url())
+        origin["db_services"] = .array(.template(Environment.DBService.self))
+        origin["log"] = .template(Environment.Log.self)
     }
     
     @inlinable
     public static func with(driverKeys: [any Environment.DriverKey.Type], dic origin: inout OrderedDictionary<String, Environment.Types>) {
         for key in driverKeys {
-            origin[key.envName] = key.valueType
+            origin[key.label] = key.valueType
         }
     }
     
@@ -32,14 +32,26 @@ extension Environment.Config: Environment.Template {
         self.name = data["name"] as! String
         self.port = data["port"] as! Int
         self.hostname = data["hostname"] as! String
-        self.dbServices = data["db_services"] as! [Environment.DBService]
         self.domain = data["domain"] as? String
         self.managerUrl = data["manager_url"] as! URL
-        self.logFileUrls = data["log_file_urls"] as! [URL]
+        self.dbServices = data["db_services"] as! [Environment.DBService]
+        self.log = data["log"] as! Environment.Log
         self.driverKeys = driverKeys
         for key in driverKeys {
             self.storage = key.apply(on: storage, value: data[key.label])
         }
+    }
+}
+
+extension Environment.Log: Environment.Template {
+    @inlinable
+    public static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
+        origin["directory"] = .url()
+    }
+    
+    @inlinable
+    public init(data: [String : Any], driverKeys: [any Environment.DriverKey.Type], extra: [String: Any]) {
+        self.directory = data["directory"] as! URL
     }
 }
 
@@ -48,7 +60,7 @@ extension Environment.DBService: Environment.Template {
     public static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
         origin["name"] = .string()
         origin["port"] = .int()
-        origin["dbs"] = .array(.dataTemplate(Environment.DB.self))
+        origin["dbs"] = .array(.template(Environment.DB.self))
     }
     
     @inlinable
@@ -97,7 +109,7 @@ extension Environment {
         case url(optional: Bool = false)
         case uri(optional: Bool = false)
         case uuid(optional: Bool = false)
-        case dataTemplate(Template.Type, optional: Bool = false)
+        case template(Template.Type, optional: Bool = false)
         case array(Self, optional: Bool = false)
         
         public var isOptional: Bool {
@@ -109,7 +121,7 @@ extension Environment {
             case .url(let optional): optional
             case .uri(let optional): optional
             case .uuid(let optional): optional
-            case .dataTemplate(_, let optional): optional
+            case .template(_, let optional): optional
             case .array(_, let optional): optional
             }
         }
@@ -120,7 +132,6 @@ extension Environment {
         static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>)
         static func with(driverKeys: [any DriverKey.Type], dic origin: inout OrderedDictionary<String, Environment.Types>)
         init(data: [String: Any], driverKeys: [any DriverKey.Type], extra: [String: Any])
-        init()
     }
 
     @frozen
@@ -176,16 +187,22 @@ extension Environment.Template {
         var values: [String: Any] = [:]
         for (key, v) in Self.envs(driverKeys: driverKeys) {
             let k = prefix == nil ? key : "\(prefix!)_\(key.uppercased())"
+            let optional = v.isOptional
             
-            values[key] = try castValue(
+            if let res = try castValue(
                 prefix: prefix,
                 key: k,
                 value: v,
+                optional: optional,
                 driverKeys: driverKeys,
                 getValue: getValue,
                 extra: values,
                 nullable: nullable
-            )
+            ) {
+                values[key] = res
+            } else if !optional {
+                return nil
+            }
         }
         return Self(data: values, driverKeys: driverKeys, extra: extra)
     }
@@ -195,24 +212,21 @@ extension Environment.Template {
         prefix: String?,
         key k: String,
         value v: Environment.Types,
+        optional: Bool,
         driverKeys: [any Environment.DriverKey.Type],
         getValue: @escaping ((String) -> String?),
         extra: [String: Any] = [:],
         nullable: Bool
     ) throws(Environment.Errcase.ErrType) -> Any? {
         let value: String!
-        let optional = v.isOptional
+        
         switch v {
         case .string, .int, .url, .uri, .uuid, .base64Data, .base64String:
             guard let vv = getValue(k) else {
-                if optional {
+                if optional || nullable {
                     return nil
                 } else {
-                    if nullable {
-                        return nil
-                    } else {
-                        throw Environment.Errcase.missingKey.d(k)
-                    }
+                    throw Environment.Errcase.missingKey.d(k)
                 }
             }
             value = vv
@@ -247,42 +261,32 @@ extension Environment.Template {
             guard let v = UUID(uuidString: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
             return v
             
-        case .dataTemplate(let template, _):
-            if optional {
-                return try template.nullableParse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: extra, nullable: true)
-            } else {
-                if nullable {
-                    guard let res = try template.nullableParse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: extra, nullable: true) else {
-                        return nil
-                    }
-                    return res
-                } else {
-                    return try template.parse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: extra)
-                }
-            }
-            
-        case .array(let value, _):
-            guard let countStr = getValue(k + "_COUNT") else {
-                if optional {
+        case .template(let template, _):
+            guard let v = try template.nullableParse(prefix: k, driverKeys: driverKeys, getValue: getValue, extra: extra, nullable: optional) else {
+                if optional || nullable {
                     return nil
                 } else {
-                    if nullable {
-                        return nil
-                    } else {
-                        throw Environment.Errcase.missingKey.d(k + "_COUNT")
-                    }
+                    throw Environment.Errcase.missingKey.d(k)
+                }
+            }
+            return v
+            
+        case .array(let value, _):
+            let isItemOptional = value.isOptional
+            
+            guard let countStr = getValue(k + "_COUNT") else {
+                if optional || nullable {
+                    return nil
+                } else {
+                    throw Environment.Errcase.missingKey.d(k + "_COUNT")
                 }
             }
             
             guard let count = Int(countStr) else {
-                if optional {
+                if optional || nullable {
                     return nil
                 } else {
-                    if nullable {
-                        return nil
-                    } else {
-                        throw Environment.Errcase.typeIncorrect.d(k)
-                    }
+                    throw Environment.Errcase.typeIncorrect.d(k)
                 }
             }
             
@@ -292,6 +296,7 @@ extension Environment.Template {
                     prefix: prefix,
                     key: "\(k)_\(i + 1)",
                     value: value,
+                    optional: isItemOptional,
                     driverKeys: driverKeys,
                     getValue: getValue,
                     extra: extra,
@@ -299,14 +304,10 @@ extension Environment.Template {
                 ) {
                     vs.append(item)
                 } else {
-                    if value.isOptional {
+                    if isItemOptional {
                         vs.append(nil)
                     } else {
-                        if nullable {
-                            return nil
-                        } else {
-                            throw Environment.Errcase.missingKey.d("\(k)_\(i + 1)")
-                        }
+                        throw Environment.Errcase.missingKey.d("\(k)_\(i + 1)")
                     }
                 }
             }

@@ -1,6 +1,7 @@
 import Testing
 import Vapor
 import Foundation
+import LoggingAdvanced
 import OrderedCollections
 @testable import WhooshingServer
 
@@ -8,11 +9,22 @@ extension Environment.Config {
     var extras: [ExtraTestingEnvConfig] { self.storage[ExtraKey.self]! }
 }
 
+extension Environment.Config {
+    var optionalExtras: ExtraTestingEnvConfigItem? { self.storage[OptionalExtraKey.self] ?? nil }
+}
+
 struct ExtraKey: Environment.DriverKey {
     typealias Value = [ExtraTestingEnvConfig]
     static let label = "extra"
-    static let isOptional = false
-    static let valueType: Vapor.Environment.Types = .array(.dataTemplate(ExtraTestingEnvConfig.self))
+    static let valueType: Vapor.Environment.Types = .array(.template(ExtraTestingEnvConfig.self))
+    static func loggerStrategies(for directory: URL) -> [LoggerStrategy] { [] }
+}
+
+struct OptionalExtraKey: Environment.DriverKey {
+    typealias Value = ExtraTestingEnvConfigItem?
+    static let label = "optional_extra"
+    static let valueType: Vapor.Environment.Types = .template(ExtraTestingEnvConfigItem.self, optional: true)
+    static func loggerStrategies(for directory: URL) -> [LoggerStrategy] { [] }
 }
 
 struct ExtraTestingEnvConfig: Environment.Template {
@@ -39,7 +51,7 @@ struct ExtraTestingEnvConfig: Environment.Template {
         origin["optional_array"] = .array(.string(optional: true), optional: true)
         origin["optional_nested_array"] = .array(.array(.int(), optional: true))
         origin["nested_array"] = .array(.array(.int()))
-        origin["complex_items"] = .array(.array(.array(.dataTemplate(ExtraTestingEnvConfigItem.self))))
+        origin["complex_items"] = .array(.array(.array(.template(ExtraTestingEnvConfigItem.self))))
     }
     
     init(data: [String : Any], driverKeys: [any Vapor.Environment.DriverKey.Type], extra: [String : Any]) {
@@ -95,9 +107,7 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
                 "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
                 
-                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "2",
-                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_1": "/User/tester/logfile1.log",
-                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_2": "/User/tester2/logfile1.log",
+                "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
                 
                 "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
                 "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_OWNER_ID": "1001",
@@ -134,16 +144,14 @@ struct DriverEnvParsingTests {
     
     @Test("测试环境变量读取")
     func testEnvironmentDetect() async throws {
-        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE", driverKeys: [ExtraKey.self]) { key in [
+        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE", driverKeys: [ExtraKey.self, OptionalExtraKey.self]) { key in [
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
             
-            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "2",
-            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_1": "/User/tester/logfile1.log",
-            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_2": "/User/tester2/logfile1.log",
+            "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
             "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
             "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_OWNER_ID": "1001",
@@ -194,9 +202,7 @@ struct DriverEnvParsingTests {
         #expect(project.port == 7777)
         #expect(project.hostname == "localhost")
         
-        #expect(project.logFileUrls.count == 2)
-        #expect(project.logFileUrls[0].absoluteString == "/User/tester/logfile1.log")
-        #expect(project.logFileUrls[1].absoluteString == "/User/tester2/logfile1.log")
+        #expect(project.log.directory.absoluteString == "/User/tester/logfile.log")
         
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
@@ -221,6 +227,8 @@ struct DriverEnvParsingTests {
         #expect(project.dbServices[1].dbs[1].parameter.password == "woo_test_2_2")
         #expect(project.dbServices[1].dbs[1].parameter.fileStorageKey == TestingShared.wrongApiClientToken)
         
+        #expect(project.optionalExtras == nil)
+        
         #expect(project.extras.count == 1)
         #expect(project.extras[0].optionalArray == nil)
         #expect(project.extras[0].nestedArray.count == 1)
@@ -236,14 +244,14 @@ struct DriverEnvParsingTests {
     
     @Test("测试环境变量读取2")
     func testEnvironmentDetect2() async throws {
-        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE", driverKeys: [ExtraKey.self]) { key in [
+        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE", driverKeys: [ExtraKey.self, OptionalExtraKey.self]) { key in [
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
             
-            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "0",
+            "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
@@ -252,6 +260,9 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
+            
+            "WHOOSHING_API_SERVICE_OPTIONAL_EXTRA_DATA": "extra",
+            "WHOOSHING_API_SERVICE_OPTIONAL_EXTRA_INDEX": "28",
             
             "WHOOSHING_API_SERVICE_EXTRA_COUNT": "1",
             
@@ -276,13 +287,17 @@ struct DriverEnvParsingTests {
         #expect(project.hostname == "localhost")
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
-        #expect(project.logFileUrls.count == 0)
+        #expect(project.log.directory.absoluteString == "/User/tester/logfile.log")
         #expect(project.dbServices[0].id == .init(string: "service_1"))
         #expect(project.dbServices[0].port == 5432)
         #expect(project.dbServices[0].dbs.count == 0)
         #expect(project.dbServices[1].id == .init(string: "service_2"))
         #expect(project.dbServices[1].port == 5433)
         #expect(project.dbServices[1].dbs.count == 0)
+        
+        let optionalExtras = try #require(project.optionalExtras)
+        #expect(optionalExtras.data == "extra")
+        #expect(optionalExtras.index == 28)
         
         #expect(project.extras.count == 1)
         let optionalArray = try #require(project.extras[0].optionalArray)
@@ -309,7 +324,7 @@ struct DriverEnvParsingTests {
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
             
-            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "0",
+            "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
@@ -318,6 +333,9 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
+            
+            "WHOOSHING_API_SERVICE_OPTIONAL_EXTRA_DATA": "extra",
+            "WHOOSHING_API_SERVICE_OPTIONAL_EXTRA_INDEX": "28",
             
             "WHOOSHING_API_SERVICE_EXTRA_COUNT": "1",
             
@@ -342,13 +360,15 @@ struct DriverEnvParsingTests {
         #expect(project.hostname == "localhost")
         #expect(project.dbServices.count == 2)
         #expect(project.managerUrl.absoluteString == "https://example.com")
-        #expect(project.logFileUrls.count == 0)
+        #expect(project.log.directory.absoluteString == "/User/tester/logfile.log")
         #expect(project.dbServices[0].id == .init(string: "service_1"))
         #expect(project.dbServices[0].port == 5432)
         #expect(project.dbServices[0].dbs.count == 0)
         #expect(project.dbServices[1].id == .init(string: "service_2"))
         #expect(project.dbServices[1].port == 5433)
         #expect(project.dbServices[1].dbs.count == 0)
+        
+        #expect(project.optionalExtras == nil)
         
         #expect(project.extras.count == 1)
         let optionalArray = try #require(project.extras[0].optionalArray)
@@ -377,7 +397,7 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
                 
-                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "0",
+                "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
@@ -416,7 +436,7 @@ struct DriverEnvParsingTests {
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
             
-            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "0",
+            "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
@@ -475,14 +495,14 @@ struct DriverEnvParsingTests {
     
     @Test("测试环境变量读取6")
     func testEnvironmentDetect6() async throws {
-        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE", driverKeys: [ExtraKey.self]) { key in [
+        let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE", driverKeys: [ExtraKey.self, OptionalExtraKey.self]) { key in [
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
             
-            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "0",
+            "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
@@ -523,6 +543,7 @@ struct DriverEnvParsingTests {
         ][key] }
         
         #expect(project.extras.count == 1)
+        #expect(project.optionalExtras == nil)
         let optionalArray = try #require(project.extras[0].optionalArray)
         #expect(optionalArray.count == 3)
         #expect(optionalArray[0] == nil)
@@ -558,7 +579,7 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
                 
-                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "0",
+                "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
@@ -609,7 +630,7 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
                 
-                "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "0",
+                "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
@@ -633,7 +654,7 @@ struct DriverEnvParsingTests {
             "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "1",
             
-            "WHOOSHING_API_SERVICE_LOG_FILE_URLS_COUNT": "0",
+            "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",

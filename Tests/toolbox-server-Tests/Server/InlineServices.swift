@@ -4,18 +4,27 @@ import Cryptos
 import Foundation
 
 struct InlineService {
-    static func makeService() async throws -> Whooshing<Inline> {
+    static func bootstrap() async throws -> Whooshing<Inline>.BootstrapParas {
         let testPara = Inline.Debuging(
             rootKey: TestingShared.rootKey,
-            config: .init(name: "Testing-Inline-\(TestingShared.inlineListenPort)", port: TestingShared.inlineListenPort),
+            config: .init(
+                name: "testing-module",
+                port: TestingShared.inlineListenPort
+            ),
             serviceId: TestingShared.serviceIds[0],
             moduleDatas: TestingShared.serviceIds.enumerated().map {
                 .init(name: "Testing-Inline-\(TestingShared.inlineListenPort + $0)", serviceId: $1, connection: nil)
-            }
+            },
+            consoleLogLevel: .trace    // 为控制台目标的日志等级闸门，自动过滤 trace 等级以下的 log (trace 已经是最低)
         )
-        var logger = Logger(label: "client.inline")
+        
+        var logger = Logger(label: "server.inline")
         logger.logLevel = TestingShared.logLevel
-        let woo = try await Whooshing<Inline>.make(.independentDebug(testPara), logger: logger).get()
+        return try await Whooshing.bootstrap(.independentDebug(testPara), logger: logger).get()
+    }
+    
+    static func makeService(paras: Whooshing<Inline>.BootstrapParas) async throws -> Whooshing<Inline> {
+        let woo = try await Whooshing.make(paras).get()
         try routes(woo, app: woo.app)
         return woo
     }
