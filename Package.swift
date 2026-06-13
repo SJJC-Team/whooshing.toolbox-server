@@ -7,7 +7,7 @@ let package = Package(
     name: "whooshing.toolbox-server",
     platforms: [
         .macOS(.v13),
-        .iOS(.v14),
+        .iOS(.v16),
         .watchOS(.v6),
         .tvOS(.v13),
     ],
