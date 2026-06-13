@@ -25,6 +25,8 @@ enum Entrypoint {
             inlineBootstrapPara.loggingFactory,
             httpsBootstrapPara.loggingFactory,
             apiBootstrapPara.loggingFactory
+        ]).append(strategies: [
+            .init(label: "console", level: .trace)
         ]).bootstrap()
         
         inlineApp = try await InlineService.makeService(paras: inlineBootstrapPara)

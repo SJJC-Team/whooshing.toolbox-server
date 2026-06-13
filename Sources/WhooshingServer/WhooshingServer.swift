@@ -23,7 +23,6 @@ public extension ServiceType {
 
 public protocol DebugConfig: Sendable {
     var config: Environment.Config { get }
-    var consoleLogLevel: Logger.Level { get }
 }
 
 /// 描述一个 Whooshing 系统子服务，提供基本的服务控制操作
@@ -198,7 +197,7 @@ public final class Whooshing<Service>: WhooshingService, @unchecked Sendable whe
 
 public extension Whooshing {
     @frozen
-    struct BootstrapParas {
+    struct BootstrapParas: Sendable {
         @usableFromInline
         let debuging: Service.Debuging?
         
@@ -272,9 +271,6 @@ public extension Whooshing {
             
             var debugPara: Service.Debuging? = nil
             if let dp = mode.debuging {
-                // 仅在测试及独立开发模式下向控制台输出日志
-                strategies.append(.init(label: "console", level: dp.consoleLogLevel))
-                
                 if [Environment.development, .testing].contains(env) {
                     initLogger.info("启动无依赖独立运行模式")
                     debugPara = dp

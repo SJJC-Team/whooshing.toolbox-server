@@ -73,27 +73,20 @@ public enum Api: ServiceType {
         /// 见 ``Environment.Config``
         public let config: Environment.Config
         
-        /// 控制台日志等级，该等级为策略层等级(目标侧闸门)
-        /// 具体被打印的日志等级仍然取决于 logger 本身的应用层闸门等级
-        public let consoleLogLevel: Logger.Level
-        
         /// 提供参数初始化 Api 依赖参数
         ///
         /// - Parameters:
         ///   - config: 用户身份认证的机制回调函数
         ///   - auth: 用户身份认证的机制回调函数
-        ///   - consoleLogLevel: 控制台日志等级，默认为 trace, 该等级为策略层等级(目标侧闸门), 具体被打印的日志等级仍然取决于 logger 本身的应用层闸门等级
         /// - Returns:
         ///   初始化的 Api 依赖参数
         @inlinable
         public init(
             config: Environment.Config,
-            consoleLogLevel: Logger.Level = .trace,
             auth: @escaping Auth
         ) {
             self.config = config
             self.auth = auth
-            self.consoleLogLevel = consoleLogLevel
         }
         
         /// 验证一个加密过后的用户密钥(encrypted)是否是由原密钥(origin)加密得来的
