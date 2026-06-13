@@ -14,8 +14,7 @@ struct InlineService {
             serviceId: TestingShared.serviceIds[0],
             moduleDatas: TestingShared.serviceIds.enumerated().map {
                 .init(name: "Testing-Inline-\(TestingShared.inlineListenPort + $0)", serviceId: $1, connection: nil)
-            },
-            consoleLogLevel: .trace    // 为控制台目标的日志等级闸门，自动过滤 trace 等级以下的 log (trace 已经是最低)
+            }
         )
         
         var logger = Logger(label: "server.inline")
