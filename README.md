@@ -48,7 +48,7 @@ Whooshing 系统用于创建服务模块的依赖工具库，提供了统一的�
 在你的 Package.swift 加入：
 
 ``` swift
-.package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-server.git", from: "1.2.2")
+.package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-server.git", from: "1.2.3")
 ```
 
 并在你所依赖的 target 中添加：
@@ -74,7 +74,7 @@ Whooshing 系统用于创建服务模块的依赖工具库，提供了统一的�
 
 ### 运行环境
 
-* **macOS** (> 11.0)
+* **macOS** (> 13.0)
 * **iOS** (> 14.0)
 * **Linux** (> 20)
 * **Swift** (> 6.0)

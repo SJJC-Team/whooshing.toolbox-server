@@ -291,7 +291,7 @@ public extension Whooshing {
             }
             
             let logDir = config.log.directory.appendingPathComponent(Service.name.lowercased())
-            initLogger.debug("准备日志轮换系统", metadata: ["directory": .stringConvertible(logDir)])
+            initLogger.debug("准备日志轮转系统", metadata: ["directory": .stringConvertible(logDir)])
             
             let errorLogDir = logDir.appendingPathComponent("error_logs")
             try required(throws: Errcase.loggingSystemFailed, metadata: ["directory": .stringConvertible(errorLogDir)]) {

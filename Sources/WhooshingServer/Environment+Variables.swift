@@ -66,8 +66,8 @@ public extension Environment {
             self.managerUrl = managerUrl
             self.domain = domain
             self.log = log ?? .init(
-                directory: getLogHomeDirectoryURL().appendingPathComponent("whooshing_logs").appendingPathComponent(
-                    (name.split(separator: " ").joined(separator: "_") + "_logs").snakeCase
+                directory: .homeDirectoryURL.appending(component: "whooshing_logs").appending(
+                    component: (name.split(separator: " ").joined(separator: "_") + "_logs").snakeCase
                 )
             )
             self.driverKeys = driverKeys
@@ -355,14 +355,17 @@ public extension String {
     }
 }
 
-func getLogHomeDirectoryURL() -> URL {
-    #if os(iOS)
-    // iOS / iOS 模拟器环境：使用沙盒内的 Caches 或者是 Documents 目录
-    // 对于日志文件，推荐放在 Caches 目录下，防止被 iCloud 自动备份浪费空间
-    return FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-    
-    #else
-    // macOS / Linux 服务器环境：大方使用用户主目录
-    return FileManager.default.homeDirectoryForCurrentUser
-    #endif
+public extension URL {
+    static var homeDirectoryURL: URL {
+        #if os(iOS)
+        // iOS / iOS 模拟器环境：使用沙盒内的 Caches 或者是 Documents 目录
+        // 对于日志文件，推荐放在 Caches 目录下，防止被 iCloud 自动备份浪费空间
+        return FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        
+        #else
+        // macOS / Linux 服务器环境：大方使用用户主目录
+        return FileManager.default.homeDirectoryForCurrentUser
+        #endif
+    }
+
 }
