@@ -441,6 +441,51 @@ struct EnvironmentParsingTests {
         })
     }
     
+    @Test("测试环境变量读取11")
+    func testEnvironmentDetect11() async throws {
+        #expect(throws: Environment.Errcase.ErrType.self, performing: {
+            let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+                "WHOOSHING_API_SERVICE_NAME": "Testing Project",
+                "WHOOSHING_API_SERVICE_PORT": "7777",
+                "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
+                "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
+                "WHOOSHING_API_SERVICE_HOSTNAME": "localhost",
+                
+                "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
+                
+                "WHOOSHING_API_SERVICE_FILE_STORAGE_DIR": "~/testing",
+                "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_OWNER_ID": "1001",
+                "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_GROUP_ID": "1002",
+                "WHOOSHING_API_SERVICE_FILE_STORAGE_UNIX_PERMISSION_RWX": "480",
+                
+                "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
+                
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
+                
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_NAME": "woo_db",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_USER": "woo",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_PASSWORD": "woo_test",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_FILE_STORAGE_KEY": "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI=",
+                    
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
+                    "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "2",
+                
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_NAME": "woo_db_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_USER": "woo_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_PASSWORD": "woo_test_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_1_FILE_STORAGE_KEY": "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI=",
+                        
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_NAME": "woo_db_2_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_USER": "woo_2_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_PASSWORD": "woo_test_2_2",
+                        "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_FILE_STORAGE_KEY": "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI=",
+            ][key] }
+        })
+    }
+    
     @MainActor
     @Test("测试结束")
     func end() async throws {
