@@ -21,6 +21,7 @@ struct HttpsService {
     static func bootstrap() async throws -> Whooshing<Https>.BootstrapParas {
         let testPara = Https.Debuging(
             config: .init(
+                id: ServiceBootstrap.moduleId,
                 name: "testing-module",
                 port: TestingShared.httpsListenPort
             )

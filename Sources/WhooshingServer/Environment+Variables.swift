@@ -11,6 +11,9 @@ public extension Environment {
     /// 代表服务模块当前环境的配置项，例如服务端口、数据库信息、域名等。
     @frozen
     struct Config: @unchecked Sendable, CustomStringConvertible, Loggerable {
+        /// 模块 ID，又名 moduleId，仅用于模块区分，与 Inline 模块的 ServiceId 不同，切勿混用
+        /// 所有三个子模块(https, inline, api)的模块 ID 必须相同
+        public let id: UUID
         /// 模块名称，所有三个子模块(https, inline, api)的模块名称必须相同
         public let name: String
         /// 当前服务监听的端口号
@@ -41,6 +44,7 @@ public extension Environment {
         /// 初始化环境配置，仅在 ``Whooshing.Env`` 为 `.independentDebug(...)` 时才可能使用
         /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
         /// - Parameters:
+        ///   - id: 模块 ID，又名 moduleId，仅用于模块区分，与 Inline 模块的 ServiceId 不同，切勿混用。所有三个子模块(https, inline, api)的模块 ID 必须相同
         ///   - name: 模块名称，所有三个子模块(https, inline, api)的模块名称必须相同
         ///   - hostname: 服务监听地址
         ///   - port: 服务监听端口
@@ -50,6 +54,7 @@ public extension Environment {
         ///   - log: 日志输出配置，若指定为 nil(仅测试及独立开发环境)，则在用户目录下创建 ~/whooshing_logs/项目名_logs 文件夹
         ///   - driverKeys: 要注入的驱动列表
         public init(
+            id: UUID,
             name: String,
             port: Int = 6500,
             hostname: String = "127.0.0.1",
@@ -59,6 +64,7 @@ public extension Environment {
             log: Log? = nil,
             driverKeys: [any DriverKey.Type] = [],
         ) {
+            self.id = id
             self.name = name
             self.port = port
             self.hostname = hostname
@@ -81,6 +87,7 @@ public extension Environment {
             }
             
             return [
+                "id": AnyCodable(id),
                 "name": AnyCodable(name),
                 "port": AnyCodable(port),
                 "hostname": AnyCodable(hostname),
@@ -207,7 +214,7 @@ public extension Environment {
             ///   - name: 数据库服务的名称
             ///   - user: 连接用户名
             ///   - password: 连接密码
-            ///   - testingHost: 用于连接数据库的主机名，只有测试时会使用。
+            ///   - testingHost: 用于连接数据库的主机名，只有测试时会使用。PostgreSQL 生产环境仅允许运行在本地
             ///   - fileStorageKey: 文件存储系统的加密密钥，为 nil 表示不支持文件加密系统
             public init(
                 name: String,
@@ -270,7 +277,6 @@ public extension Environment {
             )
         }
         
-        /// 永远不应直接调用
         public var config: SQLPostgresConfiguration {
             .init(
                 hostname: "localhost",

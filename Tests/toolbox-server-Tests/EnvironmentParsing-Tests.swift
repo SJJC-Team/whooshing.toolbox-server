@@ -17,6 +17,7 @@ struct EnvironmentParsingTests {
     @Test("测试环境变量读取")
     func testEnvironmentDetect() async throws {
         let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            "WHOOSHING_API_SERVICE_ID": "C59C74DC-AF7F-4497-854B-75561D9FE995",
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
@@ -55,6 +56,7 @@ struct EnvironmentParsingTests {
                     "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_PASSWORD": "woo_test_2_2",
                     "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_FILE_STORAGE_KEY": "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI=",
         ][key] }
+        #expect(project.id.uuidString == "C59C74DC-AF7F-4497-854B-75561D9FE995")
         #expect(project.name == "Testing Project")
         #expect(project.domain == "testing.whooshing.space")
         #expect(project.port == 7777)
@@ -89,6 +91,7 @@ struct EnvironmentParsingTests {
     @Test("测试环境变量读取2")
     func testEnvironmentDetect2() async throws {
         let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            "WHOOSHING_API_SERVICE_ID": "C59C74DC-AF7F-4497-854B-75561D9FE995",
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
@@ -124,6 +127,7 @@ struct EnvironmentParsingTests {
                     "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_USER": "woo_2_2",
                     "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_PASSWORD": "woo_test_2_2",
         ][key] }
+        #expect(project.id.uuidString == "C59C74DC-AF7F-4497-854B-75561D9FE995")
         #expect(project.name == "Testing Project")
         #expect(project.domain == "testing.whooshing.space")
         #expect(project.port == 7777)
@@ -157,6 +161,7 @@ struct EnvironmentParsingTests {
     @Test("测试环境变量读取3")
     func testEnvironmentDetect3() async throws {
         let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            "WHOOSHING_API_SERVICE_ID": "C59C74DC-AF7F-4497-854B-75561D9FE995",
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
@@ -185,6 +190,7 @@ struct EnvironmentParsingTests {
                     "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_USER": "woo_2_2",
                     "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_2_PASSWORD": "woo_test_2_2",
         ][key] }
+        #expect(project.id.uuidString == "C59C74DC-AF7F-4497-854B-75561D9FE995")
         #expect(project.name == "Testing Project")
         #expect(project.domain == nil)
         #expect(project.port == 7777)
@@ -219,6 +225,7 @@ struct EnvironmentParsingTests {
     func testEnvironmentDetect4() async throws {
         #expect(throws: Environment.Errcase.ErrType.self, performing: {
             let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+                "WHOOSHING_API_SERVICE_ID": "C59C74DC-AF7F-4497-854B-75561D9FE995",
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_PORT": "7777",
                 "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
@@ -253,6 +260,7 @@ struct EnvironmentParsingTests {
     func testEnvironmentDetect5() async throws {
         #expect(throws: Environment.Errcase.ErrType.self, performing: {
             let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+                "WHOOSHING_API_SERVICE_ID": "C59C74DC-AF7F-4497-854B-75561D9FE995",
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_PORT": "7777",
                 "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
@@ -287,6 +295,7 @@ struct EnvironmentParsingTests {
     func testEnvironmentDetect6() async throws {
         #expect(throws: Environment.Errcase.ErrType.self, performing: {
             let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+                "WHOOSHING_API_SERVICE_ID": "C59C74DC-AF7F-4497-854B-75561D9FE995",
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_PORT": "7777",
                 "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
@@ -318,6 +327,7 @@ struct EnvironmentParsingTests {
     func testEnvironmentDetect7() async throws {
         #expect(throws: Environment.Errcase.ErrType.self, performing: {
             let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+                "WHOOSHING_API_SERVICE_ID": "C59C74DC-AF7F-4497-854B-75561D9FE995",
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_PORT": "7777",
                 "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
@@ -344,6 +354,7 @@ struct EnvironmentParsingTests {
     @Test("测试环境变量读取8")
     func testEnvironmentDetect8() async throws {
         let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            "WHOOSHING_API_SERVICE_ID": "C59C74DC-AF7F-4497-854B-75561D9FE995",
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_DOMAIN": "testing.whooshing.space",
@@ -359,6 +370,7 @@ struct EnvironmentParsingTests {
             
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "0",
         ][key] }
+        #expect(project.id.uuidString == "C59C74DC-AF7F-4497-854B-75561D9FE995")
         #expect(project.name == "Testing Project")
         #expect(project.domain == "testing.whooshing.space")
         #expect(project.port == 7777)
@@ -371,6 +383,7 @@ struct EnvironmentParsingTests {
     @Test("测试环境变量读取9")
     func testEnvironmentDetect9() async throws {
         let project = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+            "WHOOSHING_API_SERVICE_ID": "C59C74DC-AF7F-4497-854B-75561D9FE995",
             "WHOOSHING_API_SERVICE_NAME": "Testing Project",
             "WHOOSHING_API_SERVICE_PORT": "7777",
             "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",
@@ -387,6 +400,7 @@ struct EnvironmentParsingTests {
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
         ][key] }
+        #expect(project.id.uuidString == "C59C74DC-AF7F-4497-854B-75561D9FE995")
         #expect(project.name == "Testing Project")
         #expect(project.domain == nil)
         #expect(project.port == 7777)
@@ -409,6 +423,7 @@ struct EnvironmentParsingTests {
     func testEnvironmentDetect10() async throws {
         #expect(throws: Environment.Errcase.ErrType.self, performing: {
             let _ = try Environment.Config.parse(prefix: "WHOOSHING_API_SERVICE") { key in [
+                "WHOOSHING_API_SERVICE_ID": "C59C74DC-AF7F-4497-854B-75561D9FE995",
                 "WHOOSHING_API_SERVICE_NAME": "Testing Project",
                 "WHOOSHING_API_SERVICE_PORT": "7777",
                 "WHOOSHING_API_SERVICE_MANAGER_URL": "https://example.com",

@@ -6,6 +6,7 @@ struct ApiService {
     static func bootstrap() async throws -> Whooshing<Api>.BootstrapParas {
         let testPara = Api.Debuging(
             config: .init(
+                id: ServiceBootstrap.moduleId,
                 name: "testing-module",
                 port: TestingShared.apiListenPort
             )

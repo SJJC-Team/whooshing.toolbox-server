@@ -8,6 +8,7 @@ struct InlineService {
         let testPara = Inline.Debuging(
             rootKey: TestingShared.rootKey,
             config: .init(
+                id: ServiceBootstrap.moduleId,
                 name: "testing-module",
                 port: TestingShared.inlineListenPort
             ),

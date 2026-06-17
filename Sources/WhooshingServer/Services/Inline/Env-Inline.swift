@@ -9,6 +9,8 @@ import OrderedCollections
 extension Inline {
     @usableFromInline
     struct ServicePara {
+        /// 服务 ID，用于 Inline 连接的合法性验证，被 internal 保护，不应被外界读取
+        /// 与 Environment.Config 的 moduleId 不同，切勿混用
         @usableFromInline
         let serviceId: UUID
     }

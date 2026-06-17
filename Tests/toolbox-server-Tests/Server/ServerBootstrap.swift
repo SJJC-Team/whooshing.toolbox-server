@@ -6,6 +6,8 @@ import Logging
 import LoggingAdvanced
 
 struct ServiceBootstrap {
+    static let moduleId = UUID("F02F2803-BF88-4B51-A743-B3AA0F3FF804")!
+    
     static func run<T>(woo: Whooshing<T>) async throws {
         do {
             try await woo.execute().get()
