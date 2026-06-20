@@ -1,9 +1,6 @@
 import Testing
-@testable import WhooshingServer
-import Vapor
 import Foundation
-import WhooshingClient
-import NIOFileSystem
+@testable import WhooshingServer
 
 @Suite("Api 文件传输测试集", .serialized)
 struct ApiFileTests {

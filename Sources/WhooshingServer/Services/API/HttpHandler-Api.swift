@@ -1,10 +1,4 @@
 import Vapor
-import NIO
-import NIOAdvanced
-import Logging
-import Cryptos
-import ErrorHandle
-import DataConvertable
 import WhooshingClient
 
 /// 该文件实现了 API 模块接收和发出的加密机制 Socket 流处理

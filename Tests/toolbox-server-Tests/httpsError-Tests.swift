@@ -1,11 +1,6 @@
 import Testing
-@testable import WhooshingServer
-import Vapor
 import Foundation
-import WhooshingClient
-import NIOFileSystem
-import NIOPosix
-import ErrorHandle
+@testable import WhooshingServer
 
 @Suite("Https HTTP 当传输遇到错误的处理测试集", .serialized)
 struct HttpsErrorTests {

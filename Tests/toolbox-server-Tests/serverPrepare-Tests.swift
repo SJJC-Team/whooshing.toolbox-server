@@ -1,10 +1,6 @@
 import Testing
-@testable import WhooshingServer
-import Vapor
 import Foundation
-import WhooshingClient
-import WhooshingWebSocket
-import NIOPosix
+@testable import WhooshingServer
 
 @Suite("准备 Server", .serialized)
 struct ServerPrepare {

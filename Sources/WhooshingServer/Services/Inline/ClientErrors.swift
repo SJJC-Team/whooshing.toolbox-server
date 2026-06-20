@@ -1,4 +1,3 @@
-import ErrorHandle
 import WhooshingClient
 
 @frozen

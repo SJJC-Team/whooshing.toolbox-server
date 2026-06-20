@@ -1,6 +1,5 @@
 import Foundation
 import Vapor
-import Collections
 import OrderedCollections
 
 /// INLINE 模块初始化时将会从环境变量中读取为自己分配的服务 ID

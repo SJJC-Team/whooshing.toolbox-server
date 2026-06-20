@@ -15,14 +15,13 @@ let package = Package(
         .library( name: "WhooshingServer", targets: ["WhooshingServer"] )
     ],
     dependencies: [
-        .package(url: "https://github.com/whooshing-workshop/whooshing-vapor.git", from: "1.1.2"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing-vapor.git", from: "1.1.3"),
         .package(url: "https://github.com/whooshing-workshop/whooshing-fluent.git", from: "1.0.3"),
-        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git", from: "1.5.10"),
-        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.2.8"),
-        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-websocket.git", from: "1.1.5"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git", from: "1.6.0"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.3.0"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-websocket.git", from: "1.1.6"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.10.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-system", from: "1.7.2"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.9.1")
     ],
     targets: [
@@ -39,7 +38,6 @@ let package = Package(
                 .product(name: "WhooshingWebSocket", package: "whooshing.toolbox-websocket"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
-                .product(name: "SystemPackage", package: "swift-system"),
                 .product(name: "Logging", package: "swift-log")
             ],
             swiftSettings: [

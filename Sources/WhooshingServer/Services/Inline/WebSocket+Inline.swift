@@ -1,7 +1,5 @@
-import WhooshingClient
-import WhooshingWebSocket
-import Logging
 import Vapor
+import WhooshingWebSocket
 
 final class InlineWebSocket: WhooshingWebSocket, StorageKey, Sendable {
     typealias Value = InlineWebSocket

@@ -1,10 +1,6 @@
 import Testing
-@testable import WhooshingServer
-import Vapor
 import Foundation
-import WhooshingClient
-import WhooshingWebSocket
-import NIOPosix
+@testable import WhooshingServer
 
 @Suite("Api WebSocket 测试集", .serialized)
 struct ApiWebSocketTests {

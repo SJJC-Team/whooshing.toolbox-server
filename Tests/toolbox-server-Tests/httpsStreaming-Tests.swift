@@ -1,9 +1,6 @@
 import Testing
-@testable import WhooshingServer
-import Vapor
 import Foundation
-import WhooshingClient
-import AsyncAlgorithms
+@testable import WhooshingServer
 
 @Suite("Https 流网络通讯测试集", .serialized)
 struct HttpsStreamingTests {

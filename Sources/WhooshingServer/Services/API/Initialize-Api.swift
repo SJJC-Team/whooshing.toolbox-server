@@ -1,9 +1,4 @@
 import Vapor
-import Cryptos
-import ErrorHandle
-import DataConvertable
-import NIO
-import Logging
 import WhooshingClient
 
 public enum Api: ServiceType {

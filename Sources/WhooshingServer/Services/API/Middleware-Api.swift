@@ -1,10 +1,4 @@
 import Vapor
-import Cryptos
-import ErrorHandle
-import DataConvertable
-import NIO
-import NIOAdvanced
-import Logging
 import WhooshingClient
 
 extension Api {

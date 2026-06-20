@@ -1,10 +1,4 @@
 import Vapor
-import WhooshingClient
-import Cryptos
-import ErrorHandle
-import DataConvertable
-import NIO
-import Logging
 import WhooshingWebSocket
 
 public extension Whooshing where Service == Inline {

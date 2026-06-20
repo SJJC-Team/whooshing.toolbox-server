@@ -1,9 +1,6 @@
 import Testing
-@testable import WhooshingServer
-import Vapor
 import Foundation
-import AsyncAlgorithms
-import WhooshingClient
+@testable import WhooshingServer
 
 @Suite("Api 流网络通讯测试集", .serialized)
 struct ApiStreamingTests {

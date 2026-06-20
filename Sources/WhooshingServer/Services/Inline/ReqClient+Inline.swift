@@ -1,10 +1,4 @@
 import Vapor
-import ErrorHandle
-import DataConvertable
-import NIOCore
-import Logging
-import Cryptos
-import NIOAdvanced
 import WhooshingClient
 
 /// 该文件实现了发送加密请求的功能。由于目标模块的加密算法并非传统的 HTTPS，

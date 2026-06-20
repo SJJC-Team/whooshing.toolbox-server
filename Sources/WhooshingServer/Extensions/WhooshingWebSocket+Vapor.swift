@@ -1,7 +1,5 @@
-import WhooshingClient
-import WhooshingWebSocket
-import Logging
 import Vapor
+import WhooshingWebSocket
 
 public extension ApiWebSocket {
     /// Vapor 环境下的初始化方式。

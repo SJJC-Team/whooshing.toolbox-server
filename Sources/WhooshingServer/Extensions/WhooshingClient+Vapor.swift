@@ -1,7 +1,5 @@
-import WhooshingClient
 import Vapor
-import NIOAdvanced
-import AsyncAlgorithms
+import WhooshingClient
 
 extension HTTPResponse: @retroactive AsyncResponseEncodable {
     @inlinable

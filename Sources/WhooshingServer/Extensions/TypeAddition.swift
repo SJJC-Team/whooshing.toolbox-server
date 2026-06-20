@@ -1,7 +1,4 @@
 import Vapor
-import DataConvertable
-import Cryptos
-import NIO
 import WhooshingClient
 
 extension Data: @retroactive AsyncResponseEncodable {}

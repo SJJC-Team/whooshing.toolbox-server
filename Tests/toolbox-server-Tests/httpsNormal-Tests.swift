@@ -1,8 +1,6 @@
 import Testing
-@testable import WhooshingServer
-import Vapor
 import Foundation
-import WhooshingClient
+@testable import WhooshingServer
 
 @Suite("Https 基本网络通讯测试集", .serialized)
 struct HttpsNormalTests {

@@ -1,7 +1,5 @@
 import Testing
-import Vapor
 import Foundation
-import OrderedCollections
 @testable import WhooshingServer
 
 @Suite("环境变量解析测试集", .serialized)

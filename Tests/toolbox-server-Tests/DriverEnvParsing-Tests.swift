@@ -1,8 +1,5 @@
 import Testing
-import Vapor
 import Foundation
-import LoggingAdvanced
-import OrderedCollections
 @testable import WhooshingServer
 
 extension Environment.Config {
