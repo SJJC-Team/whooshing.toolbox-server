@@ -447,12 +447,17 @@ extension Whooshing {
                 }
             }
             let service = Self(app: app, config: config, debugingData: debugPara, logger: logger.derive(subId: "woo"))
+            app.middleware.use(RouteEndErrorHandler())
             do {
                 try await conf(service)
             } catch {
                 let err = Self.Errcase.serviceInitFailed.subErr(error, category: .internal)
                 service.logger.report(error: err)
-                try? await service.asyncShutdown().get()
+                do {
+                    try await service.asyncShutdown().get()
+                } catch {
+                    service.logger.warning("Service 异常退出时的二次清理发生故障: \(error)")
+                }
                 throw err
             }
             return service

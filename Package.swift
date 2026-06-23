@@ -15,7 +15,7 @@ let package = Package(
         .library( name: "WhooshingServer", targets: ["WhooshingServer"] )
     ],
     dependencies: [
-        .package(url: "https://github.com/whooshing-workshop/whooshing-vapor.git", from: "1.1.4"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing-vapor.git", from: "1.1.5"),
         .package(url: "https://github.com/whooshing-workshop/whooshing-fluent.git", from: "1.0.3"),
         .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git", from: "1.6.2"),
         .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.3.1"),

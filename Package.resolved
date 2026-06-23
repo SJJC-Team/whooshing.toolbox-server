@@ -1,5 +1,5 @@
 {
-  "originHash" : "6d907502d809d97b47447ae633af90f2f8a1c426c4e64490bd2a4cd5ae3775f1",
+  "originHash" : "14be78214b28cc34760ea8bf72515ca263575ad55d047a944f2899b576be4f54",
   "pins" : [
     {
       "identity" : "anycodable",
@@ -330,8 +330,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/whooshing-workshop/whooshing-vapor.git",
       "state" : {
-        "revision" : "d83c5121c3880fee6c0378d82fd1b90e8a9aac13",
-        "version" : "1.1.4"
+        "revision" : "1c2e4df37347d91032627bb163f4bf51c0a427e7",
+        "version" : "1.1.5"
       }
     },
     {
