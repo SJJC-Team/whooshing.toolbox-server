@@ -46,12 +46,12 @@ extension Inline {
             do {
                 if let key = app.inlineServiceData.connectionKeys[id] {
                     logger.debug("使用已有密钥解密通讯")
-                    req = try required(throws: CryptoErrcase.requestDecryptFailed) {
+                    req = try required(throws: CryptoErrcase.requestDecryptFailed, category: .internal) {
                         try Crypto.Symm.decrypt(request, key: key.key).get()
                     }
                 } else {
                     logger.debug("首次请求，使用根密钥解密")
-                    req = try required(throws: CryptoErrcase.requestDecryptFailed) {
+                    req = try required(throws: CryptoErrcase.requestDecryptFailed, category: .internal) {
                         try Crypto.Symm.decrypt(request, key: app.inlineServiceData.rootKey.key).get()
                     }
                 }
@@ -74,12 +74,12 @@ extension Inline {
                 // 若 key 存在，但 validate 不存在，则仍然使用 rootKey 加密
                 if let key = app.inlineServiceData.connectionKeys[id], let _ = app.inlineServiceData.connectionValidate[id] {
                     logger.debug("使用已有密钥进行加密")
-                    res = try required(throws: CryptoErrcase.responseEncryptFailed) {
+                    res = try required(throws: CryptoErrcase.responseEncryptFailed, category: .internal) {
                         try Crypto.Symm.encrypt(response, key: key.key).get()
                     }
                 } else {
                     logger.debug("首次发送响应，使用根密钥加密响应")
-                    res = try required(throws: CryptoErrcase.responseEncryptFailed) {
+                    res = try required(throws: CryptoErrcase.responseEncryptFailed, category: .internal) {
                         try Crypto.Symm.encrypt(response, key: app.inlineServiceData.rootKey.key).get()
                     }
                 }

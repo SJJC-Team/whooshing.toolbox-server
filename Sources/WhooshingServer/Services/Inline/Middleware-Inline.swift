@@ -15,7 +15,7 @@ extension Inline {
         
         func respond(to req: Request, chainingTo next: any Responder) -> EventLoopFuture<Response> {
             guard let channel = req.channel else {
-                return req.eventLoop.makeFailedFuture(Errcase.internalFailure.d("未找到 Channel"))
+                return req.eventLoop.makeFailedFuture(Errcase.internalFailure.d("未找到 Channel", category: .internal))
             }
             
             let id = ObjectIdentifier(channel)
@@ -41,11 +41,11 @@ extension Inline {
         @Sendable private func keyExchange(req: Request, id: ObjectIdentifier) -> EventLoopResult<Response, Failure> {
             req.eventLoop.submitResult { () throws(Failure) in
                 req.logger.debug("Inline.Server-与客户端密钥交换: 解包对方的公钥")
-                let pubKeyData = try required(throws: Errcase.jsonDecodeFailed, "对方公钥解析失败") {
+                let pubKeyData = try required(throws: Errcase.jsonDecodeFailed, "对方公钥解析失败", category: .internal) {
                     try req.content.decode(JSONData.self).data
                 }
                 
-                let pubKey = try required(throws: Errcase.keyDecodeFailed) {
+                let pubKey = try required(throws: Errcase.keyDecodeFailed, category: .internal) {
                     try Crypto.Asym.CPublicKey.make(data: pubKeyData).get()
                 }
                 
@@ -53,7 +53,7 @@ extension Inline {
                 let keyPair = Crypto.Asym.makeCryptoKeyPair()
                 
                 req.logger.debug("Inline.Server-与客户端密钥交换: 计算共享密钥")
-                let sharedKey = try required(throws: Errcase.keyEncapsulateFailed) {
+                let sharedKey = try required(throws: Errcase.keyEncapsulateFailed, category: .inherit) {
                     try Crypto.Asym.keyEncapsulate(
                         key: keyPair.private,
                         partyPublic: pubKey,
@@ -76,19 +76,19 @@ extension Inline {
             req.eventLoop.submitResult { () throws(Failure) in
                 req.application.inlineServiceData.connectionValidate[id] = false
                 req.logger.debug("Inline.Server-与客户端服务验证: 取得对方的服务 ID")
-                let serviceId = try required(throws: Errcase.jsonDecodeFailed, "对方服务 ID 解析失败") {
+                let serviceId = try required(throws: Errcase.jsonDecodeFailed, "对方服务 ID 解析失败", category: .internal) {
                     try UUID.make(data: req.content.decode(JSONData.self).data).get()
                 }
                 
                 req.logger.debug("Inline.Server-与客户端服务验证: 判断该 ID 是否可信")
                 guard serviceId != self.serviceId else {
-                    throw Errcase.serviceAuthFailed.d("请求来源的服务 ID 与本服务一致")
+                    throw Errcase.serviceAuthFailed.d("请求来源的服务 ID 与本服务一致", category: .internal)
                 }
                 
                 guard
                     req.application.inlineServiceData.moduleDatas.contains(where: { $0.serviceId == serviceId })
                 else {
-                    throw Errcase.serviceAuthFailed.d("请求来源的服务 ID 不在受信任列表中")
+                    throw Errcase.serviceAuthFailed.d("请求来源的服务 ID 不在受信任列表中", category: .internal)
                 }
                 
                 req.logger.debug("Inline.Server-与客户端服务验证: 设置标志位")

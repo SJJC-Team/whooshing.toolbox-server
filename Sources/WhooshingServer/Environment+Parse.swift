@@ -168,7 +168,7 @@ extension Environment.Template {
             extra: extra,
             nullable: false
         ) else {
-            throw Environment.Errcase.internalFailed.d(prefix ?? "<<No prefix>>")
+            throw Environment.Errcase.internalFailed.d(prefix ?? "<<No prefix>>", category: .inherit)
         }
         return res
     }
@@ -223,7 +223,7 @@ extension Environment.Template {
                 if optional || nullable {
                     return nil
                 } else {
-                    throw Environment.Errcase.missingKey.d(k)
+                    throw Environment.Errcase.missingKey.d(k, category: .external())
                 }
             }
             value = vv
@@ -236,14 +236,14 @@ extension Environment.Template {
             return value
             
         case .int(let type, _):
-            guard let v = type.init(value) else { throw Environment.Errcase.typeIncorrect.d(k) }
+            guard let v = type.init(value) else { throw Environment.Errcase.typeIncorrect.d(k, category: .external()) }
             return v
             
         case .base64String:
             return Base64String(value)
             
         case .base64Data:
-            return try required(throws: Environment.Errcase.parseFailed, k) {
+            return try required(throws: Environment.Errcase.parseFailed, k, category: .external()) {
                 try Base64String(value).dataRes.get()
             }
             
@@ -251,11 +251,11 @@ extension Environment.Template {
             return URI(string: value)
             
         case .url:
-            guard let v = URL(string: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
+            guard let v = URL(string: value) else { throw Environment.Errcase.typeIncorrect.d(k, category: .external()) }
             return v
             
         case .uuid:
-            guard let v = UUID(uuidString: value) else { throw Environment.Errcase.typeIncorrect.d(k) }
+            guard let v = UUID(uuidString: value) else { throw Environment.Errcase.typeIncorrect.d(k, category: .external()) }
             return v
             
         case .template(let template, _):
@@ -263,7 +263,7 @@ extension Environment.Template {
                 if optional || nullable {
                     return nil
                 } else {
-                    throw Environment.Errcase.missingKey.d(k)
+                    throw Environment.Errcase.missingKey.d(k, category: .external())
                 }
             }
             return v
@@ -275,7 +275,7 @@ extension Environment.Template {
                 if optional || nullable {
                     return nil
                 } else {
-                    throw Environment.Errcase.missingKey.d(k + "_COUNT")
+                    throw Environment.Errcase.missingKey.d(k + "_COUNT", category: .external())
                 }
             }
             
@@ -283,7 +283,7 @@ extension Environment.Template {
                 if optional || nullable {
                     return nil
                 } else {
-                    throw Environment.Errcase.typeIncorrect.d(k)
+                    throw Environment.Errcase.typeIncorrect.d(k, category: .external())
                 }
             }
             
@@ -304,7 +304,7 @@ extension Environment.Template {
                     if isItemOptional {
                         vs.append(nil)
                     } else {
-                        throw Environment.Errcase.missingKey.d("\(k)_\(i + 1)")
+                        throw Environment.Errcase.missingKey.d("\(k)_\(i + 1)", category: .external())
                     }
                 }
             }

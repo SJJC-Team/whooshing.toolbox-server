@@ -44,11 +44,11 @@ extension Inline {
                 let cipher: Data
                 logger?.debug("Inline.Client.HTTP-发送请求，进行加密(key: \(client.requestIoData.connectionKeys[id] != nil)) in \(context.channel.clientAddrInfo)")
                 if let key = client.requestIoData.connectionKeys[id] {
-                    cipher = try required(throws: RequestCryptoErrcase.requestEncryptFailed) {
+                    cipher = try required(throws: RequestCryptoErrcase.requestEncryptFailed, category: .internal) {
                         try Crypto.Symm.encrypt(data, key: key.key).get()
                     }
                 } else {
-                    cipher = try required(throws: RequestCryptoErrcase.requestEncryptFailed) {
+                    cipher = try required(throws: RequestCryptoErrcase.requestEncryptFailed, category: .internal) {
                         try Crypto.Symm.encrypt(data, key: client.requestIoData.rootKey.key).get()
                     }
                 }
@@ -67,11 +67,11 @@ extension Inline {
                 var plain: ByteBuffer
                 logger?.debug("Inline.Client.HTTP-收到响应，进行解密(key: \(client.requestIoData.connectionKeys[id] != nil)) in \(context.channel.clientAddrInfo)")
                 if let key = client.requestIoData.connectionKeys[id] {
-                    plain = try required(throws: RequestCryptoErrcase.responseDecryptFailed) {
+                    plain = try required(throws: RequestCryptoErrcase.responseDecryptFailed, category: .internal) {
                         try Crypto.Symm.decrypt(.init(buffer: data), key: key.key).get()
                     }
                 } else {
-                    plain = try required(throws: RequestCryptoErrcase.responseDecryptFailed) {
+                    plain = try required(throws: RequestCryptoErrcase.responseDecryptFailed, category: .internal) {
                         try Crypto.Symm.decrypt(.init(buffer: data), key: client.requestIoData.rootKey.key).get()
                     }
                 }

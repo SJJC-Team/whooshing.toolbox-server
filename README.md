@@ -42,7 +42,7 @@
 在你的 Package.swift 加入：
 
 ``` swift
-.package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-server.git", from: "1.2.6")
+.package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-server.git", from: "1.2.7")
 ```
 
 并在你所依赖的 target 中添加：

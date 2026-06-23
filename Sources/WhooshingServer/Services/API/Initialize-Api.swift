@@ -119,7 +119,7 @@ public enum Api: ServiceType {
             authenticationURL = .init(string: "http://testing.com")!
             debugAuth = debug.auth
         } else {
-            authenticationURL = try required(throws: Errcase.initFailed, "环境变量解析失败") {
+            authenticationURL = try required(throws: Errcase.initFailed, "环境变量解析失败", category: .inherit) {
                 try ServicePara.parse(prefix: "WHOOSHING_API_SERVICE_PRIVATE", driverKeys: driverKeys).authenticationURL
             }
             debugAuth = nil

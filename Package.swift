@@ -15,11 +15,11 @@ let package = Package(
         .library( name: "WhooshingServer", targets: ["WhooshingServer"] )
     ],
     dependencies: [
-        .package(url: "https://github.com/whooshing-workshop/whooshing-vapor.git", from: "1.1.3"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing-vapor.git", from: "1.1.4"),
         .package(url: "https://github.com/whooshing-workshop/whooshing-fluent.git", from: "1.0.3"),
-        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git", from: "1.6.0"),
-        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.3.0"),
-        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-websocket.git", from: "1.1.6"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git", from: "1.6.2"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.3.1"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-websocket.git", from: "1.1.7"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.10.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.9.1")

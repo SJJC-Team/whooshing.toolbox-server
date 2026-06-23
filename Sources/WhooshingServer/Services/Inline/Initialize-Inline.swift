@@ -84,7 +84,7 @@ public enum Inline: ServiceType {
                 "serviceId": serviceId,
                 "connection": connection
             ]
-            return .init(throws: Errcase.decodeFailed) {
+            return .init(throws: Errcase.decodeFailed, category: .inherit) {
                 try d.filtered.anyValue.dataRes.get()
             }
         }
@@ -92,7 +92,7 @@ public enum Inline: ServiceType {
         @inlinable
         public static func make(data: Data) -> Res<Self, Errcase> {
             .init { () throws(Errcase.ErrType) in
-                let paras = try required(throws: Errcase.encodeFailed, "类型擦除转换数据失败") {
+                let paras = try required(throws: Errcase.encodeFailed, "类型擦除转换数据失败", category: .inherit) {
                     try [String: AnyThrowableDataConvertable].make(data: data).get()
                 }
                 
@@ -110,10 +110,10 @@ public enum Inline: ServiceType {
             for field: String
         ) throws(Errcase.ErrType) -> T where T: EncodingThrowableDataConvertable {
             guard let data = paras[field] else {
-                throw Errcase.encodeFailed.d("\(field) 数据缺失")
+                throw Errcase.encodeFailed.d("\(field) 数据缺失", category: .external())
             }
             
-            let res = try required(throws: Errcase.encodeFailed) {
+            let res = try required(throws: Errcase.encodeFailed, category: .inherit) {
                 try data.cast(to: T.self).get()
             }
             
@@ -137,7 +137,7 @@ extension Inline {
             serviceId = debug.serviceId
         } else {
             woo.app.logger.debug("从环境变量中取得该服务模块的参数")
-            serviceId = try required(throws: Errcase.initFailed, "环境变量解析失败") {
+            serviceId = try required(throws: Errcase.initFailed, "环境变量解析失败", category: .inherit) {
                 try ServicePara.parse(prefix: "WHOOSHING_INLINE_SERVICE_PRIVATE", driverKeys: driverKeys).serviceId
             }
         }
@@ -180,22 +180,22 @@ extension Inline {
             woo.app.logger.debug("与模块管理器交互: 创建非对称公私钥")
             let keyPair = Crypto.Asym.makeCryptoKeyPair()
             woo.app.logger.debug("与模块管理器交互: 向模块管理器请求取得服务模块信息，首先将自己的公钥发出")
-            let res = try await required(throws: Errcase.initFailed, "向模块管理器请求失败") {
+            let res = try await required(throws: Errcase.initFailed, "向模块管理器请求失败", category: .inherit) {
                 try await woo.app.client.post(woo.config.managerUrl.toUri(with: "/params/init").uri) { postRequest in
                     try postRequest.content.encode(keyPair.public, as: .json)
                 }
             }
             guard res.status == .ok else {
-                throw Errcase.initFailed.d("请求模块管理器的结果为: \(res.status)")
+                throw Errcase.initFailed.d("请求模块管理器的结果为: \(res.status)", category: .internal)
             }
             
             woo.app.logger.debug("与模块管理器交互: 解包服务器回复")
-            let paras = try required(throws: Errcase.initFailed, "从模块管理器解包服务参数失败") {
+            let paras = try required(throws: Errcase.initFailed, "从模块管理器解包服务参数失败", category: .internal) {
                 try res.content.decode(InitParaRes.self)
             }
             
             woo.app.logger.debug("与模块管理器交互: 生成共享密钥")
-            let sharedKey = try required(throws: Errcase.initFailed, "密钥交换失败") {
+            let sharedKey = try required(throws: Errcase.initFailed, "密钥交换失败", category: .inherit) {
                 try Crypto.Asym.keyEncapsulate(
                     key: keyPair.private,
                     partyPublic: paras.pub.key,
@@ -205,12 +205,12 @@ extension Inline {
             }
             
             woo.app.logger.debug("与模块管理器交互: 解密得到服务根密钥")
-            rootKey = try required(throws: Errcase.initFailed, "根密钥数据解密失败") {
+            rootKey = try required(throws: Errcase.initFailed, "根密钥数据解密失败", category: .internal) {
                 try Crypto.Symm.decrypt(paras.root, key: sharedKey).get()
             }
             
             woo.app.logger.debug("与模块管理器交互: 保存到上下文")
-            let moduleDatas: [ModuleData] = try required(throws: Errcase.initFailed, "解码模块数据失败") {
+            let moduleDatas: [ModuleData] = try required(throws: Errcase.initFailed, "解码模块数据失败", category: .internal) {
                 try paras.modules.map { try Crypto.Symm.decrypt($0, key: sharedKey).get() }
             }
             

@@ -156,14 +156,14 @@ public final class Whooshing<Service>: WhooshingService, @unchecked Sendable whe
     /// 异步启动应用并监听请求（会阻塞直到关闭）
     @inlinable
     public func execute() async -> Result<Void, Failure> {
-        await .async(throws: Errcase.executionFailed) {
+        await .async(throws: Errcase.executionFailed, category: .internal) {
             try await app.execute()
         }
     }
     /// 异步关闭 Vapor 应用
     @inlinable
     public func asyncShutdown() async -> Result<Void, Failure> {
-        await .async(throws: Errcase.shutdownFailed) {
+        await .async(throws: Errcase.shutdownFailed, category: .internal) {
             try await app.asyncShutdown()
         }
     }
@@ -271,7 +271,7 @@ public extension Whooshing {
                     debugPara = dp
                     config = dp.config
                 } else {
-                    config = try required(throws: Self.Errcase.environmentFailed) {
+                    config = try required(throws: Self.Errcase.environmentFailed, category: .inherit) {
                         try Environment.get(with: Service.envPrefix, driverKeys: driverKeys)
                     }
                 }
@@ -279,7 +279,7 @@ public extension Whooshing {
                 if env == .testing {
                     fatalError("未提供调试数据，无法进入 testing 模式")
                 } else {
-                    config = try required(throws: Self.Errcase.environmentFailed) {
+                    config = try required(throws: Self.Errcase.environmentFailed, category: .inherit) {
                         try Environment.get(with: Service.envPrefix, driverKeys: driverKeys)
                     }
                 }
@@ -289,7 +289,7 @@ public extension Whooshing {
             initLogger.debug("准备日志轮转系统", metadata: ["directory": .stringConvertible(logDir)])
             
             let errorLogDir = logDir.appendingPathComponent("error_logs")
-            try required(throws: Errcase.loggingSystemFailed, metadata: ["directory": .stringConvertible(errorLogDir)]) {
+            try required(throws: Errcase.loggingSystemFailed, metadata: ["directory": .stringConvertible(errorLogDir)], category: .inherit) {
                 try strategies.append(
                     .init(
                         label: "error",
@@ -300,7 +300,7 @@ public extension Whooshing {
             }
             
             let businessLogDir = logDir.appendingPathComponent("business_logs")
-            try required(throws: Errcase.loggingSystemFailed, metadata: ["directory": .stringConvertible(businessLogDir)]) {
+            try required(throws: Errcase.loggingSystemFailed, metadata: ["directory": .stringConvertible(businessLogDir)], category: .inherit) {
                 try strategies.append(
                     .init(
                         label: "business",
@@ -408,7 +408,7 @@ extension Whooshing {
             
             initLogger.debug("准备 Vapor 实例")
 
-            let app = try await required(throws: Self.Errcase.vaporAppCreateFailed) {
+            let app = try await required(throws: Self.Errcase.vaporAppCreateFailed, category: .internal) {
                 try await Application.make(env)
             }
             app.logger = logger.derive(subId: "vapor")
@@ -450,7 +450,7 @@ extension Whooshing {
             do {
                 try await conf(service)
             } catch {
-                let err = Self.Errcase.serviceInitFailed.subErr(error)
+                let err = Self.Errcase.serviceInitFailed.subErr(error, category: .internal)
                 service.logger.report(error: err)
                 try? await service.asyncShutdown().get()
                 throw err

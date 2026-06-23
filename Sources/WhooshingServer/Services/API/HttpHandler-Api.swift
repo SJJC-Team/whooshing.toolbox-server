@@ -42,7 +42,7 @@ extension Api {
             do {
                 if let key = app.apiServiceData.clientKeys[id] {
                     logger.debug("使用已有密钥解密通讯")
-                    req = try required(throws: CryptoErrcase.requestDecryptFailed) {
+                    req = try required(throws: CryptoErrcase.requestDecryptFailed, category: .internal) {
                         try Crypto.Symm.decrypt(request, key: key.key).get()
                     }
                 } else {
@@ -71,12 +71,12 @@ extension Api {
                 // 使用 clientTokens 加密，是临时的，仅仅是作为服务器第一次响应时的加密密钥
                 if let key = app.apiServiceData.clientTokens[id] {
                     logger.debug("首次发送响应，使用该 client 的默认密钥加密响应")
-                    res = try required(throws: CryptoErrcase.responseEncryptFailed) {
+                    res = try required(throws: CryptoErrcase.responseEncryptFailed, category: .internal) {
                         try Crypto.Symm.encrypt(response, key: key.key).get()
                     }
                 } else if let key = app.apiServiceData.clientKeys[id] {
                     logger.debug("使用已有密钥进行加密")
-                    res = try required(throws: CryptoErrcase.responseEncryptFailed) {
+                    res = try required(throws: CryptoErrcase.responseEncryptFailed, category: .internal) {
                         try Crypto.Symm.encrypt(response, key: key.key).get()
                     }
                 } else {

@@ -1,5 +1,5 @@
 {
-  "originHash" : "576718801011ad794c7900a24d2171ee7d88cdcc7013e6aa2d34a9f6401eafc5",
+  "originHash" : "6d907502d809d97b47447ae633af90f2f8a1c426c4e64490bd2a4cd5ae3775f1",
   "pins" : [
     {
       "identity" : "anycodable",
@@ -330,8 +330,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/whooshing-workshop/whooshing-vapor.git",
       "state" : {
-        "revision" : "eef9de8c86f03aa2a7ea921b85799215b35208d1",
-        "version" : "1.1.3"
+        "revision" : "d83c5121c3880fee6c0378d82fd1b90e8a9aac13",
+        "version" : "1.1.4"
       }
     },
     {
@@ -339,8 +339,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git",
       "state" : {
-        "revision" : "f7cea8301197405efa3e67525b39bc19543c9156",
-        "version" : "1.6.0"
+        "revision" : "a77dacf42d676243a9ca6738eba21bc3f7b646eb",
+        "version" : "1.6.2"
       }
     },
     {
@@ -348,8 +348,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/whooshing-workshop/whooshing.toolbox-client",
       "state" : {
-        "revision" : "3a757ea0a1e673a859c4096805b6388f84d72774",
-        "version" : "1.3.0"
+        "revision" : "cef6d7f89faa88f78f85de7b7d9d1a295d0b0b57",
+        "version" : "1.3.1"
       }
     },
     {
@@ -357,8 +357,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/whooshing-workshop/whooshing.toolbox-websocket.git",
       "state" : {
-        "revision" : "cf9d506df123087502e68fc4d9d83089fdd726bd",
-        "version" : "1.1.6"
+        "revision" : "7f8cd83143b9826d2ae7a208fa481aae35d9b47d",
+        "version" : "1.1.7"
       }
     }
   ],
