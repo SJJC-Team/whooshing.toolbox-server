@@ -49,8 +49,7 @@ struct ApiService {
     }
     
     static func makeService(paras: Whooshing<Api>.BootstrapParas, inline: Whooshing<Inline>) async throws -> Whooshing<Api> {
-        let woo = try await Whooshing<Api>.make(paras, with: inline, with: nil).get()
-        woo.app.middleware.use(AuthGuardMiddleware())
+        let woo = try await Whooshing<Api>.make(paras, with: inline, with: nil, authGuard: AuthGuardMiddleware()).get()
         try routes(woo, app: woo.app)
         return woo
     }

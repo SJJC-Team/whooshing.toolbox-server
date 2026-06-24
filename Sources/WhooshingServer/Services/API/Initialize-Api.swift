@@ -124,6 +124,7 @@ public enum Api: ServiceType {
         _ woo: Whooshing<Api>,
         inlineClient: AnyWhooshingClient<InlineClientErrcase>,
         httpsServer: Whooshing<Https>?,
+        authGuard: Middleware,
         driverKeys: [any Environment.DriverKey.Type]
     ) async throws(Failure) {
         woo.app.http.server.configuration.serviceName = "API"
@@ -147,5 +148,7 @@ public enum Api: ServiceType {
         woo.app.middleware.use(GuardMiddleware(authenticationTarget: authenticationTarget, debugingAuth: debugAuth, httpsServer: httpsServer))
         woo.app.logger.debug("初始化服务数据")
         woo.app.storage[ServiceData.self] = .init(inlineClient: inlineClient)
+        woo.app.logger.debug("加载认证中间件")
+        woo.app.middleware.use(authGuard)
     }
 }
