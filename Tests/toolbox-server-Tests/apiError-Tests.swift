@@ -53,8 +53,7 @@ struct ApiErrorTests {
         #expect(res.status == .badRequest)
     }
     
-//    [HTTPMethod.POST, .PATCH, .PUT, .DELETE]
-    @Test("415-Send 请求体数据不合法", arguments: [HTTPMethod.POST])
+    @Test("415-Send 请求体数据不合法", arguments: [HTTPMethod.POST, .PATCH, .PUT, .DELETE])
     func errorCode415Test(method: HTTPMethod) async throws {
         for i in 0..<1000 {
             let res = try await client.send(method, to: "http://localhost:\(TestingShared.apiListenPort)/string-echo", headers: ["Authorization": String(i)])

@@ -2,6 +2,33 @@ import Vapor
 import WhooshingServer
 import Cryptos
 
+struct TestingAuthData: Content, Authenticatable {
+    let key: SendableSymmKey
+    let token: Token
+    
+    struct Token: Content {
+        let id: UUID
+        let userId: UUID
+        let credential: String
+        let token: String
+        
+        enum CodingKeys: String, CodingKey {
+            case id
+            case userId = "user_id"
+            case credential
+            case token
+        }
+    }
+}
+
+struct AuthGuardMiddleware: AsyncMiddleware {
+    func respond(to request: Request, chainingTo next: any AsyncResponder) async throws -> Response {
+        let data = try JSONDecoder().decode(TestingAuthData.self, from: request.apiAuthData)
+        request.auth.login(data)
+        return try await next.respond(to: request)
+    }
+}
+
 struct ApiService {
     static func bootstrap() async throws -> Whooshing<Api>.BootstrapParas {
         let testPara = Api.Debuging(
@@ -9,7 +36,8 @@ struct ApiService {
                 id: ServiceBootstrap.moduleId,
                 name: "testing-module",
                 port: TestingShared.apiListenPort
-            )
+            ),
+            authenticationTarget: .url(.init(string: "http://example.com")!)
         ) { authData in
             guard authData.credential.base64EncodedString() == TestingShared.apiClientCredential else { throw Abort(.badRequest, reason: "用户凭据无效") }
             return try Api.Debuging.testingTokenAuth(with: TestingShared.apiClientTokenStr, encrypted: authData.tokenEncrypted)
@@ -21,7 +49,8 @@ struct ApiService {
     }
     
     static func makeService(paras: Whooshing<Api>.BootstrapParas, inline: Whooshing<Inline>) async throws -> Whooshing<Api> {
-        let woo = try await Whooshing<Api>.make(paras, with: inline).get()
+        let woo = try await Whooshing<Api>.make(paras, with: inline, with: nil).get()
+        woo.app.middleware.use(AuthGuardMiddleware())
         try routes(woo, app: woo.app)
         return woo
     }
@@ -32,6 +61,17 @@ struct ApiService {
         }
 
         app.get("string-echo") { req in
+            let authData = try req.auth.require(TestingAuthData.self)
+            
+            guard
+                authData.token.id == Api.Debuging.tokenId,
+                authData.token.userId == Api.Debuging.userId,
+                authData.token.credential == Api.Debuging.credential,
+                authData.token.token == Api.Debuging.token
+            else {
+                throw Abort(.internalServerError, reason: "认证参数未正确加载")
+            }
+            
             let str = try req.query.decode(Query.self).value
             return str
         }

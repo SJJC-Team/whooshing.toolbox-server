@@ -381,13 +381,15 @@ extension Whooshing where Service == Api {
     /// - Parameters:
     ///   - paras: 启动参数，由 bootstrap() 函数取得
     ///   - inline: 预先构建的 Inline 服务
+    ///   - https: 若身份认证功能由本机提供，则必须提供 Https 服务实例，否则可留空，详见 Api.AuthenticationTarget 类型
     @inlinable
     public static func make(
         _ paras: BootstrapParas,
-        with inline: Whooshing<Inline>
+        with inline: Whooshing<Inline>,
+        with https: Whooshing<Https>?
     ) async -> Result<Whooshing<Service>, Failure> {
         await makeService(paras: paras) { woo throws(Api.Failure) in
-            try await Service.config(woo, inlineClient: inline.inlineClient, driverKeys: paras.driverKeys)
+            try await Service.config(woo, inlineClient: inline.inlineClient, httpsServer: https, driverKeys: paras.driverKeys)
         }
     }
 }

@@ -26,7 +26,7 @@ public enum Api: ServiceType {
     public struct Debuging: DebugConfig, Sendable {
         
         public typealias UserToken = SendableSymmKey
-        public typealias Auth = @Sendable (AuthExchangeData) throws -> UserToken
+        public typealias Auth = @Sendable (AuthExchangeData) throws -> (UserToken, ByteBuffer)
         /// 用户身份认证的机制回调函数
         ///
         /// 每次用户连线将会提供用户凭据 (``credential``) 和加密过的用户密钥 (``tokenEncrypted``)
@@ -68,6 +68,11 @@ public enum Api: ServiceType {
         /// 见 ``Environment.Config``
         public let config: Environment.Config
         
+        /// 指定用户身份认证的提供者
+        /// 指定 .itself 表示设置本机为认证提供者
+        /// 指定 .url("http://XXX") 表示设置该 url 为认证提供者
+        public let authenticationTarget: AuthenticationTarget
+        
         /// 提供参数初始化 Api 依赖参数
         ///
         /// - Parameters:
@@ -78,13 +83,16 @@ public enum Api: ServiceType {
         @inlinable
         public init(
             config: Environment.Config,
+            authenticationTarget: AuthenticationTarget,
             auth: @escaping Auth
         ) {
             self.config = config
+            self.authenticationTarget = authenticationTarget
             self.auth = auth
         }
         
-        /// 验证一个加密过后的用户密钥(encrypted)是否是由原密钥(origin)加密得来的
+        /// 验证一个加密过后的用户密钥(encrypted)是否是由原密钥(origin)加密且 Hash 得来的
+        /// 加密算法为 [origin 加密[origin hashed]] = encrypted
         ///
         /// - Parameters
         ///   - origin: 原用户密钥，为 256 bit(64 bytes) 数据的 base64 编码的字符串
@@ -94,12 +102,19 @@ public enum Api: ServiceType {
         /// - Throws
         ///   若 encrypted 并非为 origin 加密得到的，则抛出错误 "用户口令不正确"
         @inlinable
-        public static func testingTokenAuth(with origin: String, encrypted: Data) throws -> SendableSymmKey {
+        public static func testingTokenAuth(with origin: String, encrypted: Data) throws -> (SendableSymmKey, ByteBuffer) {
             let keyData = try Base64String(origin).dataRes.get()
             let key = SendableSymmKey(key: .init(data: keyData))
             let authData: Data = try Crypto.Symm.decrypt(encrypted, key: key.key).get()
-            guard keyData == authData else { throw Abort(.badRequest, reason: "用户口令不正确") }
-            return key
+            let keyHashed = Crypto.hash(keyData).data
+            guard keyHashed == authData else { throw Abort(.badRequest, reason: "用户口令不正确") }
+            let rawData: [String: AnyCodable] = [
+                "key": AnyCodable(key),
+                "token": AnyCodable(Self.fakeTokenData)
+            ]
+            var buffer = ByteBuffer()
+            try JSONEncoder().encode(rawData, into: &buffer)
+            return (key, buffer)
         }
     }
     
@@ -108,19 +123,20 @@ public enum Api: ServiceType {
     internal static func config(
         _ woo: Whooshing<Api>,
         inlineClient: AnyWhooshingClient<InlineClientErrcase>,
+        httpsServer: Whooshing<Https>?,
         driverKeys: [any Environment.DriverKey.Type]
     ) async throws(Failure) {
         woo.app.http.server.configuration.serviceName = "API"
         woo.app.logger.debug("从环境变量中取得该服务模块的参数")
         
-        let authenticationURL: URL
+        let authenticationTarget: AuthenticationTarget
         let debugAuth: Debuging.Auth?
         if let debug = woo.debugingData {
-            authenticationURL = .init(string: "http://testing.com")!
+            authenticationTarget = debug.authenticationTarget
             debugAuth = debug.auth
         } else {
-            authenticationURL = try required(throws: Errcase.initFailed, "环境变量解析失败", category: .inherit) {
-                try ServicePara.parse(prefix: "WHOOSHING_API_SERVICE_PRIVATE", driverKeys: driverKeys).authenticationURL
+            authenticationTarget = try required(throws: Errcase.initFailed, "环境变量解析失败", category: .inherit) {
+                try ServicePara.parse(prefix: "WHOOSHING_API_SERVICE_PRIVATE", driverKeys: driverKeys).authenticationTarget
             }
             debugAuth = nil
         }
@@ -128,7 +144,7 @@ public enum Api: ServiceType {
         woo.app.logger.debug("注册 HTTP IO 加密模块")
         woo.app.use(httpIOHandler: .init(HttpIOCrypto(app: woo)))
         woo.app.logger.debug("注册客户端身份验证中间件")
-        woo.app.middleware.use(GuardMiddleware(authenticationURL: authenticationURL, debugingAuth: debugAuth))
+        woo.app.middleware.use(GuardMiddleware(authenticationTarget: authenticationTarget, debugingAuth: debugAuth, httpsServer: httpsServer))
         woo.app.logger.debug("初始化服务数据")
         woo.app.storage[ServiceData.self] = .init(inlineClient: inlineClient)
     }

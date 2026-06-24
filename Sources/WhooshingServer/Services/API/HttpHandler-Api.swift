@@ -16,12 +16,13 @@ extension Api {
         case internalFailure = "内部错误"
     }
     
-    final class ServiceData: StorageKey, Sendable {
+    final class ServiceData: StorageKey, @unchecked Sendable {
         typealias Value = ServiceData
         unowned let inlineClient: AnyWhooshingClient<InlineClientErrcase>
         let clientKeys: SendableDictionary<ObjectIdentifier, SendableSymmKey> = .init()
         let clientTokens: SendableDictionary<ObjectIdentifier, SendableSymmKey> = .init()
-
+        let authDatas: SendableDictionary<ObjectIdentifier, ByteBuffer> = .init()
+        
         init(inlineClient: AnyWhooshingClient<InlineClientErrcase>) {
             self.inlineClient = inlineClient
         }
@@ -100,6 +101,7 @@ extension Api {
                 logger.debug("API.Server-连线结束", metadata: ["server_addr": .string(context.channel.serverAddrInfo)])
                 app.apiServiceData.clientKeys[id] = nil
                 app.apiServiceData.clientTokens[id] = nil
+                app.apiServiceData.authDatas[id] = nil
             }
             return context.eventLoop.makeSucceededVoidResult()
         }
