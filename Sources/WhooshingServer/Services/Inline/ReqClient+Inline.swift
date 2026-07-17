@@ -45,7 +45,7 @@ final class InlineClient: ReqClient<Inline.RequestIOCrypto>, WhooshingClient, @u
     @inlinable
     public func shutdown() async throws {
         logger?.info("Inline.Client-主动关闭连接", metadata: ["client_addr": .stringConvertible(channel?.clientAddrInfo ?? "released")])
-        await self.closeAll()
+        await self.close()
     }
     
     @inlinable
@@ -69,7 +69,7 @@ final class InlineClient: ReqClient<Inline.RequestIOCrypto>, WhooshingClient, @u
     deinit {
         Task { [weak self] in
             self?.logger?.debug("Inline.Client-主动关闭连接")
-            await self?.closeAll()
+            await self?.close()
         }
     }
 }

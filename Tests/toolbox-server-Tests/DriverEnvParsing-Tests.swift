@@ -115,6 +115,7 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
                 
@@ -124,6 +125,7 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_FILE_STORAGE_KEY": "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI=",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "2",
                 
@@ -160,6 +162,7 @@ struct DriverEnvParsingTests {
             "WHOOSHING_API_SERVICE_DB_SERVICES_COUNT": "2",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "1",
             
@@ -169,6 +172,7 @@ struct DriverEnvParsingTests {
                     "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_1_FILE_STORAGE_KEY": "9cCat+omad2WPRetG0VdqSdVhBPVz5kXJ2DssJtQshI=",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "2",
             
@@ -255,10 +259,12 @@ struct DriverEnvParsingTests {
             "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "0",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
             
@@ -291,9 +297,11 @@ struct DriverEnvParsingTests {
         #expect(project.managerUrl.absoluteString == "https://example.com")
         #expect(project.log.directory.absoluteString == "/User/tester/logfile.log")
         #expect(project.dbServices[0].id == .init(string: "service_1"))
+        #expect(project.dbServices[0].host == "example.host.com")
         #expect(project.dbServices[0].port == 5432)
         #expect(project.dbServices[0].dbs.count == 0)
         #expect(project.dbServices[1].id == .init(string: "service_2"))
+        #expect(project.dbServices[1].host == "example.host.com")
         #expect(project.dbServices[1].port == 5433)
         #expect(project.dbServices[1].dbs.count == 0)
         
@@ -330,10 +338,12 @@ struct DriverEnvParsingTests {
             "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "0",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
             
@@ -405,10 +415,12 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "0",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
                 
@@ -445,10 +457,12 @@ struct DriverEnvParsingTests {
             "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "0",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
             
@@ -513,10 +527,12 @@ struct DriverEnvParsingTests {
             "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "0",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
             
@@ -592,10 +608,12 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "0",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
                 
@@ -644,10 +662,12 @@ struct DriverEnvParsingTests {
                 "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "0",
                 
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_NAME": "service_2",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_2_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_PORT": "5433",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_2_DBS_COUNT": "0",
                 
@@ -669,6 +689,7 @@ struct DriverEnvParsingTests {
             "WHOOSHING_API_SERVICE_LOG_DIRECTORY": "/User/tester/logfile.log",
             
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_NAME": "service_1",
+                "WHOOSHING_API_SERVICE_DB_SERVICES_1_HOST": "example.host.com",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_PORT": "5432",
                 "WHOOSHING_API_SERVICE_DB_SERVICES_1_DBS_COUNT": "0",
             

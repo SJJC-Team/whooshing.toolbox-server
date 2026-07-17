@@ -5,6 +5,10 @@ import OrderedCollections
 /// API 模块初始化时将会从环境变量中读取认证模块的请求 URL
 /// 因为它的加密机制依赖于该参数
 
+/// Envs:
+///   - WHOOSHING_API_SERVICE_PRIVATE_AUTHENTICATION_TARGET_TYPE: "SELF"/"URL"
+///   - WHOOSHING_API_SERVICE_PRIVATE_AUTHENTICATION_TARGET_VALUE: URL?
+
 extension Api {
     public enum AuthenticationTarget: Sendable {
         case itself

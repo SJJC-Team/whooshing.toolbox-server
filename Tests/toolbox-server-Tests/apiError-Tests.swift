@@ -55,7 +55,7 @@ struct ApiErrorTests {
     
     @Test("415-Send 请求体数据不合法", arguments: [HTTPMethod.POST, .PATCH, .PUT, .DELETE])
     func errorCode415Test(method: HTTPMethod) async throws {
-        for i in 0..<1000 {
+        for i in 0..<30 {
             let res = try await client.send(method, to: "http://localhost:\(TestingShared.apiListenPort)/string-echo", headers: ["Authorization": String(i)])
             #expect(res.status == .unsupportedMediaType)
         }

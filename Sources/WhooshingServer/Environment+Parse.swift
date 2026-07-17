@@ -56,6 +56,7 @@ extension Environment.DBService: Environment.Template {
     @inlinable
     public static func withEnv(dic origin: inout OrderedDictionary<String, Environment.Types>) {
         origin["name"] = .string()
+        origin["host"] = .string()
         origin["port"] = .int()
         origin["dbs"] = .array(.template(Environment.DB.self))
     }
@@ -63,6 +64,7 @@ extension Environment.DBService: Environment.Template {
     @inlinable
     public init(data: [String : Any], driverKeys: [any Environment.DriverKey.Type], extra: [String: Any]) {
         self.id = .init(string: data["name"] as! String)
+        self.host = data["host"] as! String
         self.port = data["port"] as! Int
         self.dbs = data["dbs"] as! [Environment.DB]
     }
@@ -82,12 +84,12 @@ extension Environment.DB: Environment.Template {
         let keyData = data["file_storage_key"]
         self = Self.init(
             dbServiceId: .init(string: extra["name"] as! String),
+            host: extra["host"] as! String,
             port: extra["port"] as! Int,
             parameter: .init(
                 name: data["name"] as! String,
                 user: data["user"] as! String,
                 password: data["password"] as! String,
-                testingHost: nil,
                 fileStorageKey: keyData == nil ? nil : .new(data: keyData as! Data)
             )
         )

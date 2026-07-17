@@ -6,18 +6,18 @@ import NIOConcurrencyHelpers
 struct TestingShared {
     enum TestStage: Int {
         case serverPrepare
+        case httpsFile
+        case apiFile
         case enviromentParsing
         case driverEnvParsing
+        case apiNormal
+        case apiError
+        case apiStreaming
+        case apiWebSocket
         case httpsError
-        case httpsFile
         case httpsNormal
         case httpsStreaming
         case httpsWebSocket
-        case apiError
-        case apiFile
-        case apiNormal
-        case apiStreaming
-        case apiWebSocket
         case inlineError
         case inlineFile
         case inlineNormal

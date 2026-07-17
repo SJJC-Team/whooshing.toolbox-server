@@ -82,13 +82,13 @@ extension Inline {
                 
                 req.logger.debug("Inline.Server-与客户端服务验证: 判断该 ID 是否可信")
                 guard serviceId != self.serviceId else {
-                    throw Errcase.serviceAuthFailed.d("请求来源的服务 ID 与本服务一致", category: .internal)
+                    throw Errcase.serviceAuthFailed.d("请求来源的服务 ID 与本服务一致", category: .external())
                 }
                 
                 guard
                     req.application.inlineServiceData.moduleDatas.contains(where: { $0.serviceId == serviceId })
                 else {
-                    throw Errcase.serviceAuthFailed.d("请求来源的服务 ID 不在受信任列表中", category: .internal)
+                    throw Errcase.serviceAuthFailed.d("请求来源的服务 ID 不在受信任列表中", category: .external())
                 }
                 
                 req.logger.debug("Inline.Server-与客户端服务验证: 设置标志位")

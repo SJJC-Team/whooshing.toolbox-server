@@ -39,7 +39,13 @@ struct HttpsService {
     }
         
     static func routes(_ woo: Whooshing<WhooshingServer.Https>, app: Application) throws {
-
+        app.post("account", "authenticate") { req in
+            let authData = try req.content.decode(Api.AuthExchangeData.self)
+            guard authData.credential == TestingShared.apiClientCredential else { throw Abort(.badRequest, reason: "用户凭据无效") }
+            let (_, buffer) = try Api.Debuging.testingTokenAuth(with: TestingShared.apiClientTokenStr, encrypted: authData.tokenEncrypted)
+            return try JSONDecoder().decode(TestingAuthData.self, from: buffer)
+        }
+        
         struct Query: Content {
             let value: String
         }

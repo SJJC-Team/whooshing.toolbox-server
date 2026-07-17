@@ -18,7 +18,7 @@ let package = Package(
         .package(url: "https://github.com/whooshing-workshop/whooshing-vapor.git", from: "1.1.5"),
         .package(url: "https://github.com/whooshing-workshop/whooshing-fluent.git", from: "1.0.3"),
         .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-basic.git", from: "1.6.2"),
-        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.3.2"),
+        .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-client", from: "1.3.3"),
         .package(url: "https://github.com/whooshing-workshop/whooshing.toolbox-websocket.git", from: "1.1.7"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.10.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),

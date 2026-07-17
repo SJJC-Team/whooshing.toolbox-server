@@ -5,6 +5,9 @@ import OrderedCollections
 /// INLINE 模块初始化时将会从环境变量中读取为自己分配的服务 ID
 /// 因为它的加密机制依赖于该参数
 
+/// Envs:
+///   - WHOOSHING_INLINE_SERVICE_PRIVATE_SERVICE_ID: UUID
+
 extension Inline {
     @usableFromInline
     struct ServicePara {

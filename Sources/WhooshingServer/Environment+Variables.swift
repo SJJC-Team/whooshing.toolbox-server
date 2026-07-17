@@ -137,6 +137,8 @@ public extension Environment {
     struct DBService: Hashable, Sendable, CustomStringConvertible, Loggerable {
         /// 数据库名称
         public let id: DatabaseID
+        /// 用于连接数据库的主机名
+        public let host: String
         /// 数据库监听端口号
         public let port: Int
         /// 该数据库服务中的所有数据库名称
@@ -150,17 +152,20 @@ public extension Environment {
         /// 这些参数在非 `.independentDebug(...)` 模式下会自动从环境变量中读取
         /// - Parameters:
         ///   - name: 数据库服务的名称
+        ///   - host: 该数据库服务所在的主机
         ///   - databases: 该数据库服务中的所有数据库列表
         ///   - port: 监听端口
         ///   - dbParameters: 该数据库服务中的数据库的配置列表
         @inlinable
         public init(
             name: String,
+            host: String = "localhost",
             port: Int = 5432,
             dbParameters: [DB.Parameter] = []
         ) {
             let id = DatabaseID(string: name)
             self.id = id
+            self.host = host
             self.port = port
             self.dbs = dbParameters.map { parameter in
                 DB(dbServiceId: id, port: port, parameter: parameter)
@@ -187,6 +192,8 @@ public extension Environment {
         public let dbServiceId: DatabaseID
         /// 用于 Fluent 识别的数据库标识符
         public let id: DatabaseID
+        /// 用于连接数据库的主机名
+        public let host: String
         /// 数据库监听端口号
         public let port: Int
         /// 该数据库的参数配置
@@ -198,9 +205,6 @@ public extension Environment {
             public let name: String
             /// 用于连接数据库的用户名
             public let user: String
-            /// 用于连接数据库的主机名，只有测试时会使用。
-            /// PostgreSQL 生产环境仅允许运行在本地
-            public let testingHost: String?
             /// 文件存储系统的加密密钥，为 nil 表示不支持文件加密系统
             public let fileStorageKey: SendableSymmKey?
             /// 数据库访问密码（内部使用）
@@ -219,21 +223,18 @@ public extension Environment {
                 name: String,
                 user: String = "postgres",
                 password: String = "password",
-                testingHost: String? = nil,
                 fileStorageKey: SendableSymmKey? = nil
             ) {
                 self.name = name
                 self.user = user
                 self.password = password
-                self.testingHost = testingHost
                 self.fileStorageKey = fileStorageKey
             }
             
             @inlinable
             public var json: [String: AnyCodable] {[
                 "name": AnyCodable(name),
-                "user": AnyCodable(user),
-                "testing_host": AnyCodable(testingHost)
+                "user": AnyCodable(user)
             ]}
             
             @inlinable
@@ -245,11 +246,13 @@ public extension Environment {
         @usableFromInline
         internal init(
             dbServiceId: DatabaseID,
+            host: String = "localhost",
             port: Int = 5432,
             parameter: Parameter
         ) {
             self.dbServiceId = dbServiceId
             self.id = DatabaseID(string: "\(dbServiceId.string)/\(parameter.name)")
+            self.host = host
             self.port = port
             self.parameter = parameter
         }
@@ -260,8 +263,10 @@ public extension Environment {
 
             let host: String
             
-            if let h = parameter.testingHost, h != "localhost" {
-                host = h
+            // 如果用于测试的 db 服务在本机，则 Github CI 由于 docker 的部署问题，host 需要指定为 docker 网络域名
+            // 如果该服务在远端，则无需修改
+            if self.host != "localhost" {
+                host = self.host
             } else {
                 host = ProcessInfo.processInfo.environment["GITHUB_PG_TESTING_HOST"] ?? "localhost"
             }
@@ -278,7 +283,7 @@ public extension Environment {
         
         public var config: SQLPostgresConfiguration {
             .init(
-                hostname: "localhost",
+                hostname: host,
                 port: port,
                 username: parameter.user,
                 password: parameter.password,
@@ -291,6 +296,7 @@ public extension Environment {
         public var json: [String: AnyCodable] {[
             "db_service_id": AnyCodable(dbServiceId.string),
             "db_fluent_id": AnyCodable(id.string),
+            "host": AnyCodable(host),
             "port": AnyCodable(port),
             "parameter": AnyCodable(parameter.json)
         ]}

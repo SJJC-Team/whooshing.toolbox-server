@@ -31,7 +31,7 @@ enum Entrypoint {
         
         inlineApp = try await InlineService.makeService(paras: inlineBootstrapPara)
         httpsApp = try await HttpsService.makeService(paras: httpsBootstrapPara)
-        apiApp = try await ApiService.makeService(paras: apiBootstrapPara, inline: inlineApp)
+        apiApp = try await ApiService.makeService(paras: apiBootstrapPara, inline: inlineApp, https: httpsApp)
         
         try await withThrowingTaskGroup(of: WatchdogResult?.self) { group in
             

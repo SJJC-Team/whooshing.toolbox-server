@@ -37,19 +37,20 @@ struct ApiService {
                 name: "testing-module",
                 port: TestingShared.apiListenPort
             ),
-            authenticationTarget: .url(.init(string: "http://example.com")!)
-        ) { authData in
-            guard authData.credential.base64EncodedString() == TestingShared.apiClientCredential else { throw Abort(.badRequest, reason: "用户凭据无效") }
-            return try Api.Debuging.testingTokenAuth(with: TestingShared.apiClientTokenStr, encrypted: authData.tokenEncrypted)
-        }
-        
+//            authenticationMethod: .target(.url(.init(string: "http://localhost:6500")!)) // 需要先注释服务 ID 来源一致的判断代码
+            authenticationMethod: .target(.itself)
+//            authenticationMethod: .debugging { authData in
+//                guard authData.credential == TestingShared.apiClientCredential else { throw Abort(.badRequest, reason: "用户凭据无效") }
+//                return try Api.Debuging.testingTokenAuth(with: TestingShared.apiClientTokenStr, encrypted: authData.tokenEncrypted)
+//            }
+        )
         var logger = Logger(label: "server.api")
         logger.logLevel = TestingShared.logLevel
         return try await Whooshing<Api>.bootstrap(.independentDebug(testPara), logger: logger).get()
     }
     
-    static func makeService(paras: Whooshing<Api>.BootstrapParas, inline: Whooshing<Inline>) async throws -> Whooshing<Api> {
-        let woo = try await Whooshing<Api>.make(paras, with: inline, with: nil, authGuard: AuthGuardMiddleware()).get()
+    static func makeService(paras: Whooshing<Api>.BootstrapParas, inline: Whooshing<Inline>, https: Whooshing<Https>) async throws -> Whooshing<Api> {
+        let woo = try await Whooshing<Api>.make(paras, with: inline, with: https, authGuard: AuthGuardMiddleware()).get()
         try routes(woo, app: woo.app)
         return woo
     }
